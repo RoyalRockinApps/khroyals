@@ -13,6 +13,7 @@ import { JVM_ARGS, setJvmArgs } from '../plugins/withGradleMemory';
 const withArgs = (args: string[], env: Record<string, string> = {}) => {
   const [argv, saved] = [process.argv, { ...process.env }];
   process.argv = ['node', 'expo', ...args];
+  delete process.env.SCHOOL;   // Kingdom Heights unless a test picks a school
   Object.assign(process.env, env);
   try {
     return makeConfig({ config: appJson.expo });
