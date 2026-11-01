@@ -1,0 +1,217 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/give/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "give",
+  "title": "Give",
+  "sourceUrl": "https://wca-hsv.org/give/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Give"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Every Gift Counts"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-building-sign.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "When you donate to Westminster’s Annual Fund, you help to build a brighter future."
+    },
+    {
+     "type": "paragraph",
+     "text": "While tuition covers the yearly operating costs of the school, it does not provide for growth and support in certain areas. With Annual Fund donations like yours, we are able to expand our facilities and develop new programs to enrich the lives of our students and faculty."
+    },
+    {
+     "type": "button",
+     "label": "Give Today",
+     "url": "https://gcld.co/gXLyXlg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "The Annual Fund Makes an Impact..."
+    },
+    {
+     "type": "paragraph",
+     "text": "On the students, faculty, and programs at the heart of Westminster."
+    },
+    {
+     "type": "cards",
+     "items": [
+      {
+       "title": "Campus Growth",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-campus-growth.png"
+      },
+      {
+       "title": "Academic Programming",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-academic-programming.png"
+      },
+      {
+       "title": "Missions",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-missions.png"
+      },
+      {
+       "title": "Arts",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-arts.png"
+      },
+      {
+       "title": "Athletics",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-athletics.png"
+      },
+      {
+       "title": "Faculty Support",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-faculty-support.png"
+      },
+      {
+       "title": "Student Life",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-student-life.png"
+      },
+      {
+       "title": "Financial Access",
+       "text": "",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/icon-financial-access.png"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Because of Your Gifts"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Thanks to the generosity of our community, this year’s Annual Fund made a meaningful impact across both campuses by enhancing fine arts spaces, upgrading athletic facilities, improving campus safety, and investing in infrastructure that supports daily student life. We were also able to expand our transportation capabilities with the addition of new vans, making it easier to serve students across programs and campuses. Annual Fund gifts also provided need-based tuition assistance, helping more families access a Christ-centered education."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Thank You"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Thank you for supporting Westminster!"
+    },
+    {
+     "type": "paragraph",
+     "text": "Gifts like yours help us provide an exceptional academic experience in a Christ-centered environment; encouraging students to reach their highest potential through growth, spiritual formation, and service."
+    },
+    {
+     "type": "button",
+     "label": "Give Today",
+     "url": "https://gcld.co/DPWRGmg"
+    },
+    {
+     "type": "quote",
+     "text": "For where your treasure is, there your heart will be also. (Luke 12:34)"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-preschool-art.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Meet the Team"
+    },
+    {
+     "type": "cards",
+     "items": [
+      {
+       "title": "Laura Richeson",
+       "text": "Annual Fund Director",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/10/5572505.jpg"
+      },
+      {
+       "title": "Cheri Maddox",
+       "text": "Alumni Relations Coordinator",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/10/00642.jpg"
+      },
+      {
+       "title": "Michelle Benton",
+       "text": "Donor Database Management",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/10/00603.jpg"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "If you're looking for a community where your child can grow, we hope you’ll consider Westminster Christian Academy. We’re ready to partner with you so that your child will become a lifelong learner who is prepared for service in God’s world."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "type": "button",
+     "label": "About Us",
+     "url": "https://wca-hsv.org/about/"
+    },
+    {
+     "type": "button",
+     "label": "Our Difference",
+     "url": "https://wca-hsv.org/about/our-difference/"
+    }
+   ]
+  }
+ ]
+}

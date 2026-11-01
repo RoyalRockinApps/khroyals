@@ -1,0 +1,219 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/academics/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "academics",
+  "title": "Academics",
+  "sourceUrl": "https://wca-hsv.org/academics/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Academics"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-graduates-outside.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Academic Profile"
+    },
+    {
+     "type": "paragraph",
+     "text": "The academic program at Westminster Christian Academy provides students with the skills needed to succeed in college, technical careers, the military, and missions. All courses are taught by Christians who embrace and engage in the discipleship of students."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our teachers and curriculum, coupled with our safe and supportive environment, produce quality educational results."
+    },
+    {
+     "type": "paragraph",
+     "text": "We regularly have National Merit Scholars. Every year more than two-thirds of our seniors receive academic and athletic scholarships to major universities nationwide."
+    },
+    {
+     "type": "quote",
+     "text": "We teach here because it is a calling, not just a career! (Doug Madison, High School Math Teacher)"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/lower-campus-stem.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "WCA Educational Model"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "An engaged student learning environment",
+      "Exciting class offerings and instruction",
+      "STEM education for all grade levels",
+      "Academic support services",
+      "Advanced placement and dual-credit coursework at the Upper Campus",
+      "Integrated technology use in the classroom and beyond",
+      "Strong advisory program for grades 6-12"
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Campus Information"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Westminster’s Lower Campus serves elementary school students in Pre-K3 through 5th grade. The Upper Campus serves middle school students in 6th through 8th grade and high school students in 9th through 12th grade. While they share one campus, middle school and high school classes are typically held on different floors. The safety of our students is a top priority, and special measures are in place to ensure that our campuses are safe and secure."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus-sign.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Academic Support"
+    },
+    {
+     "type": "paragraph",
+     "text": "We offer routine testing, tutoring, and academic support to help our students reach their full potential on their educational journey. We offer classroom accommodations, school counseling, and executive functioning coaching to all of our students."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/second-graders-playground.jpg"
+    },
+    {
+     "type": "paragraph",
+     "text": "We are a covenantal school for all students, not just the academically elite. Therefore, we offer accommodations for students with all types of learning differences. A small-class pathway is available for those who thrive with more individualized instruction. With a small student-to-teacher ratio, students can move at a slower pace and get the extra attention and support they need."
+    },
+    {
+     "type": "paragraph",
+     "text": "Have questions about our Academic Support Program? Contact us for more information!",
+     "links": [
+      {
+       "label": "Contact us",
+       "url": "mailto:info@wca-hsv.org?subject=I'd Like Information on the WCA Academic Support Program"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Technology"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Technology in the Curriculum"
+    },
+    {
+     "type": "paragraph",
+     "text": "By integrating technology into our curriculum, we help students develop essential skills to succeed in college and the workplace. Students are expected to use these tools in a Christ-honoring manner. Once your child has been admitted, you will gain access to our Parent Portal, the Westminster HUB, where you can find more information on our technology policies and procedures."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/student-study-outside.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-tech-laptops.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Chromebook Program"
+    },
+    {
+     "type": "paragraph",
+     "text": "Students in 6th through 8th-grade will receive a Chromebook to use during the school year. These simple yet powerful devices give students access to the technology they need for learning and classroom collaboration while keeping their personal information safe. 9th through 12th-grade students will purchase a Chromebook through the school."
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "STEM Education"
+    },
+    {
+     "type": "paragraph",
+     "text": "STEM education at Westminster prepares students for innovation in any field by helping them think critically and challenge current standards. Our STEM classes provide hands-on learning and real-world application to help students develop creativity and 21st-century skills such as media and technology literacy, communication, and flexibility."
+    },
+    {
+     "type": "paragraph",
+     "text": "Through our STEM classes at the Lower Campus, students develop key skills including problem-solving and critical analysis. Students continually work their way through the STEM cycle with fun, hands-on projects. Lower Campus students will learn to code through Kodable and Code Spark. They also take part in the Hour of Code program sponsored by the Computer Science Education Week Advisory and Review Committees."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/student-science-lab.jpg"
+    },
+    {
+     "type": "paragraph",
+     "text": "Students at the Upper Campus will also participate in a Coding and Robotics class. Students will continue to sharpen their skills with the coding process using the programming websites Scratch and Code.org. Students will then use those skills to program LEGO® Robots using the LEGO® MINDSTORMS® Education EV3 curriculum. Each student will have an opportunity to create their own game and code their way through challenges throughout the course. In Robotics, students will learn a new coding skill and develop their robots by attaching a new piece to the robot every week. They will apply their newly learned skill in a weekly challenge."
+    },
+    {
+     "type": "paragraph",
+     "text": "STEM education at Westminster prepares students for success in any career, even those outside STEM fields because it develops decision-making skills, leadership, acceptance of failure, innovation, and so much more."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Download the Westminster School Academic Calendar"
+    },
+    {
+     "type": "button",
+     "label": "2026-2027 Calendar",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/04/Academic_Calendar_2026-2027.pdf"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Upper Campus",
+     "url": "https://wca-hsv.org/academics/upper-campus/"
+    },
+    {
+     "type": "button",
+     "label": "Lower Campus",
+     "url": "https://wca-hsv.org/academics/lower-campus/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

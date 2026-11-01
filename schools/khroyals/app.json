@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "KH Royals",
+    "slug": "khroyals",
+    "scheme": "khroyals",
+    "ios": {
+      "bundleIdentifier": "com.khroyals.app"
+    },
+    "android": {
+      "package": "com.khroyals.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./schools/khroyals/assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "icon": "./schools/khroyals/assets/icon.png",
+    "web": {
+      "favicon": "./schools/khroyals/assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/khroyals"
+    },
+    "extra": {
+      "school": "khroyals",
+      "supabaseUrl": "https://twmeenkvoedoryhterpf.supabase.co",
+      "supabaseKey": "sb_publishable_pcQNIbtqTwFStmRKIz1kbA_yo5XQvRX"
+    }
+  }
+}

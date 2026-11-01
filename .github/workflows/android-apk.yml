@@ -29,11 +29,18 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  # One APK per school (schools/), each its own app with its own data.
   build-apk:
-    name: Build APK
+    name: Build APK (${{ matrix.school }})
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        school: [khroyals, wca]
+    env:
+      SCHOOL: ${{ matrix.school }}
     steps:
       - uses: actions/checkout@v5
 
@@ -77,7 +84,7 @@ jobs:
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "out/khroyals-${GITHUB_SHA::7}.apk"
+             "out/${SCHOOL}-${GITHUB_SHA::7}.apk"
 
       # Only builds of main keep an APK, and only the newest successful one: once this one is
       # uploaded, every older APK is deleted. Pull request builds just prove it compiles.
@@ -85,7 +92,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: khroyals-android-apk
+          name: ${{ matrix.school }}-android-apk
           path: out/*.apk
           retention-days: 90
 
@@ -95,7 +102,8 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const old = (await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, name: 'khroyals-android-apk', per_page: 100 }))
+            const name = `${process.env.SCHOOL}-android-apk`;
+            const old = (await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, name, per_page: 100 }))
               .filter((a) => a.workflow_run?.id !== context.runId);
             for (const a of old) await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
             core.info(`Deleted ${old.length} older APK${old.length === 1 ? '' : 's'}.`);

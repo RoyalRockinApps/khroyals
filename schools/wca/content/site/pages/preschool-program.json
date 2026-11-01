@@ -1,0 +1,133 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/academics/preschool-program/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "preschool-program",
+  "title": "Preschool Program",
+  "sourceUrl": "https://wca-hsv.org/academics/preschool-program/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Preschool"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-preschool-field-day-playground.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Welcome to our Preschool Program"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-preschool-umbrellas.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Developing Skills, Growing in Faith"
+    },
+    {
+     "type": "paragraph",
+     "text": "Since 2014, we have been pleased to offer a program tailored to meet the needs of our youngest Wildcats! What began as one Pre-K4 classroom has now grown to include nine classrooms spanning Pre-K3 through Kindergarten. Our team includes a group of talented professionals, passionate about Early Childhood, serving in the roles of teachers, aides, fine arts specialists, and more."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Play, Learn & Grow"
+    },
+    {
+     "type": "paragraph",
+     "text": "Our days are filled with learning opportunities from the moment our Cubs enter the classroom. Students are greeted each day with meaningfully designed activities and interactions."
+    },
+    {
+     "type": "paragraph",
+     "text": "Each teacher follows a play-based curriculum, incorporating appropriate learning standards into intentionally prepared lessons, hands-on activities, and invitations to play. Students eat lunch in their classrooms each day and participate in two outdoor recesses, alongside their similarly aged peers."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-preschool-kids.png"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "An Early Start"
+    },
+    {
+     "type": "paragraph",
+     "text": "Our primary objective in the preschool program is to incorporate and promote our Student Core Values as a means of developing an early love of learning and a passion for the Word of God. Students are given the opportunity to experience these values through grade-level service projects, our weekly Preschool Chapel experience, and through the collaborative nature of our curriculum and classroom environment."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-preschool-building-blocks.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "A Sneak Peek at K3"
+    },
+    {
+     "type": "youtube",
+     "id": "Sx8FMga1t80",
+     "aspectRatio": 1.7777777777777777
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Please contact us today to schedule a tour."
+    },
+    {
+     "type": "button",
+     "label": "Schedule a Tour",
+     "url": "mailto:admissions@wca-hsv.org?subject=I'd%20Like%20to%20Schedule%20a%20Preschool%20Tour"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Admissions",
+     "url": "https://wca-hsv.org/admissions/"
+    },
+    {
+     "type": "button",
+     "label": "Athletics",
+     "url": "https://westminsterwildcats.org/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

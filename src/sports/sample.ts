@@ -25,7 +25,7 @@ export function sampleSports(now = new Date()) {
   const seasons = [
     { id: 'sample-vb-26', sportId: 'sample-vb', name: 'Fall season', startsOn: day(t, -75), endsOn: day(t, 13),
       signupOpens: null, signupCloses: null, minGrade: 6, maxGrade: 12,
-      details: 'Practice Monday–Thursday, 3:30–5:30 PM in the gym.', infoUrl: 'https://www.khroyals.com/s/2026-Volleyball-Season.pdf' },
+      details: 'Practice Monday–Thursday, 3:30–5:30 PM in the gym.', infoUrl: null },
     { id: 'sample-bb-26', sportId: 'sample-bb', name: 'Winter season', startsOn: day(t, 15), endsOn: day(t, 120),
       signupOpens: day(t, -6), signupCloses: day(t, 12), minGrade: 6, maxGrade: 12,
       details: 'Tryouts the first week. A sports physical is required before the first practice.', infoUrl: null },
@@ -40,11 +40,11 @@ export function sampleSports(now = new Date()) {
     id, seasonId, kind, title, startsAt: at(t, offset, hour), endsAt: null, location, home, notes: '', cancelled: false,
   });
   const events = [
-    event('sample-e1', 'sample-vb-26', 'game', 'vs. Westminster Christian', 2, 16, 'KH Gym', true),
-    event('sample-e2', 'sample-vb-26', 'practice', 'Practice', 3, 15, 'KH Gym', null),
+    event('sample-e1', 'sample-vb-26', 'game', 'vs. Randolph', 2, 16, 'Gym', true),
+    event('sample-e2', 'sample-vb-26', 'practice', 'Practice', 3, 15, 'Gym', null),
     event('sample-e3', 'sample-vb-26', 'game', 'at Randolph', 5, 17, 'Randolph School', false),
     event('sample-e4', 'sample-vb-26', 'tournament', 'Area tournament', 9, 9, 'Madison Academy', false),
-    event('sample-e5', 'sample-bb-26', 'tryout', 'Tryouts', 15, 15, 'KH Gym', null),
+    event('sample-e5', 'sample-bb-26', 'tryout', 'Tryouts', 15, 15, 'Gym', null),
     event('sample-e6', 'sample-musical-27', 'audition', 'Auditions', 20, 15, 'Dream Theatre', null),
     event('sample-e7', 'sample-musical-27', 'rehearsal', 'First read-through', 27, 15, 'Dream Theatre', null),
   ];

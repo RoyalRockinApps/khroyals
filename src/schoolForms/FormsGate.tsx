@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { errorText, isFamily, isSchoolStaff, live, session, type Person } from '../api/connect';
 import { Button, Card, H, Loading, P, s } from '../ui';
+import { SCHOOL } from '../school';
 
 /** Parents sign forms; faculty and staff send them (and sign for their own children). */
 export const usesForms = (p: Person | null | undefined) => !!p && !p.pending && !isFamily(p) && (p.schoolRole === 'parent' || isSchoolStaff(p));
@@ -28,6 +29,6 @@ export function FormsGate({ title, children }: { title: string; children: (me: P
     </Card>,
   );
   if (me.pending) return box(<Card><H>Waiting for approval</H><P muted>Forms open once the school office approves your account.</P></Card>);
-  if (!usesForms(me)) return box(<Card><H>For parents and staff</H><P muted>Forms go to the parents of Kingdom Heights students.</P></Card>);
+  if (!usesForms(me)) return box(<Card><H>For parents and staff</H><P muted>Forms go to the parents of {SCHOOL.name} students.</P></Card>);
   return <>{header}{children(me)}</>;
 }

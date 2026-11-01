@@ -1,9 +1,9 @@
 /**
  * The Student / Parent Handbook for the in-app reader, from text extracted from the
- * school's PDF (src/handbook/text.ts, made by scripts/import_handbook.swift).
+ * school's PDF (schools/<id>/handbook.ts, made by scripts/import_handbook.swift).
  * Page numbers are the PDF's.
  */
-import { HANDBOOK, HANDBOOK_SOURCE } from './text';
+import { HANDBOOK, HANDBOOK_SOURCE } from '@school/handbook';
 
 export { HANDBOOK_SOURCE };
 export type Block = { kind: 'heading' | 'text'; text: string };

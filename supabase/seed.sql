@@ -176,7 +176,7 @@ insert into public.comments (id, post_id, parent_comment_id, author_id, body, st
 insert into public.comments (id, post_id, parent_comment_id, author_id, body, status, is_answer, score, created_at) values (app.seed_id('c-011'), app.seed_id('p-025'), null, app.seed_id('u-couns'), 'It depends on your other commitments. 2–3 is typical; come by drop-in hours and we''ll plan it together.', 'published', true, 0, '2026-10-12T18:40:00-05:00') on conflict (id) do nothing;
 alter table public.posts enable trigger notify_post;
 
--- School calendar 2026–27 (from the official PDF via content/site/calendar.json)
+-- School calendar 2026–27 (from the official PDF via schools/khroyals/content/site/calendar.json)
 insert into public.events (id, title, starts_on, ends_on, all_day, category) values (app.seed_id('cal:ev-01'), 'Professional Development', '2026-07-27', '2026-07-30', true, 'Teacher In-Service') on conflict (id) do nothing;
 insert into public.events (id, title, starts_on, ends_on, all_day, category) values (app.seed_id('cal:ev-02'), 'Staff Development', '2026-08-03', '2026-08-06', true, 'Teacher In-Service') on conflict (id) do nothing;
 insert into public.events (id, title, starts_on, ends_on, all_day, category) values (app.seed_id('cal:ev-03'), 'Take-A-Peek', '2026-08-07', null, true, 'Special Student Day') on conflict (id) do nothing;

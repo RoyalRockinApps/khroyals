@@ -1,0 +1,162 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/about/our-story/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "our-story",
+  "title": "Our Story",
+  "sourceUrl": "https://wca-hsv.org/about/our-story/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Our Story"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-building-sign.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "The duty of God's people to tell the next generation"
+    },
+    {
+     "type": "paragraph",
+     "text": "In the spring of 1963, a small congregation in Huntsville, Alabama was inspired by Psalm 78:4, the call to “tell the next generation the praiseworthy deeds of the Lord, His power and the wonders He has done.”"
+    },
+    {
+     "type": "paragraph",
+     "text": "With limited resources but deep trust in God’s faithfulness, more than 50 members of Bible Presbyterian Church stepped out in faith to establish Westminster Christian Academy."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Presbyterian Day School"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "On the first Monday of January 1964, 18 kindergartners assembled for the first day of Presbyterian Day School. The children met in the Sunday School wing of the Bible Presbyterian Church at 3100 University Drive in Huntsville, Alabama. The children were taught by Mrs. Virginia Edgar who, along with her husband Charlie and a handful of other couples, believed that God was calling them to establish a Christian school. Pastor Paul Alexander served as the school's first principal."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/lower-campus-students-on-playground.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Our First Building"
+    },
+    {
+     "type": "paragraph",
+     "text": "One month later the congregation of the Bible Presbyterian Church, later changed to Westminster Presbyterian Church, voted to construct an education building to accommodate the school. That summer the officers of the church broke ground for the building that would house five classrooms and a teachers’ lounge. In the fall of that same year, the school expanded to include grades one and two, and enrollment increased to 75 students and three teachers. That was the humble beginning of Westminster Christian Academy."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus-building.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "A New Name"
+    },
+    {
+     "type": "paragraph",
+     "text": "Over the years the school continued to grow. In 1970 the school officially changed its name to Westminster Christian Academy. The new name sent a clear message: the school was now open to more than one denomination. By the fall of 1971, the school included grades nine and ten. Three more buildings were erected in the back of the church property to accommodate the growing student body."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "paragraph",
+     "text": "On November 28, 1973, a tornado struck the property and destroyed the church’s newly-built sanctuary. Disruption of classes and programs was minimized by the tremendous response of loyal parents, church members, and friends of both church and school. This blow to church and school did not deter the collective ministry. The church’s congregation voted to rebuild the damaged sanctuary as an all-purpose building open to church and school use."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "A Time for Growth"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "1970's A Year of Firsts 1974: First yearbook published and first graduating class of four seniors honored atop Monte Sano Late 1970s: Enrollment grows to more than 200 students 1979: Evangel Drive campus purchased (15.5 acres, 34,866 sq ft) School and church relocate to the new campus during Christmas break",
+      "A Year of Firsts 1974: First yearbook published and first graduating class of four seniors honored atop Monte Sano Late 1970s: Enrollment grows to more than 200 students 1979: Evangel Drive campus purchased (15.5 acres, 34,866 sq ft) School and church relocate to the new campus during Christmas break",
+      "1980's A Period of Growth Full-day kindergarten, computer science, and athletics programs added 1984: 20th anniversary celebrated and recognized by the City of Huntsville",
+      "A Period of Growth Full-day kindergarten, computer science, and athletics programs added 1984: 20th anniversary celebrated and recognized by the City of Huntsville",
+      "1990's Laying the Groundwork 1989–1992: Library, music room, offices, and gymnasium added 1991: Full accreditation granted 1994: Madison/Monrovia satellite campus opens and grows into a full elementary program",
+      "Laying the Groundwork 1989–1992: Library, music room, offices, and gymnasium added 1991: Full accreditation granted 1994: Madison/Monrovia satellite campus opens and grows into a full elementary program",
+      "2000's Building for the Future 2000: Meridianville satellite campus opens (later closes after 2006–07) 2002: “For the Generation to Come” campaign leads to purchase of 42-acre Brockway campus 2006: “Forward in Faith” campaign launches for Upper School construction 2008–2009: New Brockway campus completed and opens",
+      "Building for the Future 2000: Meridianville satellite campus opens (later closes after 2006–07) 2002: “For the Generation to Come” campaign leads to purchase of 42-acre Brockway campus 2006: “Forward in Faith” campaign launches for Upper School construction 2008–2009: New Brockway campus completed and opens",
+      "2010's Expanding Our Reach Continued campus expansion and program growth 2019: Baseball and softball complex dedicated",
+      "Expanding Our Reach Continued campus expansion and program growth 2019: Baseball and softball complex dedicated",
+      "2020's And Today Advancing Our Mission and Impact Enrollment grows to 900+ students across two campuses Campuses expand to more than 50 acres combined Student-to-faculty ratio of 10:1 with an average class size of 20 Strong academic outcomes with AP and dual enrollment opportunities Students attend top universities nationwide and participate in 17 athletic programs Ongoing campus improvements in fine arts, athletics, and safety Tuition assistance supports families and advances Westminster’s mission",
+      "Advancing Our Mission and Impact Enrollment grows to 900+ students across two campuses Campuses expand to more than 50 acres combined Student-to-faculty ratio of 10:1 with an average class size of 20 Strong academic outcomes with AP and dual enrollment opportunities Students attend top universities nationwide and participate in 17 athletic programs Ongoing campus improvements in fine arts, athletics, and safety Tuition assistance supports families and advances Westminster’s mission"
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "If you're looking for a community where your child can grow, we hope you’ll consider Westminster Christian Academy. We’re ready to partner with you so that your child will become a lifelong learner who is prepared for service in God’s world."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Our Leadership",
+     "url": "https://wca-hsv.org/about/our-leadership/"
+    },
+    {
+     "type": "button",
+     "label": "Admissions",
+     "url": "https://wca-hsv.org/admissions/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

@@ -1,4 +1,8 @@
-// app.json holds the app's settings; this adjusts three things at build time.
+// app.json holds the settings every school's app shares; this adjusts them at build time.
+//
+// 0. The school (SCHOOL, see schools/index.js; Kingdom Heights when unset): its
+//    schools/<id>/app.json goes on top (name, app IDs, link scheme, icons, web
+//    address, its own Supabase project), and the permission prompts name its app.
 //
 // 1. Developers can sign iPhone builds with their own Apple team under a
 //    separate app ID, so the real ID (com.khroyals.app) stays free for whoever
@@ -18,6 +22,28 @@
 //    the Mac's case-insensitive disk. Expo doesn't support baseUrl in native
 //    release bundles anyway.
 
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const { schoolDir, schoolId } = require('./schools');
+
+const isObject = (x) => x && typeof x === 'object' && !Array.isArray(x);
+/** `over` on top of `base`, object by object (arrays and values replace). */
+function merge(base, over) {
+  const out = { ...base };
+  for (const [k, v] of Object.entries(over)) out[k] = isObject(v) && isObject(base?.[k]) ? merge(base[k], v) : v;
+  return out;
+}
+/** Every string in the plugins' settings (permission prompts) with {appName} as this school's app name. */
+const renamePlugins = (plugins, name) => JSON.parse(JSON.stringify(plugins).split('{appName}').join(name));
+
+/** The shared settings with the school's on top. */
+function forSchool(config, env = process.env) {
+  const school = JSON.parse(readFileSync(join(schoolDir(schoolId(env)), 'app.json'), 'utf8')).expo;
+  const out = merge(config, school);
+  out.plugins = renamePlugins(config.plugins ?? [], school.name);
+  return out;
+}
+
 /** The platform being bundled into a native release build, or null. */
 function embeddingPlatform(argv = process.argv) {
   if (!argv.includes('export:embed')) return null;
@@ -26,7 +52,8 @@ function embeddingPlatform(argv = process.argv) {
   return argv.find((a) => a.startsWith('--platform='))?.split('=')[1] ?? null;
 }
 
-module.exports = ({ config }) => {
+module.exports = ({ config: shared }) => {
+  const config = forSchool(shared);
   const { baseUrl, ...experiments } = config.experiments ?? {};
   return {
     ...config,

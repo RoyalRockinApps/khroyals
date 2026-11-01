@@ -5,13 +5,14 @@
  */
 import * as Location from 'expo-location';
 import type { Spot } from '../api/connect';
+import { SCHOOL } from '../school';
 
 export class LocationError extends Error {}
 
 export async function currentSpot(): Promise<Spot> {
   const perm = await Location.requestForegroundPermissionsAsync();
   if (perm.status !== 'granted') {
-    throw new LocationError('Allow location for KH Royals so the school can confirm you\'re at pickup.');
+    throw new LocationError(`Allow location for ${SCHOOL.appName} so the school can confirm you're at pickup.`);
   }
   try {
     const p = await Promise.race([

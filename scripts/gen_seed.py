@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build supabase/seed.sql from the Royals Connect demo data (mock-db/comms) and
-the real 2026-27 school calendar (content/site/calendar.json).
+the real 2026-27 school calendar (schools/khroyals/content/site/calendar.json).
 
     python3 scripts/gen_seed.py
 
@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load = lambda name, key: json.load(open(os.path.join(ROOT, 'mock-db/comms', f'{name}.json')))[key]
 users, groups, memberships = load('users', 'users'), load('groups', 'groups'), load('memberships', 'memberships')
 posts, comments, roster = load('posts', 'posts'), load('comments', 'comments'), load('roster', 'roster')
-calendar = json.load(open(os.path.join(ROOT, 'content/site/calendar.json')))
+calendar = json.load(open(os.path.join(ROOT, 'schools/khroyals/content/site/calendar.json')))
 
 out = []
 w = out.append
@@ -121,7 +121,7 @@ for c in comments:
 
 w('alter table public.posts enable trigger notify_post;')
 
-w('\n-- School calendar 2026–27 (from the official PDF via content/site/calendar.json)')
+w('\n-- School calendar 2026–27 (from the official PDF via schools/khroyals/content/site/calendar.json)')
 for e in calendar['events']:
     w(f"insert into public.events (id, title, starts_on, ends_on, all_day, category) values "
       f"({sid('cal:' + e['id'])}, {q(e['title'])}, {q(e['date'])}, {q(e['endDate'])}, true, {q(e['category'])}) on conflict (id) do nothing;")

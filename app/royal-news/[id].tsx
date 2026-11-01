@@ -5,18 +5,19 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { getNewsletter, issueDate, type NewsBlock, type Span } from '../../src/api/connect';
 import { ReadingScroll } from '../../src/Reading';
 import { C, Card, Loading, P, s, useLoad } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 export default function Issue() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error } = useLoad(async () => ({ issue: await getNewsletter(id) }), [id]);
-  const header = <Stack.Screen options={{ title: 'Royal News' }} />;
-  if (error) return <View style={[s.screen, s.pad]}>{header}<P>Royal News didn't load: {error}</P></View>;
+  const header = <Stack.Screen options={{ title: SCHOOL.newsName }} />;
+  if (error) return <View style={[s.screen, s.pad]}>{header}<P>{SCHOOL.newsName} didn't load: {error}</P></View>;
   if (!data) return <>{header}<Loading /></>;
   const { issue } = data;
   if (!issue) return <View style={[s.screen, s.pad]}>{header}<P>That issue isn't here anymore.</P></View>;
 
   return (
-    <ReadingScroll doneLabel="Back to Royal News" doneHref="/royal-news" contentStyle={{ gap: 12 }}>
+    <ReadingScroll doneLabel={`Back to ${SCHOOL.newsName}`} doneHref="/royal-news" contentStyle={{ gap: 12 }}>
       {header}
       <View style={{ alignItems: 'center', gap: 2, paddingVertical: 6 }}>
         <Text style={{ fontSize: 28, fontWeight: '900', color: C.primary }} accessibilityRole="header">{issue.title}</Text>

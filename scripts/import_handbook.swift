@@ -1,17 +1,18 @@
-// Turns the school's Student / Parent Handbook PDF into src/handbook/text.ts,
+// Turns a school's Student / Parent Handbook PDF into schools/<school>/handbook.ts,
 // the text the Handbook reader shows and searches. macOS only (uses PDFKit):
 //
-//   swift scripts/import_handbook.swift                # the handbook linked on khroyals.com
-//   swift scripts/import_handbook.swift path/or/url.pdf
+//   swift scripts/import_handbook.swift                       # Kingdom Heights' handbook on khroyals.com
+//   SCHOOL=wca swift scripts/import_handbook.swift path/or/url.pdf
 //
-// Then check `npm test` (tests/handbook.test.ts) and commit src/handbook/text.ts.
+// Then check `npm test` (tests/handbook.test.ts) and commit the school's handbook.ts.
 import Foundation
 import PDFKit
 
 let defaultURL = "https://www.khroyals.com/s/KH-Student-Handbook-nj4p.pdf"
 let source = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : defaultURL
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-let output = root.appendingPathComponent("src/handbook/text.ts")
+let school = ProcessInfo.processInfo.environment["SCHOOL"] ?? "khroyals"
+let output = root.appendingPathComponent("schools/\(school)/handbook.ts")
 
 let url = source.hasPrefix("http") ? URL(string: source)! : URL(fileURLWithPath: source)
 guard let data = try? Data(contentsOf: url), let pdf = PDFDocument(data: data) else {

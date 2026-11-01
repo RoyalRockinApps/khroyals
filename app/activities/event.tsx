@@ -106,7 +106,7 @@ export default function EditSportEvent() {
           <TimeField label="Starts" value={start} onChange={setStart} initial="16:30" style={{ flex: 1 }} />
           <TimeField label="Ends (optional)" optional value={end} onChange={setEnd} initial={start || '18:00'} style={{ flex: 1 }} />
         </View>
-        <Field label="Where" placeholder={category === 'theater' || category === 'music' ? 'Dream Theatre' : 'KH Gym'} value={location} onChangeText={setLocation} />
+        <Field label="Where" placeholder={category === 'theater' || category === 'music' ? 'Dream Theatre' : 'Gym'} value={location} onChangeText={setLocation} />
         <Field label="Address (optional)" placeholder="429 Taylor Road, Huntsville, AL 35763" hint="For away games and other venues; Directions opens Maps."
           value={address} onChangeText={setAddress} maxLength={200} />
         {withHome && <View style={[s.row]}>{pill('Home', home === true, () => setHome(true))}{pill('Away', home === false, () => setHome(false))}</View>}

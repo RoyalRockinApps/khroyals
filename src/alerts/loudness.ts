@@ -14,6 +14,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { SCHOOL } from '../school';
 
 export const EMERGENCY_CHANNEL = 'emergency';
 export const BUZZ = [0, 600, 300, 600, 300, 600];
@@ -21,7 +22,7 @@ export const BUZZ = [0, 600, 300, 600, 300, 600];
 /** Create the app's notification channels (Android; a no-op elsewhere). Safe to call often. */
 export async function setUpChannels() {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync('default', { name: 'Royals Connect', importance: Notifications.AndroidImportance.HIGH });
+  await Notifications.setNotificationChannelAsync('default', { name: SCHOOL.connectName, importance: Notifications.AndroidImportance.HIGH });
   await Notifications.setNotificationChannelAsync(EMERGENCY_CHANNEL, {
     name: 'Emergency alerts',
     description: 'Severe weather, lockdowns and other emergencies from the school administration. Rings at alarm volume, even on silent.',
@@ -75,6 +76,6 @@ export async function offerDndAccess() {
   } catch { return; }
   Alert.alert('Emergency alerts',
     'Let school emergency alerts (lockdowns, severe weather) ring even when Do Not Disturb is on? '
-    + 'On the next screen, turn on Do Not Disturb access for KH Royals.',
+    + `On the next screen, turn on Do Not Disturb access for ${SCHOOL.appName}.`,
     [{ text: 'Not now', style: 'cancel' }, { text: 'Allow', onPress: () => { openDndAccess(); } }]);
 }

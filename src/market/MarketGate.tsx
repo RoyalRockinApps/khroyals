@@ -8,6 +8,7 @@ import { ScrollView, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { acceptMarketTerms, errorText, live, marketTerms, session, type MarketTerms, type Person } from '../api/connect';
 import { Button, Card, H, Loading, P, s } from '../ui';
+import { SCHOOL } from '../school';
 
 export function MarketGate({ title, children }: { title: string; children: (me: Person) => React.ReactNode }) {
   const [state, setState] = useState<{ me: Person | null; terms: MarketTerms | null } | undefined>();
@@ -35,12 +36,12 @@ export function MarketGate({ title, children }: { title: string; children: (me: 
   if (!me) return box(
     <Card>
       <H>Sign in to use the Marketplace</H>
-      <P muted>Buy and sell uniforms and school items with other Kingdom Heights families and staff.</P>
+      <P muted>Buy and sell uniforms and school items with other {SCHOOL.name} families and staff.</P>
       <Button label="Sign in" onPress={() => router.navigate('/connect')} />
     </Card>,
   );
   if (me.pending) return box(<Card><H>Waiting for approval</H><P muted>The Marketplace opens once the school office approves your account.</P></Card>);
-  if (!terms?.eligible) return box(<Card><H>For parents and staff</H><P muted>The Marketplace is for Kingdom Heights parents and staff.</P></Card>);
+  if (!terms?.eligible) return box(<Card><H>For parents and staff</H><P muted>The Marketplace is for {SCHOOL.name} parents and staff.</P></Card>);
   if (!terms.accepted) return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
       {header}

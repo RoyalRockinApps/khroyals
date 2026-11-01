@@ -10,38 +10,45 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   isFamily, isSchoolStaff, isSubstitute, listAlerts, me, myAccess, onAuthChange, session, subscribeAlerts, type CriticalAlert, type Person,
 } from '../../src/api/connect';
+import { TILES } from '@school/tiles';
 import { alertKind } from '../../src/alerts/kinds';
+import { PAGES } from '../../src/handbook/handbook';
 import { visibleTiles, type TileRules } from '../../src/appTiles';
 import { NewsCarousel } from '../../src/site/NewsCarousel';
 import { GOLD, NAVY } from '../../src/sports/ui';
+import { SCHOOL } from '../../src/school';
 import { useStaffViewSetting } from '../../src/staffView';
 import { CONTENT_MAX, C, s, useContentWidth } from '../../src/ui';
 
-/** A tile shows its own artwork or an Ionicons glyph; who sees it is in src/appTiles.ts. */
-type App = { label: string; color: string; href: Href } & TileRules
-  & ({ icon: ComponentProps<typeof Ionicons>['name'] } | { image: ImageSourcePropType });
+/**
+ * A tile shows the school's artwork for it (schools/<id>/tiles.ts) or else an Ionicons glyph;
+ * who sees it is in src/appTiles.ts.
+ */
+type App = { label: string; color: string; href: Href; icon: ComponentProps<typeof Ionicons>['name']; image?: ImageSourcePropType } & TileRules;
 
-const APPS: App[] = [
-  { label: 'Sub Days', icon: 'briefcase', color: '#0A1F4D', href: '/sub', subOnly: true, sub: true },
+const ALL_APPS: App[] = [
+  { label: 'Sub Days', icon: 'briefcase', color: SCHOOL.theme.dark, href: '/sub', subOnly: true, sub: true },
   { label: 'Alerts', icon: 'warning', color: '#B42318', href: '/alerts', staffOnly: true },
-  { label: 'Car Line', image: require('../../assets/apps/carline.png'), color: '#0A1F4D', href: '/carline', staffVersion: true, student: false },
-  { label: 'Student', image: require('../../assets/apps/student.png'), color: '#0A1F4D', href: '/student', family: false, inStaffView: false },
-  { label: 'Calendar', image: require('../../assets/apps/calendar.png'), color: '#0A1F4D', href: '/calendar', sub: true },
-  { label: 'My Calendar', icon: 'calendar-number', color: '#0A1F4D', href: '/my-calendar', staffOnly: true },
-  { label: 'Attendance', icon: 'clipboard', color: '#0A1F4D', href: '/attendance', staffOnly: true },
-  { label: 'News', image: require('../../assets/apps/news.png'), color: '#0A1F4D', href: '/news', sub: true, inStaffView: false },
-  { label: 'Photos', icon: 'images', color: '#0A1F4D', href: '/photos' },
-  { label: 'Activities', image: require('../../assets/apps/activities.png'), color: '#0A1F4D', href: '/activities' },
-  { label: 'Marketplace', image: require('../../assets/apps/market.png'), color: '#0A1F4D', href: '/market', family: false, student: false, inStaffView: false },
-  { label: 'Volunteer', image: require('../../assets/apps/volunteer.png'), color: '#0A1F4D', href: '/volunteer', student: false, inStaffView: false },
-  { label: 'Forms', icon: 'document-text', color: '#0A1F4D', href: '/forms', family: false, student: false, staffVersion: true },
-  { label: 'Handbook', image: require('../../assets/apps/handbook.png'), color: '#0A1F4D', href: '/handbook', sub: true, inStaffView: false },
-  { label: 'Ask the School', image: require('../../assets/apps/questions.png'), color: '#0A1F4D', href: '/questions', family: false, student: false, staffVersion: true },
-  { label: 'Ask the Teacher', image: require('../../assets/apps/teachers.png'), color: '#0A1F4D', href: '/teachers', family: false, studentApp: true },
-  { label: 'Assignments', image: require('../../assets/apps/assignments.png'), color: '#0A1F4D', href: '/assignments', family: false, studentApp: true },
-  { label: 'Feedback', icon: 'chatbubble-ellipses', color: '#0A1F4D', href: '/feedback', sub: true },
+  { label: 'Car Line', image: TILES.carline, icon: 'car', color: SCHOOL.theme.dark, href: '/carline', staffVersion: true, student: false },
+  { label: 'Student', image: TILES.student, icon: 'school', color: SCHOOL.theme.dark, href: '/student', family: false, inStaffView: false },
+  { label: 'Calendar', image: TILES.calendar, icon: 'calendar', color: SCHOOL.theme.dark, href: '/calendar', sub: true },
+  { label: 'My Calendar', icon: 'calendar-number', color: SCHOOL.theme.dark, href: '/my-calendar', staffOnly: true },
+  { label: 'Attendance', icon: 'clipboard', color: SCHOOL.theme.dark, href: '/attendance', staffOnly: true },
+  { label: 'News', image: TILES.news, icon: 'newspaper', color: SCHOOL.theme.dark, href: '/news', sub: true, inStaffView: false },
+  { label: 'Photos', icon: 'images', color: SCHOOL.theme.dark, href: '/photos' },
+  { label: 'Activities', image: TILES.activities, icon: 'basketball', color: SCHOOL.theme.dark, href: '/activities' },
+  { label: 'Marketplace', image: TILES.market, icon: 'pricetags', color: SCHOOL.theme.dark, href: '/market', family: false, student: false, inStaffView: false },
+  { label: 'Volunteer', image: TILES.volunteer, icon: 'hand-left', color: SCHOOL.theme.dark, href: '/volunteer', student: false, inStaffView: false },
+  { label: 'Forms', icon: 'document-text', color: SCHOOL.theme.dark, href: '/forms', family: false, student: false, staffVersion: true },
+  { label: 'Handbook', image: TILES.handbook, icon: 'book', color: SCHOOL.theme.dark, href: '/handbook', sub: true, inStaffView: false },
+  { label: 'Ask the School', image: TILES.questions, icon: 'help-circle', color: SCHOOL.theme.dark, href: '/questions', family: false, student: false, staffVersion: true },
+  { label: 'Ask the Teacher', image: TILES.teachers, icon: 'chatbubbles', color: SCHOOL.theme.dark, href: '/teachers', family: false, studentApp: true },
+  { label: 'Assignments', image: TILES.assignments, icon: 'checkbox', color: SCHOOL.theme.dark, href: '/assignments', family: false, studentApp: true },
+  { label: 'Feedback', icon: 'chatbubble-ellipses', color: SCHOOL.theme.dark, href: '/feedback', sub: true },
   { label: 'Admin', icon: 'shield-checkmark', color: NAVY, href: '/admin', adminOnly: true },
 ];
+/** The Handbook only for a school whose handbook is in the app. */
+const APPS = ALL_APPS.filter((a) => a.href !== '/handbook' || PAGES.length > 0);
 
 /** The signed-in person (which apps they see depends on their role). */
 function usePerson() {
@@ -115,7 +122,7 @@ export default function Apps() {
             <View>
               <View style={{ width: 84, height: 84, borderRadius: 24, overflow: 'hidden', backgroundColor: a.color, alignItems: 'center', justifyContent: 'center',
                 borderWidth: a.elevated ? 3 : 0, borderColor: GOLD }}>
-                {'image' in a ? <Image source={a.image} style={{ width: a.elevated ? 78 : 84, height: a.elevated ? 78 : 84 }} accessible={false} />
+                {a.image ? <Image source={a.image} style={{ width: a.elevated ? 78 : 84, height: a.elevated ? 78 : 84 }} accessible={false} />
                   : <Ionicons name={a.icon} size={42} color="#fff" />}
               </View>
               {a.elevated && (

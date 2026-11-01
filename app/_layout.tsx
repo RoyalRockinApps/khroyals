@@ -11,7 +11,9 @@ import { offerDndAccess } from '../src/alerts/loudness';
 import { syncCarPass } from '../src/carline/carPass';
 import { enablePush, handleNotificationTaps } from '../src/comms/push';
 import { edgeLayout } from '../src/ScreenEdge';
-import { C } from '../src/ui';
+import { useFonts } from 'expo-font';
+import { FONT_FILES } from '@school/fonts';
+import { C, FONT_STYLE } from '../src/ui';
 
 // A screen opened straight from a link (khroyals://calendar, a web address, a notification
 // that starts the app) gets the tabs underneath it, so it always has a back button.
@@ -36,6 +38,8 @@ function usePush() {
 
 export default function Root() {
   usePush();
+  // The school's typeface, if it has one; screens use the phone's font until it has loaded.
+  useFonts(FONT_FILES);
   // Only approved accounts use the app: everyone else sees the welcome screen over it.
   const { gate, recheck } = useAccountGate();
   const open = gate === 'in';
@@ -52,7 +56,7 @@ export default function Root() {
   const board = useSegments()[0] === 'carline-board';
   const stack = (
     <Stack screenOptions={{
-      headerStyle: { backgroundColor: C.primary }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' },
+      headerStyle: { backgroundColor: C.primary }, headerTintColor: '#fff', headerTitleStyle: FONT_STYLE.title,
       // Back arrow only; otherwise iOS labels it with the tab group's route name, "(tabs)".
       headerBackButtonDisplayMode: 'minimal',
       // The page color around the centered content column on iPads and tablets.

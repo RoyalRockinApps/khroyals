@@ -5,6 +5,8 @@
  * so tests run it.
  */
 import { schoolToday } from '../calendar/past';
+import { UNIFORM } from '@school/uniform';
+import { SCHOOL } from '../school';
 import { gradeLabel } from '../comms/grades';
 
 type Day = { date: string; endDate: string | null; title: string; category: string };
@@ -30,10 +32,10 @@ export function schoolHour(now = new Date()) {
   }
 }
 
-/** "Good morning Ava!": a student's first name, else "Royal". */
+/** "Good morning Ava!": a student's first name, else the school's mascot ("Royal"). */
 export function greeting(hour: number, person?: { firstName?: string | null; schoolRole?: string | null } | null) {
   const part = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-  const name = person?.schoolRole === 'student' && person.firstName?.trim() ? person.firstName.trim() : 'Royal';
+  const name = person?.schoolRole === 'student' && person.firstName?.trim() ? person.firstName.trim() : SCHOOL.mascot;
   return `Good ${part} ${name}!`;
 }
 
@@ -121,23 +123,18 @@ export function dressFor(day: string, themes: DressTheme[], wearers: Wearer[] = 
   return shown.length ? { week: today.find((t) => t.week)?.week ?? null, themes: shown } : null;
 }
 
-const DAILY = {
-  boys: ['White, navy or light blue polo, or a white or light blue oxford', 'Khaki or navy pants or shorts', 'Black or brown belt if needed'],
-  girls: ['White, navy or light blue polo, or a white or light blue Peter Pan blouse', 'Khaki or navy pants or shorts, or an approved skirt, skort or jumper'],
-  shoes: 'Closed-toe shoes, mostly white, black, brown or navy. Sneakers are fine.',
+/** A school's uniform (schools/<id>/uniform.ts): what to wear on ordinary days and on Chapel day. */
+export type UniformRules = {
+  daily: { boys: string[]; girls: string[]; shoes: string };
+  chapel: { boys: string[]; girls: string[]; shoes: string };
+  /** The weekday of Chapel (0 Sunday … 6 Saturday). */
+  chapelDay: number;
+  /** Chapel details by grade band (grades: K2 = −3 … 12th = 12). */
+  chapelBands: { from: number; to: number; label: string; text: string }[];
+  peNote: string;
+  spiritNote: string;
+  guide: string;
 };
-const CHAPEL = {
-  boys: ['White or light blue oxford with a tie', 'Sweater vest or blazer (by grade)', 'Uniform pants', 'Black or brown belt if needed'],
-  girls: ['White or light blue Peter Pan blouse with a crossbow', 'Approved skirt, skort or jumper'],
-  shoes: 'Black, brown or navy dress shoes. No sneakers on Chapel Day.',
-};
-/** The Chapel uniform by grade band (grades: K2 = −3 … 12th = 12). */
-const CHAPEL_BANDS: { from: number; to: number; label: string; text: string }[] = [
-  { from: -3, to: -2, label: 'K2–K3', text: 'boys wear a tie, white oxford and khaki or navy pants; girls a Peter Pan blouse, crossbow, and navy polo dress or approved skort or jumper.' },
-  { from: -1, to: 5, label: 'K4–5th', text: 'boys wear the KHPS sweater vest over a white oxford; girls may wear the KHPS cardigan or vest.' },
-  { from: 6, to: 8, label: '6th–8th', text: 'boys wear the KHPS sweater vest over a plain white oxford, or the KHPS blazer; girls may wear the “at the knee” plaid or khaki pleated skirt, and the KHPS cardigan or vest.' },
-  { from: 9, to: 12, label: '9th–12th', text: 'the KHPS blazer is required.' },
-];
 
 /** Whose Chapel details to show: a grade, or a parent's child by name. */
 type Wearer = number | null | undefined | { name: string; grade: number | null | undefined };
@@ -152,27 +149,26 @@ export const names = (list: string[]) => list.length < 2 ? list.join('') : `${li
  * and pick the day's dress-up `themes` (Spirit Week) that apply to them.
  */
 export function uniformFor(today: string, events: Day[], wearers: Wearer[] = [], themes: DressTheme[] = []): Uniform | null {
-  if (noSchool(today, events)) return null;
-  const chapel = noon(today).getDay() === 3;
-  const base = chapel ? CHAPEL : DAILY;
+  if (noSchool(today, events) || !UNIFORM) return null;
+  const rules = UNIFORM;
+  const chapel = noon(today).getDay() === rules.chapelDay;
+  const base = chapel ? rules.chapel : rules.daily;
   const notes: string[] = [];
   if (chapel) {
-    for (const b of CHAPEL_BANDS) {
+    for (const b of rules.chapelBands) {
       const here = wearers.filter((w) => { const g = gradeOf(w); return g != null && g >= b.from && g <= b.to; });
       const who = here.flatMap((w) => (typeof w === 'object' && w ? [w.name] : []));
       if (here.length) notes.push(`${b.label}${who.length ? ` (${names(who)})` : ''}: ${b.text}`);
     }
   } else {
-    notes.push('On your PE days, wear the PE uniform with white or black athletic shoes.');
+    notes.push(rules.peNote);
   }
-  if (eventsToday(today, events).some((e) => /spirit/i.test(e.title))) notes.push('Spirit Day: Kingdom Heights sweatshirts are allowed.');
+  if (eventsToday(today, events).some((e) => /spirit/i.test(e.title))) notes.push(rules.spiritNote);
   return {
     kind: chapel ? 'chapel' : 'daily', title: chapel ? 'Wednesday Chapel uniform' : 'Daily uniform', boys: base.boys, girls: base.girls,
     shoes: base.shoes, notes, dress: dressFor(today, themes, wearers),
   };
 }
 
-export const UNIFORM_GUIDE = 'https://www.khroyals.com/s/Uniform-Guide.pdf';
-
-/** Royal News, the newsletter emailed to families. Until the school gives its web address, the link opens the News page. */
-export const ROYAL_NEWS_URL: string | null = null;
+/** The school's Uniform Guide, or '' when it has none online. */
+export const UNIFORM_GUIDE = UNIFORM?.guide ?? '';

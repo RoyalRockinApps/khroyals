@@ -17,6 +17,7 @@ import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../src/ui';
 import { DateField, birthdayMax, birthdayMin, birthdayStart } from '../src/forms/DateTimeField';
 import { PickupPeople } from '../src/carline/PickupPeople';
 import { StudentLogin } from '../src/children/StudentLogin';
+import { SCHOOL } from '../src/school';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const fail = (e: any) => Alert.alert('Something went wrong', e.message);
@@ -127,7 +128,7 @@ function AddChild({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <H>Add a child</H>
-      <P muted>Children must be students at Kingdom Heights. The school office confirms each one.</P>
+      <P muted>Children must be students at {SCHOOL.name}. The school office confirms each one.</P>
       <View style={s.row}>
         <Field label="First name" autoComplete="off" value={first} onChangeText={setFirst} style={{ flex: 1, minWidth: 0 }} />
         <Field label="Last name" autoComplete="off" value={last} onChangeText={setLast} style={{ flex: 1, minWidth: 0 }} />
@@ -167,7 +168,7 @@ export default function Children() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const header = <Stack.Screen options={{ title: 'My children' }} />;
-  if (!live) return <View style={[s.screen, s.pad]}>{header}<P muted>Needs the school's Royals Connect account.</P></View>;
+  if (!live) return <View style={[s.screen, s.pad]}>{header}<P muted>Needs the school's {SCHOOL.connectName} account.</P></View>;
   if (person === undefined || !kids) return <>{header}<Loading /></>;
   if (person?.schoolRole === 'family') {
     return <View style={[s.screen, s.pad]}>{header}<Card><P>Family accounts don't manage children. The school office links the children you pick up; ask them to add or remove one.</P></Card></View>;

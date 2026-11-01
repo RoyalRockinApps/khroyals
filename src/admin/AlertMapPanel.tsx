@@ -11,6 +11,7 @@ import { deleteAccessPoint, errorText, importAccessPoints, listAccessPoints, sav
 import { currentAccessPoint } from '../alerts/locate';
 import { normalizeMac, parseApList, type ApRow } from '../alerts/whereabouts';
 import { Button, C, Card, Field, H, Loading, P, ask } from '../ui';
+import { SCHOOL } from '../school';
 
 const EMPTY: ApRow = { bssid: '', place: '', building: '', floor: '', notes: '' };
 const fail = (e: unknown) => Alert.alert('Alert map', errorText(e));
@@ -39,7 +40,7 @@ export function AlertMapPanel() {
   const remove = () => ask('Remove this access point?', `${form.place} (${editing})`, 'Remove',
     () => deleteAccessPoint(editing!).then(() => { setForm(EMPTY); setEditing(null); return load(); }).catch(fail));
   const useHere = () => currentAccessPoint().then((ap) => {
-    if (!ap.bssid) { Alert.alert('No access point', 'Connect this phone to the school Wi-Fi, and allow location for KH Royals, then try again.'); return; }
+    if (!ap.bssid) { Alert.alert('No access point', `Connect this phone to the school Wi-Fi, and allow location for ${SCHOOL.appName}, then try again.`); return; }
     const known = list.find((x) => x.bssid === ap.bssid);
     if (known) edit(known); else { setEditing(null); setForm({ ...EMPTY, bssid: ap.bssid }); }
     setHere(ap.ssid ? `Connected to ${ap.ssid}` : 'Connected');

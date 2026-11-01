@@ -10,11 +10,12 @@ import { pushRegistered } from '../comms/push';
 import { notifyLocal } from '../comms/localInbox';
 import { alertKind } from './kinds';
 import { BUZZ, EMERGENCY_CHANNEL } from './loudness';
+import { SCHOOL } from '../school';
 
 export async function pingStarted(a: CriticalAlert) {
   Vibration.vibrate(BUZZ);
   if (pushRegistered()) return;  // the push rings for it
-  await notifyLocal({ title: `${alertKind(a.kind).label}: ${a.title}`, body: a.body || 'Open KH Royals for details.', data: { alertId: a.id, kind: a.kind, critical: true }, sound: true },
+  await notifyLocal({ title: `${alertKind(a.kind).label}: ${a.title}`, body: a.body || `Open ${SCHOOL.appName} for details.`, data: { alertId: a.id, kind: a.kind, critical: true }, sound: true },
     { id: `alert-${a.id}`, channelId: EMERGENCY_CHANNEL }).catch(() => {});
 }
 

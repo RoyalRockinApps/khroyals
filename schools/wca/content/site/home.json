@@ -1,0 +1,220 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "home",
+  "title": "Home",
+  "sourceUrl": "https://wca-hsv.org/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "One Community"
+    },
+    {
+     "type": "button",
+     "label": "Request Information",
+     "url": "https://wca-hsv.myschoolapp.com/app/embed?svcid=edu#inquiry/133795"
+    }
+   ],
+   "background": {
+    "type": "video",
+    "hls": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-b-roll.mp4",
+    "thumbnail": "",
+    "background": true
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "paragraph",
+     "text": "Do you remember when going to school meant being part of a community? When parents and teachers worked together to ensure that students were safe, well-educated, and emotionally healthy?"
+    },
+    {
+     "type": "paragraph",
+     "text": "Do you remember when strong relationships were established, and God remained central to everything? At Westminster, you’ll find exactly what you’ve been missing –a thriving Christian school and a community for your family."
+    },
+    {
+     "type": "button",
+     "label": "Apply Today",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    },
+    {
+     "type": "quote",
+     "text": "Our job is to guide students to reach their full potential through academic and co-curricular preparation and strong Christian discipleship, to help them become leaders who know their identity in Christ, love and serve others, and do their best in every situation. (Kerry St. John, Director of Christian Life)"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-graduates.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "video",
+     "hls": "https://wca-hsv.org/wp-content/uploads/2026/06/WCA_061226.mp4",
+     "thumbnail": "",
+     "aspectRatio": 1.7777777777777777
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Welcome Home"
+    },
+    {
+     "type": "paragraph",
+     "text": "We understand that choosing the right school for your family is one of the most important decisions you’ll make. At Westminster Christian Academy, we put equal focus on academic excellence and Christian discipleship so that each student is prepared to answer God’s call in their life."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "What Can You Expect at WCA?"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-key-club-volunteers.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "An Encouraging Community"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-education.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Comprehensive Christian Education"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-learning.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Academic Support for Every Student"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-seniors.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Discipleship & Service Opportunities"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Download our brochure to learn more."
+    },
+    {
+     "type": "button",
+     "label": "Why Westminster",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/06/WCA_RecruitmentBrochure_26.pdf"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Our Philosophy"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Our goal is to help students reach their full potential through spiritual growth and academic excellence. We provide an exceptional Christ-centered education that nurtures a biblical worldview, shaping both academic success and everyday life."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-stem-course.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "A Foundation of Faith"
+    },
+    {
+     "type": "paragraph",
+     "text": "Our vision is to educate and disciple students, in partnership with Christian families, for lifelong learning and service in God’s world. As a covenantal Christian school, we require that at least one parent from every family be a professing follower of Jesus Christ, have a church home and pastoral relationship, and support the beliefs found in the Nicene Creed."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/foundation-of-faith.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/excellence-in-education.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Excellence in Education"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster Christian Academy is the only school in Alabama with CESA accreditation, which shows our commitment to exceptional academic and institutional standards. Westminster is also Cognia accredited and is ranked #1 Best Christian High School in the Hunstville Area on Niche.com."
+    },
+    {
+     "type": "paragraph",
+     "text": "We offer a wide range of academic options from basic college preparatory to AP and Dual Enrollment classes, encouraging students to become critical thinkers and lifelong learners. We continually evaluate our high school academic program to discern the need for new classes to challenge our students."
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/teamwork-hands-together.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "If you're looking for a community where your child can grow, we hope you’ll consider Westminster Christian Academy. We’re ready to partner with you so that your child will become a lifelong learner who is prepared for service in God’s world."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Learn More",
+     "url": "https://wca-hsv.org/about/"
+    },
+    {
+     "type": "button",
+     "label": "Schedule a Tour",
+     "url": "mailto:info@wca-hsv.org?subject=I'd%20Like%20to%20Schedule%20a%20Tour"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

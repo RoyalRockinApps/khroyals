@@ -1,0 +1,151 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/employment/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "employment",
+  "title": "Employment",
+  "sourceUrl": "https://wca-hsv.org/employment/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Employment"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Employment Opportunities"
+    },
+    {
+     "type": "paragraph",
+     "text": "Thank you for your interest in Westminster Christian Academy. Westminster recognizes that having an excellent faculty is an essential component of a quality Christian, college preparatory educational experience. Our teachers are academically distinguished and have a vibrant relationship with Jesus Christ."
+    },
+    {
+     "type": "paragraph",
+     "text": "At Westminster we view teaching not as a job but as a calling, and we are looking for faculty and staff who have an intense desire to make an impact in students’ academic and spiritual lives through discipleship. Westminster hires faculty and staff who teach and disciple; who understand that they are role models on and off campus and who desire to impact the world for Christ one student at a time. We expect our staff to be excellent in their academic field, but to also engage students in discipleship. An application and resume should be sent to the designated email address in each job posting."
+    },
+    {
+     "type": "paragraph",
+     "text": "(Please note that your application information will not save within your browser. The application must be downloaded and filled-in using the latest version of Adobe Reader.)"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/building-sign.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/credits.png"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Current Openings"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Review Current Job Openings"
+    },
+    {
+     "type": "paragraph",
+     "text": "Please review our current job openings and if you are interested in applying email the completed application and resume to the designated email address."
+    },
+    {
+     "type": "paragraph",
+     "text": "Head Middle School Baseball Coach Westminster Christian Academy is in the process of hiring a Head Middle School Baseball Coach. We are looking for a highly qualified candidate who has a passion for working at a Christian High School. To learn more about the position please review the Head Middle School Baseball Coach job description. If you are interested in applying, please fill out an Employee Application and email your resume and application to jonathan.adams@wca-hsv.org.",
+     "links": [
+      {
+       "label": "Head Middle School Baseball Coach",
+       "url": "https://wca-hsv.org/wp-content/uploads/2026/06/Job_Description_Head_Middle_School_Baseball_Coach.pdf"
+      },
+      {
+       "label": "Employee Application",
+       "url": "https://wca-hsv.org/wp-content/uploads/2026/06/Job_Application.pdf"
+      },
+      {
+       "label": "jonathan.adams@wca-hsv.org",
+       "url": "mailto:jonathan.adams@wca-hsv.org"
+      }
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Middle School Cheer Coach Westminster Christian Academy is in the process of hiring a Middle School Cheer Coach. We are looking for a highly qualified candidate who has a passion for working at a Christian School. To learn more about the position please review the Middle School Cheer Coach job description. If you are interested in applying, please fill out an Employee Application and email your resume and application to jonathan.adams@wca-hsv.org.",
+     "links": [
+      {
+       "label": "Middle School Cheer Coach",
+       "url": "https://wca-hsv.org/wp-content/uploads/2026/06/Job_Description_MS_Cheer_Coach.pdf"
+      },
+      {
+       "label": "Employee Application",
+       "url": "https://wca-hsv.org/wp-content/uploads/2026/06/Job_Application.pdf"
+      },
+      {
+       "label": "jonathan.adams@wca-hsv.org",
+       "url": "mailto:jonathan.adams@wca-hsv.org"
+      }
+     ]
+    },
+    {
+     "type": "paragraph",
+     "text": "Substitute Teacher Please fill out a Substitute Teacher Application and email to hr@wca-hsv.org.",
+     "links": [
+      {
+       "label": "Substitute Teacher Application",
+       "url": "https://wca-hsv.org/wp-content/uploads/2026/06/Job_Application.pdf"
+      },
+      {
+       "label": "hr@wca-hsv.org",
+       "url": "mailto:hr@wca-hsv.org"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "What makes Westminster Christian Academy truly unique? Learn more about our difference."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "About Us",
+     "url": "https://wca-hsv.org/about/"
+    },
+    {
+     "type": "button",
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "type": "button",
+     "label": "Our Leadership",
+     "url": "https://wca-hsv.org/about/our-leadership/"
+    }
+   ]
+  }
+ ]
+}

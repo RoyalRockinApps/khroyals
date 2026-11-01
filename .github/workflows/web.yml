@@ -1,7 +1,8 @@
 name: Web app (GitHub Pages)
 
-# Publishes the web version of the app (site content, Royals Connect and the
-# admin portal) to https://<owner>.github.io/khroyals/.
+# Publishes the web version of each school's app (site content, its community and the
+# admin portal): Kingdom Heights at https://<owner>.github.io/khroyals/ and every other
+# school under it, at /khroyals/<school>/ (schools/<id>/app.json → experiments.baseUrl).
 # One-time setup: Settings → Pages → Source: "GitHub Actions".
 
 on:
@@ -31,8 +32,14 @@ jobs:
       - run: npx expo export --platform web --output-dir dist
         env:
           CI: 1
-      # Deep links (e.g. /khroyals/page/admissions) fall back to the app shell.
-      - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+          SCHOOL: khroyals
+      - run: npx expo export --platform web --output-dir dist/wca
+        env:
+          CI: 1
+          SCHOOL: wca
+      # Deep links (e.g. /khroyals/page/admissions) fall back to the app shell; GitHub Pages
+      # has one 404 page, so it sends /khroyals/wca/… to WCA's app and the rest to Kingdom Heights'.
+      - run: node scripts/pages_404.mjs dist && touch dist/.nojekyll
       # The demo overview (features and running costs): on the site, not linked from the app.
       - run: cp -r overview dist/overview
       - uses: actions/upload-pages-artifact@v3

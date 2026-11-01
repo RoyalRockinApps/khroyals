@@ -3,6 +3,7 @@ import { Alert, ScrollView, Text, View } from 'react-native';
 import { NoAccountError, errorText, sendEmailCode, verifyEmailCode } from '../api/connect';
 import { Button, C, Card, Field, H, P, s } from '../ui';
 import { SsoButtons } from './SsoButtons';
+import { SCHOOL } from '../school';
 
 type Step = 'login' | 'signup' | 'code';
 const RESEND_SECONDS = 60;
@@ -64,7 +65,7 @@ export function SignIn({ onDone, embedded }: { onDone: () => void; embedded?: bo
 
   const card = (
       <Card>
-        {!embedded && <H>Royals Connect</H>}
+        {!embedded && <H>{SCHOOL.connectName}</H>}
         {step !== 'code' && (
           <View style={{ flexDirection: 'row' }}>
             {tab('Log in', step === 'login', () => switchTo('login'))}

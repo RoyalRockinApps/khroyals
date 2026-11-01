@@ -1,13 +1,9 @@
 {
   "expo": {
-    "name": "KH Royals",
-    "slug": "khroyals",
-    "scheme": "khroyals",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.khroyals.app",
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "config": {
@@ -15,11 +11,6 @@
       }
     },
     "android": {
-      "package": "com.khroyals.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      },
       "permissions": [
         "android.permission.ACCESS_NOTIFICATION_POLICY"
       ]
@@ -33,9 +24,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "KH Royals uses your location when you announce car line pickup and, if you turn on automatic check-in, to notice when you arrive at school. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
-          "locationAlwaysPermission": "KH Royals uses your location when you announce car line pickup and, if you turn on automatic check-in, to notice when you arrive at school. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
-          "locationWhenInUsePermission": "KH Royals uses your location when you tap I'm here at car line pickup, so the school knows you've arrived. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
+          "locationAlwaysAndWhenInUsePermission": "{appName} uses your location when you announce car line pickup and, if you turn on automatic check-in, to notice when you arrive at school. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
+          "locationAlwaysPermission": "{appName} uses your location when you announce car line pickup and, if you turn on automatic check-in, to notice when you arrive at school. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
+          "locationWhenInUsePermission": "{appName} uses your location when you tap I'm here at car line pickup, so the school knows you've arrived. Teachers and staff who agree also send it when they answer a critical alert, so the office can find them; only alert senders see that, and it's erased after the alert. Your location is never tracked.",
           "isAndroidBackgroundLocationEnabled": true,
           "isIosBackgroundLocationEnabled": true
         }
@@ -43,15 +34,15 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "KH Royals lets you choose photos for your profile, your children, activities, school photo albums and Marketplace items.",
-          "cameraPermission": "KH Royals uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
+          "photosPermission": "{appName} lets you choose photos for your profile, your children, activities, school photo albums and Marketplace items.",
+          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
           "microphonePermission": false
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "KH Royals uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
+          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
@@ -62,16 +53,10 @@
     ],
     "experiments": {
       "typedRoutes": false,
-      "baseUrl": "/khroyals"
+      "tsconfigPaths": false
     },
-    "icon": "./assets/icon.png",
     "web": {
-      "favicon": "./assets/favicon.png",
       "output": "single"
-    },
-    "extra": {
-      "supabaseUrl": "https://twmeenkvoedoryhterpf.supabase.co",
-      "supabaseKey": "sb_publishable_pcQNIbtqTwFStmRKIz1kbA_yo5XQvRX"
     }
   }
 }

@@ -9,6 +9,7 @@ import { marketPost, uploadMarketPhoto, type Condition } from '../../src/api/con
 import { MarketGate } from '../../src/market/MarketGate';
 import { CONDITIONS, parseMoney } from '../../src/market/format';
 import { Button, C, Card, Field, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 const MAX_WIDTH = 1200;
 
@@ -27,7 +28,7 @@ function Form() {
 
   const pick = async (camera: boolean) => {
     if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
-      return Alert.alert('Camera is off', 'Allow camera access for KH Royals in Settings to take a photo.');
+      return Alert.alert('Camera is off', `Allow camera access for ${SCHOOL.appName} in Settings to take a photo.`);
     }
     const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 1 };
     const result = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);

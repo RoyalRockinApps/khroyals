@@ -51,4 +51,4 @@ export const inCategory = <T extends { category: string }>(items: T[], filter: C
 
 /** A title hint for a new schedule item. */
 export const titleHint = (k: EventKind) =>
-  k === 'game' ? 'vs. Westminster Christian' : k === 'performance' ? 'Opening night' : k === 'audition' ? 'Auditions' : KIND_LABELS[k];
+  k === 'game' ? 'vs. Randolph' : k === 'performance' ? 'Opening night' : k === 'audition' ? 'Auditions' : KIND_LABELS[k];

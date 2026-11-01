@@ -12,6 +12,7 @@ import {
 } from '../api/connect';
 import { DateField, dateLabel, toDateString } from '../forms/DateTimeField';
 import { Button, C, Field, H, P, s } from '../ui';
+import { SCHOOL } from '../school';
 
 export const RELATIONSHIPS: [PickupRelationship, string][] = [
   ['grandparent', 'Grandparent'], ['aunt_uncle', 'Aunt or uncle'], ['sibling', 'Older sibling'], ['stepparent', 'Stepparent'],
@@ -92,9 +93,9 @@ export function PickupPeople({ studentId, childName, office = false }: { student
 
       {adding ? (
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 8 }}>
-          <Field label="Their Royals Connect email" placeholder="name@example.com" autoCapitalize="none" keyboardType="email-address"
+          <Field label={`Their ${SCHOOL.connectName} email`} placeholder="name@example.com" autoCapitalize="none" keyboardType="email-address"
             autoComplete="email" value={email} onChangeText={setEmail}
-            hint="They need their own account in the app. If they don't have one yet, ask them to download KH Royals and create one." />
+            hint={`They need their own account in the app. If they don't have one yet, ask them to download ${SCHOOL.appName} and create one.`} />
           <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink }}>How they're related</Text>
           <View style={[s.row, { flexWrap: 'wrap', gap: 6 }]}>{RELATIONSHIPS.map(([k, l]) => pill(l, rel === k, () => setRel(k)))}</View>
           <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink }}>For how long</Text>

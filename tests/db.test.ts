@@ -3427,6 +3427,33 @@ test("grade albums: only that grade's families and staff see them, and keep them
     delete from events where id in ('${program}', '${dinner}')`);
 });
 
+test("one database for every school: names come from settings, and a school's own file switches them", async () => {
+  await asSuper();
+  // No function names a school: they read app.brand() (Kingdom Heights' names are the defaults).
+  const named = await rows(`select p.oid::regprocedure::text as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'app') and p.prosrc ~ '(KH Royals|Royals Connect|Royal News|Kingdom Heights|khroyals|Wildcats|Westminster)'
+      and p.proname <> 'seed_id'`);  // demo ids hash 'khroyals:<id>' in every school's project: only a fixed key
+  assert.deepEqual(named.map((r) => r.f), [], 'use app.brand(...) in shared migrations; school data goes in supabase/schools/<id>/');
+  assert.deepEqual(await one(`select app.brand('app_name') a, app.brand('connect_name') c, app.brand('nope') n`),
+    { a: 'KH Royals', c: 'Royals Connect', n: 'nope' });
+
+  // Westminster's file, tried inside a transaction that's rolled back.
+  const dir = join(ROOT, 'supabase/schools/wca');
+  await db.exec('begin');
+  try {
+    for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) await db.exec(sql(join('supabase/schools/wca', f)));
+    assert.deepEqual(await one(`select app.brand('app_name') a, app.brand('school_full_name') f, app.brand('web_app') w, app.setting('email_from') e`),
+      { a: 'WCA', f: 'Westminster Christian Academy', w: 'https://royalrockinapps.github.io/khroyals/wca/', e: 'WCA Car Line <noreply@wca-hsv.org>' });
+    assert.match((await one(`select app.setting('market_terms') t`)).t, /^The Westminster Marketplace/);
+    assert.equal((await rows(`select 1 from newsletters where source_url like '%royals-news%'`)).length, 0);
+    await rejects(`select app.use_car_pass('not-a-pass')`, /^Open WCA on your phone/);
+  } finally {
+    await db.exec('rollback');
+    await asSuper();
+  }
+  assert.equal((await one(`select app.brand('app_name') a`)).a, 'KH Royals');
+});
+
 test('the bell counts new notifications until the bell page opens them', async () => {
   await as('u-p04');
   await one('select clear_my_notifications()');

@@ -20,6 +20,7 @@ import { router } from 'expo-router';
 import { carlineArrived, carlineCancel, carlineConfig, type Arrival, type Spot } from '../api/connect';
 import { cancelLocal, notifyLocal } from '../comms/localInbox';
 import { currentSpot } from './location';
+import { SCHOOL } from '../school';
 
 const TASK = 'carline-arrival';
 const CATEGORY = 'carline-checked-in';
@@ -93,16 +94,16 @@ export async function autoCheckInEnabled(): Promise<boolean> {
 /** Turn it on. Asks for location ("Always") and notifications; returns why not if one is refused. */
 export async function enableAutoCheckIn(): Promise<string | null> {
   if ((await Location.requestForegroundPermissionsAsync()).status !== 'granted') {
-    return 'Location access is off for KH Royals.';
+    return `Location access is off for ${SCHOOL.appName}.`;
   }
   if ((await Location.requestBackgroundPermissionsAsync()).status !== 'granted') {
     return Platform.OS === 'ios'
-      ? 'Set KH Royals location access to "Always" in Settings so it can notice when you arrive.'
-      : 'Set KH Royals location access to "Allow all the time" in Settings so it can notice when you arrive.';
+      ? `Set ${SCHOOL.appName} location access to "Always" in Settings so it can notice when you arrive.`
+      : `Set ${SCHOOL.appName} location access to "Allow all the time" in Settings so it can notice when you arrive.`;
   }
   let notes = await Notifications.getPermissionsAsync();
   if (notes.status !== 'granted') notes = await Notifications.requestPermissionsAsync();
-  if (notes.status !== 'granted') return 'Turn on notifications for KH Royals so you know when you\'re checked in.';
+  if (notes.status !== 'granted') return `Turn on notifications for ${SCHOOL.appName} so you know when you're checked in.`;
   await setUpCategory();
   await registerZone();
   return null;

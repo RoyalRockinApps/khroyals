@@ -14,6 +14,7 @@ import { schoolToday } from '../src/calendar/past';
 import { addDays, dayWords } from '../src/carline/Transfers';
 import { DateField } from '../src/forms/DateTimeField';
 import { Button, C, Card, Field, H, Loading, P, s } from '../src/ui';
+import { SCHOOL } from '../src/school';
 
 type When = 'today' | 'tomorrow' | 'other';
 
@@ -93,7 +94,7 @@ export default function TransferPickup() {
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       {header}
-      <P muted>Ask someone with an approved Royals Connect account to pick up from the car line. They accept or decline in their Car Line.</P>
+      <P muted>Ask someone with an approved {SCHOOL.connectName} account to pick up from the car line. They accept or decline in their Car Line.</P>
 
       {label('WHEN')}
       <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
@@ -141,7 +142,7 @@ export default function TransferPickup() {
             </Pressable>
           ))}
           {query.trim().length >= 2 && !searching && !found.length && (
-            <P muted>No one by that name. They need their own approved account in KH Royals.</P>
+            <P muted>No one by that name. They need their own approved account in {SCHOOL.appName}.</P>
           )}
         </View>
       )}

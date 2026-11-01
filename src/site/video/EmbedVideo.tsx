@@ -7,6 +7,7 @@
 import { View, type ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { embedUrl, type Provider } from './embedUrl';
+import { SCHOOL } from '../../school';
 
 type Props = { provider: Provider; id: string; aspectRatio?: number; autoplay?: boolean; style?: ViewStyle };
 
@@ -17,7 +18,7 @@ export function EmbedVideo({ provider, id, aspectRatio = 16 / 9, autoplay, style
   return (
     <View style={[{ aspectRatio, backgroundColor: '#000', borderRadius: 12, overflow: 'hidden' }, style]}>
       <WebView
-        source={{ html, baseUrl: 'https://www.khroyals.com/' }}
+        source={{ html, baseUrl: `${SCHOOL.website.url}/` }}
         style={{ flex: 1, backgroundColor: '#000' }}
         allowsFullscreenVideo
         allowsInlineMediaPlayback

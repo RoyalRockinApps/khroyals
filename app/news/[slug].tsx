@@ -4,6 +4,7 @@ import { getArticle } from '../../src/api/mockApi';
 import { BlockList, formatDate } from '../../src/site/Blocks';
 import { ReadingScroll } from '../../src/Reading';
 import { C, Chip, Loading, P, useLoad } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 export default function Article() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -19,7 +20,7 @@ export default function Article() {
       <Text style={{ fontSize: 24, fontWeight: '800', color: C.ink }}>{a.title}</Text>
       <P muted>{formatDate(a.publishedAt, { month: 'long', day: 'numeric', year: 'numeric' })} · {a.author}</P>
       <BlockList blocks={body} />
-      <Text style={{ color: C.primary, fontWeight: '600', marginTop: 8 }} onPress={() => Linking.openURL(a.sourceUrl)}>View on khroyals.com ›</Text>
+      <Text style={{ color: C.primary, fontWeight: '600', marginTop: 8 }} onPress={() => Linking.openURL(a.sourceUrl)}>View on {SCHOOL.website.label} ›</Text>
     </ReadingScroll>
   );
 }

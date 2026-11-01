@@ -1,27 +1,31 @@
 #!/usr/bin/env node
 /**
- * Set up (or refresh) the Supabase backend for Royals Connect.
+ * Set up (or refresh) a school's Supabase backend. Each school has its own project
+ * (schools/<id>/app.json → extra.supabaseUrl), so no data is ever shared; SCHOOL picks
+ * the school (Kingdom Heights when unset).
  *
- *   SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+ *   SCHOOL=wca SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
  *   SUPABASE_ACCESS_TOKEN=… SUPABASE_PROJECT_REF=… \
  *   NODE_USE_ENV_PROXY=1 node scripts/supabase_setup.mjs [--demo] [--director=email]
  *
- * 1. Applies supabase/migrations/*.sql that haven't run yet (needs a personal
- *    access token for the Management API — the service key can't change schema).
+ * 1. Applies supabase/migrations/*.sql that haven't run yet, then the school's own
+ *    supabase/schools/<id>/*.sql (needs a personal access token for the Management
+ *    API — the service key can't change schema).
  * 2. --demo only (DEMO_PASSWORD=…): creates the demo accounts through the Auth
  *    admin API and loads supabase/seed.sql (demo groups, posts, calendar).
  * 4. (token) Makes sign-in emails show a 6-digit code, deploys the send-push
  *    Edge Function, and optionally names the director (--director=email; that
  *    person must have signed in once).
  *
- * --deploy (what the "Supabase" GitHub Action runs on every push to main): only
- * steps 1 and the Edge Functions; needs just SUPABASE_ACCESS_TOKEN (the project
- * comes from app.json).
+ * --deploy (what the "Supabase" GitHub Action runs for each school on every push to
+ * main): only steps 1 and the Edge Functions; needs just SUPABASE_ACCESS_TOKEN (the
+ * project comes from the school's app.json).
  *
  * Without SUPABASE_ACCESS_TOKEN, steps 1 and 3 print the SQL files to paste
  * into the dashboard's SQL editor instead.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,8 +37,11 @@ const env = (k, required = true) => {
   return v;
 };
 const deployOnly = process.argv.includes('--deploy');
-const URL = (env('SUPABASE_URL', false)
-  ?? JSON.parse(readFileSync(join(ROOT, 'app.json'), 'utf8')).expo.extra.supabaseUrl).replace(/\/$/, '');
+const SCHOOL = createRequire(import.meta.url)('../schools/index.js').schoolId();
+const app = JSON.parse(readFileSync(join(ROOT, 'schools', SCHOOL, 'app.json'), 'utf8')).expo;
+const URL = (env('SUPABASE_URL', false) ?? app.extra.supabaseUrl).replace(/\/$/, '');
+if (!URL) { console.error(`No Supabase project for ${SCHOOL} (schools/${SCHOOL}/app.json → extra.supabaseUrl)`); process.exit(1); }
+console.log(`School: ${app.name} (${SCHOOL}) → ${URL}`);
 const TOKEN = env('SUPABASE_ACCESS_TOKEN', deployOnly);
 const REF = env('SUPABASE_PROJECT_REF', false) ?? new globalThis.URL(URL).hostname.split('.')[0];
 const seed = process.argv.includes('--demo');
@@ -67,9 +74,12 @@ async function migrate() {
   }
   await sql('create schema if not exists app; create table if not exists app.applied_migrations (name text primary key, at timestamptz default now());');
   const done = new Set((await sql('select name from app.applied_migrations')).map((r) => r.name));
-  for (const f of files) {
+  // The shared migrations, then this school's own (tracked as schools/<id>/<file>).
+  const dir = join(ROOT, 'supabase/schools', SCHOOL);
+  const own = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.sql')).sort().map((f) => `schools/${SCHOOL}/${f}`) : [];
+  for (const f of [...files, ...own]) {
     if (done.has(f)) { console.log(`✓ ${f} (already applied)`); continue; }
-    const body = readFileSync(join(ROOT, 'supabase/migrations', f), 'utf8');
+    const body = readFileSync(join(ROOT, 'supabase', f.startsWith('schools/') ? f : `migrations/${f}`), 'utf8');
     await sql(`begin;\n${body}\ninsert into app.applied_migrations (name) values ('${f}');\ncommit;`);
     console.log(`✓ applied ${f}`);
   }
@@ -126,8 +136,8 @@ async function deployPush() {
 
 // Where sign-in links may send people back to: the app (deep link) and the web portal.
 // Never list an address the school doesn't own: a sign-in link sent there hands over the session.
-const REDIRECTS = ['khroyals://**', 'exp://**', 'http://localhost:8081/**', 'https://*.expo.app/**',
-  'https://royalrockinapps.github.io/khroyals/**', ...(process.env.WEB_PORTAL_URL ? [`${process.env.WEB_PORTAL_URL}/**`] : [])].join(',');
+const REDIRECTS = [`${app.scheme}://**`, 'exp://**', 'http://localhost:8081/**', 'https://*.expo.app/**',
+  `https://royalrockinapps.github.io${app.experiments.baseUrl}/**`, ...(process.env.WEB_PORTAL_URL ? [`${process.env.WEB_PORTAL_URL}/**`] : [])].join(',');
 
 /** Only the allowed sign-in redirect addresses (run on every deploy, so a new web address takes effect). */
 async function setRedirects() {
@@ -142,17 +152,18 @@ async function setRedirects() {
 
 /** Sign-in emails show the 6-digit code the app asks for (instead of only a magic link). */
 async function configureAuthEmail() {
+  const [{ name }] = await sql(`select app.brand('connect_name') as name`);
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/auth`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       mailer_otp_length: 6,
-      mailer_subjects_magic_link: 'Your Royals Connect sign-in code',
+      mailer_subjects_magic_link: `Your ${name} sign-in code`,
       mailer_templates_magic_link_content:
-        '<h2>Royals Connect</h2><p>Your sign-in code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p><p>It expires in a few minutes. If you didn\'t ask for it, ignore this email.</p>',
-      mailer_subjects_confirmation: 'Your Royals Connect sign-in code',
+        `<h2>${name}</h2><p>Your sign-in code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p><p>It expires in a few minutes. If you didn't ask for it, ignore this email.</p>`,
+      mailer_subjects_confirmation: `Your ${name} sign-in code`,
       mailer_templates_confirmation_content:
-        '<h2>Welcome to Royals Connect</h2><p>Your sign-in code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>',
+        `<h2>Welcome to ${name}</h2><p>Your sign-in code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">{{ .Token }}</p>`,
     }),
   });
   if (!r.ok) {
@@ -164,7 +175,7 @@ async function configureAuthEmail() {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      site_url: 'khroyals://auth',
+      site_url: `${app.scheme}://auth`,
       mailer_otp_length: 6,
       mailer_otp_exp: 600,   // codes last 10 minutes
       // Sign-up without a confirmation email: Supabase's built-in email allows only

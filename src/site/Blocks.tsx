@@ -1,5 +1,5 @@
 /**
- * Renders imported khroyals.com content (sections -> blocks) natively. Every
+ * Renders the school website's imported content (sections -> blocks) natively. Every
  * site page, the home page and news posts go through here, so a re-import
  * needs no screen changes.
  */
@@ -7,7 +7,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { Image, ImageBackground, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { getNews } from '../api/mockApi';
-import { Button, C, Card, Chip, P, useLoad } from '../ui';
+import { SCHOOL } from '../school';
+import { Button, C, Card, Chip, P, useLoad, FONT_STYLE } from '../ui';
 import { openLink } from './links';
 import type { Article, Block, Link, Section } from './types';
 import { EmbedVideo } from './video/EmbedVideo';
@@ -21,7 +22,10 @@ const H_SIZE: Record<number, number> = { 1: 28, 2: 23, 3: 19, 4: 16 };
 
 function Heading({ level, children }: { level: number; children: ReactNode }) {
   const color = useInk();
-  return <Text accessibilityRole="header" style={{ fontSize: H_SIZE[level] ?? 16, fontWeight: '800', color, lineHeight: (H_SIZE[level] ?? 16) * 1.25 }}>{children}</Text>;
+  return (
+    <Text accessibilityRole="header" style={{ fontSize: H_SIZE[level] ?? 16, ...FONT_STYLE.heading, color, lineHeight: (H_SIZE[level] ?? 16) * 1.25,
+      textTransform: SCHOOL.theme.uppercaseHeadings && level <= 2 ? 'uppercase' : 'none' }}>{children}</Text>
+  );
 }
 
 /** Paragraph with the site's inline links made tappable. */
@@ -200,7 +204,7 @@ export function BlockView({ b }: { b: Block }) {
         <Card>
           <Text style={{ fontWeight: '800', fontSize: 17, color: C.ink }}>{b.title}</Text>
           {!!b.text && <P>{b.text}</P>}
-          <Button label="Open on khroyals.com" onPress={() => openLink(b.url)} />
+          <Button label={`Open on ${SCHOOL.website.label}`} onPress={() => openLink(b.url)} />
         </Card>
       );
     case 'embed': return <Button kind="ghost" label="Open form" onPress={() => openLink(b.url)} />;
@@ -242,7 +246,7 @@ export function SectionView({ section, hero }: { section: Section; hero?: boolea
   const bg = section.background;
   if (!bg) return <BlockList blocks={section.blocks} />;
   const content = (
-    <View style={{ padding: 18, paddingVertical: hero ? 36 : 24, backgroundColor: '#0B1928A6', gap: 12, minHeight: hero ? 320 : undefined, justifyContent: 'center' }}>
+    <View style={{ padding: 18, paddingVertical: hero ? 36 : 24, backgroundColor: SCHOOL.theme.heroOverlay, gap: 12, minHeight: hero ? 320 : undefined, justifyContent: 'center' }}>
       <OnDark.Provider value><BlockList blocks={section.blocks} /></OnDark.Provider>
     </View>
   );

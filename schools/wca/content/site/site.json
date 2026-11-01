@@ -1,0 +1,169 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/",
+  "scrapedAt": "2026-10-27"
+ },
+ "school": {
+  "name": "Westminster Christian Academy",
+  "shortName": "WCA",
+  "mascot": "Wildcats",
+  "grades": "PreK3–12",
+  "motto": "One Community",
+  "mottoTranslation": "A private Christian school in Madison and Huntsville since 1964",
+  "colors": {
+   "primary": "#B01C2E",
+   "secondary": "#222222",
+   "ink": "#222222"
+  },
+  "logo": "https://wca-hsv.org/wp-content/uploads/2026/03/WCA_Logo_Horizontal_FullColor_small.png",
+  "address": {
+   "line1": "237 Johns Rd.",
+   "city": "Huntsville",
+   "state": "AL",
+   "zip": "35806"
+  },
+  "campuses": [
+   {
+    "name": "Upper Campus",
+    "grades": "Grades 6–12",
+    "line1": "237 Johns Rd.",
+    "city": "Huntsville",
+    "state": "AL",
+    "zip": "35806",
+    "phone": "(256) 705-8000"
+   },
+   {
+    "name": "Lower Campus",
+    "grades": "Grades PreK3–5",
+    "line1": "375 Mt. Zion Rd.",
+    "city": "Madison",
+    "state": "AL",
+    "zip": "35757",
+    "phone": "(256) 705-8300"
+   }
+  ],
+  "phone": "(256) 705-8000",
+  "email": "info@wca-hsv.org",
+  "admissionsEmail": "admissions@wca-hsv.org",
+  "ministryOf": {
+   "name": "Westminster Presbyterian Church",
+   "url": "https://wca-hsv.org/about/"
+  }
+ },
+ "navigation": [
+  {
+   "label": "About Us",
+   "url": "https://wca-hsv.org/about/",
+   "items": [
+    {
+     "label": "Our Difference",
+     "url": "https://wca-hsv.org/about/our-difference/"
+    },
+    {
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "label": "Our Leadership",
+     "url": "https://wca-hsv.org/about/our-leadership/"
+    }
+   ]
+  },
+  {
+   "label": "Academics",
+   "url": "https://wca-hsv.org/academics/",
+   "items": [
+    {
+     "label": "Upper Campus",
+     "url": "https://wca-hsv.org/academics/upper-campus/"
+    },
+    {
+     "label": "Lower Campus",
+     "url": "https://wca-hsv.org/academics/lower-campus/"
+    },
+    {
+     "label": "Preschool Program",
+     "url": "https://wca-hsv.org/academics/preschool-program/"
+    }
+   ]
+  },
+  {
+   "label": "Admissions",
+   "url": "https://wca-hsv.org/admissions/"
+  },
+  {
+   "label": "Athletics",
+   "url": "https://westminsterwildcats.org/"
+  },
+  {
+   "label": "Give",
+   "url": "https://wca-hsv.org/give/"
+  },
+  {
+   "label": "Apply",
+   "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+  }
+ ],
+ "footer": {
+  "about": "Westminster Christian Academy is a private Christian school serving students from Pre-K3 through 12th grade on two campuses: the Lower Campus (Pre-K3 to 5th grade) in Madison and the Upper Campus (6th to 12th grade) in Huntsville, Alabama. Westminster puts equal focus on academic excellence and Christian discipleship.",
+  "nonDiscrimination": "Westminster Christian Academy is a ministry of Westminster Presbyterian Church. Westminster Christian Academy admits students of any race, color, national and ethnic origin to all the rights, privileges, programs, and activities generally accorded or made available to students at the school. We do not discriminate on the basis of race, color, national and ethnic origin in administration of our educational policies, admissions policies, scholarship programs, and athletic and other school-administered programs.",
+  "quickLinks": [
+   {
+    "label": "Facebook",
+    "url": "https://www.facebook.com/Westminster-Christian-Academy-195154283876043/"
+   },
+   {
+    "label": "X-twitter",
+    "url": "https://x.com/wca_wildcats"
+   },
+   {
+    "label": "Instagram",
+    "url": "https://www.instagram.com/wca1964"
+   },
+   {
+    "label": "Brand Guide",
+    "url": "https://wcabrandguidelines.truegritbrands.com"
+   },
+   {
+    "label": "Employment",
+    "url": "https://wca-hsv.org/employment/"
+   },
+   {
+    "label": "Request Transcript",
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLScjYMiXJN6ogrZ9vfjrMBw2sJmeHCEOxlHwdyMI-jAyhilbmA/viewform"
+   },
+   {
+    "label": "Westminster Hub",
+    "url": "https://wca-hsv.myschoolapp.com/app#login"
+   }
+  ],
+  "actions": [
+   {
+    "label": "Request Information",
+    "url": "https://wca-hsv.myschoolapp.com/app/embed?svcid=edu#inquiry/133795"
+   },
+   {
+    "label": "Apply",
+    "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+   },
+   {
+    "label": "Westminster Hub",
+    "url": "https://wca-hsv.myschoolapp.com/app#login"
+   }
+  ]
+ },
+ "social": [
+  {
+   "service": "Facebook",
+   "url": "https://www.facebook.com/Westminster-Christian-Academy-195154283876043/"
+  },
+  {
+   "service": "X",
+   "url": "https://x.com/wca_wildcats"
+  },
+  {
+   "service": "Instagram",
+   "url": "https://www.instagram.com/wca1964"
+  }
+ ]
+}

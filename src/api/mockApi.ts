@@ -6,12 +6,12 @@
  * Site content (content/site) is the real khroyals.com content, imported by
  * `npm run import-site`. Royals Connect (mock-db/comms) is still demo data.
  */
-import site from '../../content/site/site.json';
-import home from '../../content/site/home.json';
-import news from '../../content/site/news.json';
-import calendar from '../../content/site/calendar.json';
-import pageIndex from '../../content/site/pages/index.json';
-import { pages } from '../../content/site/pages';
+import site from '@school/content/site/site.json';
+import home from '@school/content/site/home.json';
+import news from '@school/content/site/news.json';
+import calendar from '@school/content/site/calendar.json';
+import pageIndex from '@school/content/site/pages/index.json';
+import { pages } from '@school/content/site/pages';
 
 import usersDb from '../../mock-db/comms/users.json';
 import groupsDb from '../../mock-db/comms/groups.json';

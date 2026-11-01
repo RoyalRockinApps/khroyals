@@ -6,9 +6,10 @@ import { C, Card, P, s } from '../ui';
 import { PAST_STYLE } from '../calendar/PastToggle';
 import { isHeadline, KIND_LABELS } from './categories';
 import { directionsUrl } from './events';
+import { SCHOOL } from '../school';
 
 export const GOLD = '#CA8A04';
-export const NAVY = '#0A1F4D';
+export const NAVY = SCHOOL.theme.dark;
 export const ORANGE = '#EA580C';
 
 /** "Sat, Oct 24 · 4:30 PM" on the phone's clock. */

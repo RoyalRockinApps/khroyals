@@ -9,6 +9,7 @@
  */
 import type { CarItem, CarScreen } from '../../modules/carplay';
 import { clock } from '../carline/time';
+import { SCHOOL } from '../school';
 
 export type Kid = { id: string; firstName: string; lastName: string; number?: string | null };
 export type KidPickup = { id: string; studentId: string; status: 'waiting' | 'picked_up' | 'cancelled'; arrivedAt: string; pickedUpAt: string | null };
@@ -30,7 +31,7 @@ export const names = (n: string[]) => (n.length < 2 ? n.join('') : `${n.slice(0,
 export function carScreen(state: CarState): CarScreen {
   switch (state.kind) {
     case 'offline': return message('Car line needs the school server', 'This build is running on demo data.');
-    case 'signed-out': return message('Sign in on your iPhone', 'Open KH Royals on your phone and sign in to use the car line here.', 'person.crop.circle');
+    case 'signed-out': return message('Sign in on your iPhone', `Open ${SCHOOL.appName} on your phone and sign in to use the car line here.`, 'person.crop.circle');
     case 'pending': return message('Waiting for approval', 'The car line opens once the school office approves your account.', 'hourglass');
     case 'error': return message("Couldn't load the car line", state.message, 'exclamationmark.triangle');
     case 'parent': break;

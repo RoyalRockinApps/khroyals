@@ -1,0 +1,49 @@
+{
+ "pages": [
+  {
+   "id": "employment",
+   "title": "Employment"
+  },
+  {
+   "id": "preschool-program",
+   "title": "Preschool Program"
+  },
+  {
+   "id": "give",
+   "title": "Give"
+  },
+  {
+   "id": "admissions",
+   "title": "Admissions"
+  },
+  {
+   "id": "lower-campus",
+   "title": "Lower Campus"
+  },
+  {
+   "id": "upper-campus",
+   "title": "Upper Campus"
+  },
+  {
+   "id": "academics",
+   "title": "Academics"
+  },
+  {
+   "id": "our-leadership",
+   "title": "Our Leadership"
+  },
+  {
+   "id": "our-story",
+   "title": "Our Story"
+  },
+  {
+   "id": "our-difference",
+   "title": "Our Difference"
+  },
+  {
+   "id": "about",
+   "title": "About Us"
+  }
+ ],
+ "aliases": {}
+}

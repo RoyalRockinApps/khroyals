@@ -22,6 +22,7 @@ import { MfaGate } from '../../src/comms/MfaGate';
 import { age, ageColor, waiting } from '../../src/questions/format';
 import type { Group, SchoolRole } from '../../src/comms/types';
 import { Avatar, Button, C, Card, Chip, Field, H, Loading, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 const PAGE = 20;
 const ROLES: SchoolRole[] = ['admin', 'teacher', 'staff', 'substitute', 'parent', 'family', 'student'];
@@ -106,7 +107,7 @@ function PersonCard({ p, links, access, roles, onChange }: {
           {roleOptions.length > 0 && p.adminTier !== 'director' && (
             <View style={[s.row, { flexWrap: 'wrap' }]}>
               {roleOptions.map((r) => pill(r, p.schoolRole === r && !p.pending, () => setRole(r)))}
-              {!p.pending && p.id !== me()?.id && pill('revoke access', false, () => confirm('Revoke access?', `${p.firstName} will lose access to Royals Connect.`, () => setRole(null)), C.danger)}
+              {!p.pending && p.id !== me()?.id && pill('revoke access', false, () => confirm('Revoke access?', `${p.firstName} will lose access to ${SCHOOL.connectName}.`, () => setRole(null)), C.danger)}
             </View>
           )}
           {p.adminTier === 'director' && <P muted>Directors are managed under Admins & roles.</P>}

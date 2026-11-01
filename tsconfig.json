@@ -3,7 +3,13 @@
   "compilerOptions": {
     "strict": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@school/*": [
+        "schools/khroyals/*"
+      ]
+    }
   },
   "include": [
     "**/*.ts",

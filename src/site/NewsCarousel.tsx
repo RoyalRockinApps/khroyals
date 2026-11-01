@@ -10,12 +10,32 @@ import {
   AccessibilityInfo, FlatList, ImageBackground, Pressable, Text, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import home from '@school/content/site/home.json';
 import { getNews } from '../api/mockApi';
+import { SCHOOL } from '../school';
 import { C } from '../ui';
-import type { Article } from './types';
+import type { Article, Section } from './types';
 
 const COUNT = 5;
+
+/**
+ * For a school whose website posts no news: the home page's highlights, each photo with the
+ * short heading right after it ("An Encouraging Community"), opening the home page.
+ */
+function highlights(): Article[] {
+  const out: Article[] = [];
+  for (const sec of (home as unknown as { sections: Section[] }).sections) {
+    sec.blocks.forEach((b, i) => {
+      const next = sec.blocks[i + 1];
+      if (b.type === 'image' && next?.type === 'heading' && next.text.length < 60 && out.length < COUNT) {
+        out.push({ id: `h${out.length}`, slug: '/', title: next.text, publishedAt: '', author: '', category: `Why ${SCHOOL.name}`,
+          tags: [], featured: false, heroImage: b.src, summary: '', sourceUrl: '', body: [] });
+      }
+    });
+  }
+  return out;
+}
 const EVERY_MS = 5000;
 const HEIGHT = 170;
 
@@ -29,7 +49,7 @@ export function NewsCarousel() {
   const reduceMotion = useRef(false);
 
   useEffect(() => {
-    getNews().then((n) => setItems(n.articles.slice(0, COUNT)));
+    getNews().then((n) => setItems(n.articles.length ? n.articles.slice(0, COUNT) : highlights()));
     AccessibilityInfo.isReduceMotionEnabled().then((v) => { reduceMotion.current = v; }).catch(() => {});
   }, []);
 
@@ -73,13 +93,13 @@ export function NewsCarousel() {
           onScrollBeginDrag={stop} onMomentumScrollEnd={start}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           renderItem={({ item: a }) => (
-            <Pressable onPress={() => router.push(`/news/${a.slug}`)} accessibilityRole="link" accessibilityLabel={a.title}
+            <Pressable onPress={() => router.push(a.slug.startsWith('/') ? (a.slug as Href) : `/news/${a.slug}`)} accessibilityRole="link" accessibilityLabel={a.title}
               style={{ width, height: HEIGHT }}>
               <ImageBackground source={a.heroImage ? { uri: a.heroImage } : undefined} resizeMode="cover"
                 style={{ flex: 1, justifyContent: 'flex-end' }}>
-                <View style={{ backgroundColor: 'rgba(0, 18, 77, 0.6)', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: 4 }}>
+                <View style={{ backgroundColor: SCHOOL.theme.newsOverlay, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: 4 }}>
                   <Text style={{ color: '#fff', opacity: 0.85, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
-                    {a.category.toUpperCase()} · {new Date(a.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {a.category.toUpperCase()}{a.publishedAt ? ` · ${new Date(a.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                   </Text>
                   <Text numberOfLines={2} style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>{a.title}</Text>
                 </View>

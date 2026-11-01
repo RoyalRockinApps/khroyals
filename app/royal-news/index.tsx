@@ -10,6 +10,7 @@ import {
   deleteNewsletter, errorText, importNewsletter, issueDate, listNewsletters, live, myAccess, session, type NewsletterSummary,
 } from '../../src/api/connect';
 import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 const month = (iso: string) => new Date(`${iso}T12:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 const confirm = (title: string, msg: string, onYes: () => void) => {
@@ -28,7 +29,7 @@ export default function RoyalNews() {
       setIssues(await listNewsletters());
       if (live && await session()) setCanAdd(!!(await myAccess().catch(() => null))?.permissions.includes('push.send'));
     } catch (e) {
-      Alert.alert('Royal News didn\'t load', errorText(e));
+      Alert.alert(`${SCHOOL.newsName} didn't load`, errorText(e));
       setIssues([]);
     }
   }, []);
@@ -49,7 +50,7 @@ export default function RoyalNews() {
   const remove = (n: NewsletterSummary) => confirm('Delete this issue?', `${n.title}, ${issueDate(n.sentOn)}`,
     () => deleteNewsletter(n.id).then(load).catch((e) => Alert.alert('Not deleted', errorText(e))));
 
-  const header = <Stack.Screen options={{ title: 'Royal News' }} />;
+  const header = <Stack.Screen options={{ title: SCHOOL.newsName }} />;
   if (!issues) return <>{header}<Loading /></>;
   const byMonth = new Map<string, NewsletterSummary[]>();
   issues.forEach((n) => byMonth.set(month(n.sentOn), [...(byMonth.get(month(n.sentOn)) ?? []), n]));
@@ -63,7 +64,7 @@ export default function RoyalNews() {
           <H>Add an issue</H>
           <Field label="Smore link" placeholder="https://app.smore.com/n/…" autoCapitalize="none" autoCorrect={false}
             keyboardType="url" value={link} onChangeText={setLink} />
-          <Button label={busy ? 'Adding…' : 'Add to Royal News'} onPress={add} disabled={busy || !link.trim()} />
+          <Button label={busy ? 'Adding…' : `Add to ${SCHOOL.newsName}`} onPress={add} disabled={busy || !link.trim()} />
           <P muted>Paste the link from the newsletter email (View in browser) or from Smore. Adding the same link again updates it.</P>
         </Card>
       )}

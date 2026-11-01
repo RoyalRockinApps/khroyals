@@ -20,6 +20,7 @@ import { TransferAsks } from '../src/carline/Transfers';
 import { hoursLabel } from '../src/carline/format';
 import { useStaffView } from '../src/staffView';
 import { Button, C, Card, H, Loading, P, s } from '../src/ui';
+import { SCHOOL } from '../src/school';
 
 const isStaff = (p: Person | null) => !!p && ['admin', 'teacher', 'staff'].includes(p.schoolRole) && !p.pending;
 const NO_TRANSFERS: PickupTransfers = { children: [], asked: [] };
@@ -83,7 +84,7 @@ export default function CarLine() {
   }} />;
   const box = (body: React.ReactNode) => <View style={[s.screen, s.pad]}>{header}{body}</View>;
 
-  if (!live) return box(<Card><H>Car line needs the school server</H><P muted>This build is running on demo data without Royals Connect.</P></Card>);
+  if (!live) return box(<Card><H>Car line needs the school server</H><P muted>This build is running on demo data without {SCHOOL.connectName}.</P></Card>);
   if (error) return box(<Card><H>Couldn't load the car line</H><P muted>{error}</P><Button label="Try again" onPress={() => { setError(null); load(); }} /></Card>);
   if (person === undefined) return <>{header}<Loading /></>;
   if (!person) return box(

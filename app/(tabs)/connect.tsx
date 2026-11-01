@@ -13,6 +13,7 @@ import { canCreateGroup } from '../../src/comms/permissions';
 import { SignIn } from '../../src/comms/SignIn';
 import type { Group } from '../../src/comms/types';
 import { Avatar, Button, C, Card, Chip, Loading, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 /** Demo-data mode: view the app as any demo person to check permissions. */
 const TEST_USERS = ['u-admin', 'u-eng', 'u-vbcoach', 'u-s01', 'u-s08', 'u-p01'];
@@ -68,7 +69,7 @@ export default function Connect() {
       <View style={[s.screen, s.pad]}>
         <Card>
           <Text style={{ fontWeight: '800', fontSize: 17, color: C.ink }}>Waiting for approval</Text>
-          <P>Thanks, {person.firstName || person.email}. A Kingdom Heights administrator will confirm your account and add you to your groups.</P>
+          <P>Thanks, {person.firstName || person.email}. A {SCHOOL.name} administrator will confirm your account and add you to your groups.</P>
           <Button kind="ghost" label="Sign out" onPress={() => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(load)} />
         </Card>
       </View>
