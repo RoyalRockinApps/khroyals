@@ -10,6 +10,11 @@ concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
+# Deleting the older APKs (below) needs to write Actions artifacts.
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   test:
     name: Type-check and tests
@@ -74,9 +79,23 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk \
              "out/khroyals-${GITHUB_SHA::7}.apk"
 
+      # Only builds of main keep an APK, and only the newest successful one: once this one is
+      # uploaded, every older APK is deleted. Pull request builds just prove it compiles.
       - name: Upload APK
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: khroyals-android-apk
           path: out/*.apk
-          retention-days: 30
+          retention-days: 90
+
+      - name: Delete older APKs
+        if: github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const old = (await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, name: 'khroyals-android-apk', per_page: 100 }))
+              .filter((a) => a.workflow_run?.id !== context.runId);
+            for (const a of old) await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+            core.info(`Deleted ${old.length} older APK${old.length === 1 ? '' : 's'}.`);
