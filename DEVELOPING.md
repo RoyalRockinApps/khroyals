@@ -8,7 +8,7 @@ Westminster's, otherwise it's Kingdom Heights'. For the project overview see
 | What | Where |
 |---|---|
 | Web app (site + Royals Connect + admin portal) | https://royalrockinapps.github.io/khroyals/ (WCA: https://royalrockinapps.github.io/khroyals/wca/) |
-| Android APK | GitHub → **Actions → Android APK** → latest run on `main` → **Artifacts → khroyals-android-apk** (WCA: **wca-android-apk**). Only the newest successful build keeps its APK. |
+| Android APK | GitHub → **Actions → Android APK** → the run with artifacts (only the last build where every school's app built keeps them) → **Artifacts**: **all-android-apks** (every school's), or one school's: **khroyals-android-apk**, **wca-android-apk**. |
 | iPhone (TestFlight) | App Store Connect → **KH Royals → TestFlight**; uploads come from a Mac with `scripts/testflight.sh` (§9) |
 | Backend | Kingdom Heights: Supabase project `twmeenkvoedoryhterpf`; WCA: `nnbhslmvgabygvhugqfm`, in a separate account (dashboard: supabase.com/dashboard) |
 | Branch | Everything goes to `main`; every push builds the APK and redeploys the web app |

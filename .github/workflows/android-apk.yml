@@ -10,7 +10,10 @@ concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 
-# Deleting the older APKs (below) needs to write Actions artifacts.
+# Builds an APK for every school's app in the repo (schools/index.js → SCHOOLS). The Actions
+# page keeps only the last fully successful build's APKs: one per school plus all-android-apks
+# with all of them; a run where any school fails publishes nothing and the previous set stays.
+# Deleting artifacts needs to write Actions artifacts.
 permissions:
   contents: read
   actions: write
@@ -29,16 +32,27 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-  # One APK per school (schools/), each its own app with its own data.
+  # Every school in the repo, so a new school is built without touching this file.
+  schools:
+    name: List the schools
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: list
+        run: echo "list=$(node -p "JSON.stringify(require('./schools').SCHOOLS)")" >> "$GITHUB_OUTPUT"
+
+  # One APK per school, each its own app with its own data.
   build-apk:
     name: Build APK (${{ matrix.school }})
-    needs: test
+    needs: [test, schools]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        school: [khroyals, wca]
+        school: ${{ fromJSON(needs.schools.outputs.list) }}
     env:
       SCHOOL: ${{ matrix.school }}
     steps:
@@ -86,8 +100,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk \
              "out/${SCHOOL}-${GITHUB_SHA::7}.apk"
 
-      # Only builds of main keep an APK, and only the newest successful one: once this one is
-      # uploaded, every older APK is deleted. Pull request builds just prove it compiles.
+      # Handed to the publish job below; pull request builds just prove it compiles.
       - name: Upload APK
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
@@ -96,14 +109,42 @@ jobs:
           path: out/*.apk
           retention-days: 90
 
-      - name: Delete older APKs
-        if: github.event_name != 'pull_request'
+  # Once every school's APK built: one artifact with all of them, then every APK artifact from
+  # earlier runs goes. If any school failed, this run's partial APKs go instead, so the Actions
+  # page always holds exactly one complete, successful set.
+  publish:
+    name: Publish the APKs
+    needs: build-apk
+    if: always() && github.event_name != 'pull_request' && needs.build-apk.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect every school's APK
+        if: needs.build-apk.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-android-apk'
+          path: apks
+          merge-multiple: true
+
+      - name: Upload all the APKs together
+        if: needs.build-apk.result == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-android-apks
+          path: apks/*.apk
+          retention-days: 90
+
+      - name: Keep only the last successful build's APKs
         uses: actions/github-script@v7
+        env:
+          SUCCESS: ${{ needs.build-apk.result == 'success' }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const name = `${process.env.SCHOOL}-android-apk`;
-            const old = (await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, name, per_page: 100 }))
-              .filter((a) => a.workflow_run?.id !== context.runId);
-            for (const a of old) await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
-            core.info(`Deleted ${old.length} older APK${old.length === 1 ? '' : 's'}.`);
+            const ok = process.env.SUCCESS === 'true';
+            const apks = (await github.paginate(github.rest.actions.listArtifactsForRepo, { owner, repo, per_page: 100 }))
+              .filter((a) => a.name.endsWith('android-apk') || a.name === 'all-android-apks');
+            // Success: drop every earlier run's. Failure: drop this run's, keeping the last good set.
+            const drop = apks.filter((a) => (a.workflow_run?.id === context.runId) !== ok);
+            for (const a of drop) await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: a.id });
+            core.info(`${ok ? 'Published this build' : 'A school failed to build; kept the last successful build'}; deleted ${drop.length} APK artifact${drop.length === 1 ? '' : 's'}.`);
