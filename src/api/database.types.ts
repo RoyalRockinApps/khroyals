@@ -2705,6 +2705,42 @@ export type Database = {
           },
         ]
       }
+      volunteer_attendance: {
+        Row: {
+          checked_in_at: string | null
+          checked_out_at: string | null
+          day: string
+          marked_by: string | null
+          minutes: number | null
+          opportunity_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          day: string
+          marked_by?: string | null
+          minutes?: number | null
+          opportunity_id: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          day?: string
+          marked_by?: string | null
+          minutes?: number | null
+          opportunity_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       volunteer_events: {
         Row: {
           created_at: string
@@ -4651,6 +4687,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      volunteer_busy_limits: { Args: never; Returns: Json }
+      volunteer_check_in_code: { Args: { p_event?: string; p_new?: boolean; p_opportunity?: string }; Returns: string }
+      volunteer_history: {
+        Args: { p_from?: string; p_to?: string; p_user: string }
+        Returns: {
+          day: string
+          end_time: string | null
+          event_title: string | null
+          minutes: number | null
+          opportunity_id: string
+          start_time: string | null
+          status: string
+          title: string
+        }[]
+      }
+      volunteer_mark: {
+        Args: { p_day: string; p_minutes?: number; p_opportunity: string; p_status: string | null; p_user: string }
+        Returns: undefined
+      }
       volunteer_say_yes: { Args: { p_opportunity: string }; Returns: undefined }
       volunteer_send: {
         Args: { p_body: string; p_opportunity: string }
@@ -4667,6 +4722,27 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      volunteer_scan: { Args: { p_code: string; p_done?: boolean }; Returns: Json }
+      volunteer_set_busy_limits: { Args: { p_hours: number; p_shifts: number }; Returns: undefined }
+      volunteer_stats: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          busy: boolean
+          is_lead: boolean
+          last_day: string | null
+          led: number
+          minutes: number
+          name: string
+          no_shows: number
+          recent_minutes: number
+          recent_shifts: number
+          school_role: string
+          shifts: number
+          unmarked: number
+          upcoming: number
+          user_id: string
+        }[]
       }
       volunteer_withdraw: {
         Args: { p_opportunity: string }

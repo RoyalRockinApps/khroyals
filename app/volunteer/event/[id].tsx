@@ -4,20 +4,22 @@
  * opening as usual, in the order its leader chose (most important first). Volunteer Leaders
  * add opportunities to it; the leader who started it puts them in order (Reorder), and
  * changes or removes the event (its opportunities stay, on their own). Its photo album, if it has one, opens from
- * Photos; the leader and staff can make one here if it wasn't made with the event.
+ * Photos; the leader and staff can make one here if it wasn't made with the event. Its leader (and the office) show one
+ * check-in QR code for the whole event, which checks volunteers in to whichever of its opportunities they're helping with.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  errorText, eventAlbumId, isSchoolStaff, isVolunteerLead, listVolunteer, makeEventAlbum, subscribeVolunteer, volunteerEventDelete, volunteerEventReorder,
+  errorText, eventAlbumId, isSchoolStaff, isVolunteerLead, listVolunteer, makeEventAlbum, myAccess, subscribeVolunteer, volunteerEventDelete, volunteerEventReorder,
   type Opportunity, type Person, type Signup, type VolunteerEvent,
 } from '../../../src/api/connect';
 import { PastToggle, usePastToggle } from '../../../src/calendar/PastToggle';
 import { GOLD, NAVY } from '../../../src/sports/ui';
 import { detailSections, durationLabel, inEventOrder, moved, sectionIcon, startsLabel } from '../../../src/volunteer/details';
 import { isPast, longDayLabel, nameOf, whenLabel } from '../../../src/volunteer/format';
+import { CheckInCodeButton } from '../../../src/volunteer/CheckIn';
 import { OpportunityCard } from '../../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, Pill, Section, SectionTitle } from '../../../src/volunteer/parts';
 import { VolunteerGate } from '../../../src/volunteer/VolunteerGate';
@@ -38,6 +40,8 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
   const bottomInset = useBottomInset();
 
   const [album, setAlbum] = useState<string | null>(null);
+  const [office, setOffice] = useState(false);   // groups.manage: shows any event's check-in code
+  useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
   const load = useCallback(() => {
     eventAlbumId({ kind: 'volunteer', id }).then(setAlbum).catch(() => {});
     return listVolunteer().then(setData).catch(() => setData({ events: [], opportunities: [], signups: [] }));
@@ -98,6 +102,13 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
           {d.paragraphs.map((text, j) => <Text key={j} style={paragraph}>{text}</Text>)}
         </Section>
       ))}
+
+      {(started || office) && !isPast(e) && ofEvent.some((o) => o.kind === 'help') && (
+        <Section icon="qr-code-outline" title="Check-in" tint={GREEN}>
+          <P muted>One QR code for the whole event: volunteers scan it when they arrive and when they're done, and it checks them in to whatever they said yes to.</P>
+          <CheckInCodeButton of={{ eventId: e.id }} title={e.title} label="Show the event's check-in QR code" />
+        </Section>
+      )}
 
       {(album || started || isSchoolStaff(me)) && (
         <Section icon="images-outline" title="Photos">

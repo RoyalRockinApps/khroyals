@@ -6,17 +6,22 @@
  * picker to pledge, change or take back. Saying yes or pledging is celebrated with
  * clapping hands. The leader can delete it with a reason that every volunteer is sent.
  * One that's part of an event (Harvest Fest) links to it, and its leader can move it into
- * or out of an event.
+ * or out of an event. On the day, volunteers who said yes scan the leader's QR code to check in
+ * and out (at the top); its leaders (the event's leader and the office too) show that code and
+ * mark who came under Check-in.
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
-  getOpportunity, listVolunteerEvents, subscribeVolunteer, volunteerDelete, volunteerPledge, volunteerSayYes, volunteerSend, volunteerSetEvent,
-  volunteerWithdraw, type Opportunity, type Person, type Signup, type VolunteerEvent, type VolunteerMessage,
+  getOpportunity, listVolunteerEvents, myAccess, subscribeVolunteer, volunteerDelete, volunteerMark,
+  volunteerPledge, volunteerSayYes, volunteerSend, volunteerSetEvent, volunteerWithdraw,
+  type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent, type VolunteerMessage,
 } from '../../src/api/connect';
+import { schoolToday } from '../../src/calendar/past';
 import { GOLD, NAVY } from '../../src/sports/ui';
+import { MyCheckIn, RollCall } from '../../src/volunteer/CheckIn';
 import { Cheer } from '../../src/volunteer/Cheer';
 import { detailSections, durationLabel, pledgedTotal, sectionIcon, spotsLeft, startsLabel, stillNeeded } from '../../src/volunteer/details';
 import { countLabel, isPast, longDayLabel, nameOf, timeLabel } from '../../src/volunteer/format';
@@ -30,7 +35,10 @@ export default function OpportunityScreen() {
 }
 
 function Detail({ id, me }: { id: string; me: Person }) {
-  const [data, setData] = useState<{ opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; events: VolunteerEvent[] } | null>(null);
+  const [data, setData] = useState<{
+    opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; events: VolunteerEvent[];
+  } | null>(null);
+  const [office, setOffice] = useState(false);   // groups.manage: runs every opportunity's check-in
   const [showPeople, setShowPeople] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);   // the reason, while the leader is deleting
   const [draft, setDraft] = useState('');
@@ -42,8 +50,9 @@ function Detail({ id, me }: { id: string; me: Person }) {
 
   const load = useCallback(() => Promise.all([getOpportunity(id), listVolunteerEvents().catch(() => [])])
     .then(([o, events]) => setData({ ...o, events }))
-    .catch(() => setData({ opportunity: null, signups: [], messages: [], events: [] })), [id]);
+    .catch(() => setData({ opportunity: null, signups: [], messages: [], attendance: [], events: [] })), [id]);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
+  useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
 
   const act = (fn: () => Promise<unknown>, after?: () => void) => {
     setBusy(true);
@@ -68,6 +77,10 @@ function Detail({ id, me }: { id: string; me: Person }) {
   const past = isPast(o);
   const inChat = leading || signedUp;
   const event = data.events.find((e) => e.id === o.eventId);
+  // Check-in: yours today, and (for its leader, the event's leader or the office) everyone's.
+  const today = schoolToday();
+  const mine = data.attendance.find((a) => a.userId === me.id && a.day === today);
+  const runs = leading || event?.leadId === me.id || office;
   // Its leader can move it to an event still to come (or keep the one it's in).
   const movable = leading && o.status === 'open' && !past ? data.events.filter((e) => !isPast(e) || e.id === o.eventId) : [];
   const length = durationLabel(o);
@@ -100,6 +113,10 @@ function Detail({ id, me }: { id: string; me: Person }) {
             </View>
             <Ionicons name="chevron-forward" size={20} color={C.muted} />
           </Pressable>
+        )}
+
+        {signedUp && !items && o.status === 'open' && (
+          <MyCheckIn o={o} mine={mine} />
         )}
 
         <Section icon="calendar-outline" title={items ? 'Bring by' : 'When'}>
@@ -161,6 +178,11 @@ function Detail({ id, me }: { id: string; me: Person }) {
             </View>
           )}
         </Section>
+
+        {runs && !items && o.status === 'open' && (
+          <RollCall o={o} signups={data.signups} attendance={data.attendance} busy={busy}
+            onMark={(user, day, status, minutes) => act(() => volunteerMark(o.id, user, day, status, minutes))} />
+        )}
 
         {movable.length > 0 && (
           <Section icon="calendar-outline" title="Part of an event" tint={C.accent}>

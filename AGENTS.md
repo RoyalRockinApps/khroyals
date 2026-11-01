@@ -206,6 +206,22 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   posts into any open event (`volunteer_post` with `p_event`); an opportunity's leader moves it (`volunteer_set_event`).
   Only the event's starter (or `groups.manage`) puts its opportunities in order (`volunteer_event_reorder`, `position`;
   unplaced ones follow by date, `inEventOrder`) or removes it (`volunteer_event_delete`), which keeps its opportunities.
+- **Volunteer check-in** (`volunteer_attendance`; `src/volunteer/CheckIn.tsx`): help opportunities only, never item
+  requests. Volunteers who said yes **scan a QR code** when they arrive and again when they're done
+  (`volunteer_scan`, `app/volunteer/scan.tsx`; the second scan asks them to confirm, then checks them out), on each
+  day it runs, from an hour before it starts until it ends (`app.volunteer_check_in_open`; the app's copy is
+  `checkInWindow` in `src/volunteer/attendance.ts`, so change both). There's no check-in without a code. The code
+  (`VOL-<code>`, `app.volunteer_codes`, private) belongs to an opportunity or a whole event (which checks people in to
+  whichever of its opportunities they said yes to is open); only their leaders and `groups.manage` read or replace it
+  (`volunteer_check_in_code`, `app/volunteer/code.tsx`: show it on a phone or print it). As it starts, everyone who
+  hasn't checked in is reminded once (`app.volunteer_check_in_reminders`, every 5 minutes). Its leader, its event's leader or `groups.manage`
+  (`app.runs_volunteer`) mark anyone here (today), done (its scheduled time unless they correct it) or a no-show, or
+  clear the mark (`volunteer_mark`). Anyone still checked in overnight is checked out at the end time
+  (`app.close_volunteer_days`). **Analytics** (`volunteer_stats`; Volunteer → Volunteer analytics) are for Volunteer
+  Leaders and `groups.manage` (`app.sees_volunteer_stats`): shifts, hours, no-shows, past shifts nobody marked and days
+  led, and `busy` when someone is over `volunteer_busy_limits` (hours or shifts in the last 30 days, leading included, or
+  shifts signed up for in the next 30). `groups.manage` sets the limits. Everyone reads their own `volunteer_history`
+  (My sign-ups → My volunteer hours).
 - **Event tickets** (`ticketed_events`, `ticket_types`, `ticket_orders`, `tickets`; all inside Activities: My Tickets
   from its header, *Sell tickets* on an event): an activity's leaders (`app.runs_tickets`: coaches, directors, `sports.manage`) set kinds, prices, limits and
   sales (`ticket_event_save`) and check tickets at the door (`ticket_admit`: the QR code `KHT-<code>` or the short code, once

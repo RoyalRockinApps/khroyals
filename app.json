@@ -35,14 +35,14 @@
         "expo-image-picker",
         {
           "photosPermission": "{appName} lets you choose photos for your profile, your children, activities, school photo albums and Marketplace items.",
-          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
+          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, to scan event tickets at the door, and to scan volunteer check-in codes.",
           "microphonePermission": false
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, and to scan event tickets at the door.",
+          "cameraPermission": "{appName} uses the camera to take a photo for your profile, your children, an activity or a Marketplace item, to scan event tickets at the door, and to scan volunteer check-in codes.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }

@@ -1,19 +1,25 @@
 import { subscribeChanges } from './realtime';
 /** volunteer: internal API implementation. Screens import the connect facade. */
-import type { Opportunity, Signup, VolunteerEvent, VolunteerMessage } from './types';
+import type { BusyLimits, Opportunity, Signup, VolunteerAttendance, VolunteerDay, VolunteerEvent, VolunteerMessage, VolunteerScan, VolunteerStat } from './types';
 import { live, rpc, run, sb } from './client';
 import { current } from './session';
-import { toMessage, toOpportunity, toSignup, toVolunteerEvent } from './mappers';
+import { schoolToday } from '../calendar/past';
+import { toAttendance, toMessage, toOpportunity, toSignup, toVolunteerEvent } from './mappers';
+import { enumValue } from './validation';
 
-/** Opportunities this person can see (open ones, plus deleted ones they were part of), everyone's sign-ups, and the open events they're grouped under. */
-export async function listVolunteer(): Promise<{ opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[] }> {
-  if (!live || !current) return { opportunities: [], signups: [], events: [] };
-  const [o, s, e] = await Promise.all([
+/**
+ * Opportunities this person can see (open ones, plus deleted ones they were part of), everyone's sign-ups, the open
+ * events they're grouped under, and today's check-ins they can see (their own, and the opportunities they run).
+ */
+export async function listVolunteer(): Promise<{ opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[] }> {
+  if (!live || !current) return { opportunities: [], signups: [], events: [], attendance: [] };
+  const [o, s, e, a] = await Promise.all([
     run(sb().from('volunteer_opportunities').select('*').order('starts_on').order('start_time')),
     run(sb().from('volunteer_signups').select('*').order('created_at')),
     listVolunteerEvents(),
+    run(sb().from('volunteer_attendance').select('*').eq('day', schoolToday())),
   ]);
-  return { opportunities: o.map(toOpportunity), signups: s.map(toSignup), events: e };
+  return { opportunities: o.map(toOpportunity), signups: s.map(toSignup), events: e, attendance: a.map(toAttendance) };
 }
 
 /** The open events (Harvest Fest…) that opportunities are grouped under, soonest first. */
@@ -42,13 +48,15 @@ export async function volunteerSetEvent(opportunityId: string, eventId: string |
   await rpc('volunteer_set_event', { p_opportunity: opportunityId, p_event: eventId });
 }
 
-export async function getOpportunity(id: string): Promise<{ opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[] }> {
-  const [o, s, m] = await Promise.all([
+/** An opportunity, its sign-ups and chat, and the check-ins this person can see (their own; every one for its leaders). */
+export async function getOpportunity(id: string): Promise<{ opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[] }> {
+  const [o, s, m, a] = await Promise.all([
     run(sb().from('volunteer_opportunities').select('*').eq('id', id).maybeSingle()),
     run(sb().from('volunteer_signups').select('*').eq('opportunity_id', id).order('created_at')),
     run(sb().from('volunteer_messages').select('*').eq('opportunity_id', id).order('created_at')),
+    run(sb().from('volunteer_attendance').select('*').eq('opportunity_id', id)),
   ]);
-  return { opportunity: o ? toOpportunity(o) : null, signups: s.map(toSignup), messages: m.map(toMessage) };
+  return { opportunity: o ? toOpportunity(o) : null, signups: s.map(toSignup), messages: m.map(toMessage), attendance: a.map(toAttendance) };
 }
 
 export async function volunteerPost(o: {
@@ -78,11 +86,66 @@ export async function volunteerDelete(id: string, reason: string) { await rpc('v
 
 export async function volunteerSend(id: string, body: string) { await rpc('volunteer_send', { p_opportunity: id, p_body: body }); }
 
+/**
+ * Scan a check-in code (the QR's text, or the short code under it): checks you in to what you said yes to that's open
+ * now; once you're in, it asks you to confirm you're done (done: true checks you out).
+ */
+export async function volunteerScan(code: string, done = false): Promise<VolunteerScan> {
+  const r = (await rpc('volunteer_scan', { p_code: code, p_done: done })) as Record<string, unknown>;
+  return {
+    action: enumValue(r.action, ['in', 'confirm', 'out']), opportunityId: String(r.opportunityId), title: String(r.title ?? ''),
+    since: typeof r.since === 'string' ? r.since : null, minutes: typeof r.minutes === 'number' ? r.minutes : null,
+  };
+}
+
+/** Its leaders: the check-in code of an opportunity or a whole event (made the first time); renew replaces it. */
+export async function volunteerCheckInCode(of: { opportunityId: string } | { eventId: string }, renew = false) {
+  return (await rpc('volunteer_check_in_code', {
+    ...('opportunityId' in of ? { p_opportunity: of.opportunityId } : { p_event: of.eventId }), p_new: renew,
+  })) as string;
+}
+
+/**
+ * The leader marks a volunteer for one of its days: here (today only), done (with minutes; otherwise the time since they
+ * checked in, or its scheduled length), a no-show, or null to clear it.
+ */
+export async function volunteerMark(id: string, userId: string, day: string, status: VolunteerAttendance['status'] | null, minutes?: number | null) {
+  await rpc('volunteer_mark', { p_opportunity: id, p_user: userId, p_day: day, p_status: status, ...(minutes != null ? { p_minutes: minutes } : {}) });
+}
+
+/** Volunteer Leaders and the office: everyone's volunteering between two days (null: from the start; to today). */
+export async function volunteerStats(from: string | null, to: string | null = null): Promise<VolunteerStat[]> {
+  return (await rpc('volunteer_stats', { ...(from ? { p_from: from } : {}), ...(to ? { p_to: to } : {}) })).map((r) => ({
+    userId: r.user_id, name: r.name, schoolRole: r.school_role, isLead: r.is_lead, shifts: r.shifts, minutes: r.minutes,
+    noShows: r.no_shows, unmarked: r.unmarked, led: r.led, recentShifts: r.recent_shifts, recentMinutes: r.recent_minutes,
+    upcoming: r.upcoming, lastDay: r.last_day, busy: r.busy,
+  }));
+}
+
+/** One person's volunteering, newest first: your own, or anyone's for Volunteer Leaders and the office. */
+export async function volunteerHistory(userId: string): Promise<VolunteerDay[]> {
+  return (await rpc('volunteer_history', { p_user: userId })).map((r) => ({
+    opportunityId: r.opportunity_id, title: r.title, eventTitle: r.event_title, day: r.day,
+    startTime: r.start_time?.slice(0, 5) ?? null, endTime: r.end_time?.slice(0, 5) ?? null,
+    status: enumValue(r.status, ['done', 'no_show', 'here', 'missed', 'coming', 'led']), minutes: r.minutes,
+  }));
+}
+
+/** How much is a lot (hours or shifts in 30 days), and whether you can change it. */
+export async function volunteerBusyLimits(): Promise<BusyLimits> {
+  const l = (await rpc('volunteer_busy_limits')) as Partial<BusyLimits> | null;
+  return { hours: Number(l?.hours ?? 12), shifts: Number(l?.shifts ?? 6), canEdit: !!l?.canEdit };
+}
+
+/** The office (groups.manage): change how much is a lot. */
+export async function volunteerSetBusyLimits(hours: number, shifts: number) { await rpc('volunteer_set_busy_limits', { p_hours: hours, p_shifts: shifts }); }
+
 export async function adminSetVolunteerLead(userId: string, on: boolean) {
   await rpc('admin_set_volunteer_lead', { p_user: userId, p_on: on });
 }
 
-/** Live changes to opportunities, sign-ups and chats (row-level security limits them to what this person may see). */
+/** Live changes to opportunities, sign-ups, chats and check-ins (row-level security limits them to what this person may see). */
 export function subscribeVolunteer(onChange: () => void): () => void {
-  return subscribeChanges('subscribeVolunteer', [{ event: '*', table: 'volunteer_opportunities' }, { event: '*', table: 'volunteer_signups' }, { event: '*', table: 'volunteer_messages' }], onChange);
+  return subscribeChanges('subscribeVolunteer', [{ event: '*', table: 'volunteer_opportunities' }, { event: '*', table: 'volunteer_signups' },
+    { event: '*', table: 'volunteer_messages' }, { event: '*', table: 'volunteer_attendance' }], onChange);
 }

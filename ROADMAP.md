@@ -209,6 +209,7 @@ Working in the app and on the server today.
 | Activities | Events and RSVPs | Countdown carousel, directions, Going / Not going, attendance for coaches, team photos |
 | Marketplace | Buy and sell | Terms gate, photos, Dibs or Offer with one counter, deal card |
 | Volunteer | Opportunities, item requests and events | Leaders post, "Say Yes!" sign-ups with spot limits, item requests people pledge toward with quantity progress, chat per opportunity, events (Harvest Fest) holding their opportunities on one card, in the leader's order |
+| Volunteer | Check-in and analytics | Volunteers scan the leader's QR code (one per opportunity, or one for a whole event) when they arrive and when they're done (reminded as it starts); leaders mark who came, no-shows and hours; Volunteer Leaders and the office see hours, show-up rate, unmarked shifts and who's doing a lot; everyone sees their own hours |
 | Ask the School | Questions | Ask and follow up; routers assign to staff; ages turn amber and red |
 | Student | Student app | Lists your children; links to the FACTS Family Portal for grades; parents read each child's messages with teachers |
 | Student | Ask the Teacher | Students message the teachers of their classes; teachers reply or start a conversation; parents and admins with Student messages can read |

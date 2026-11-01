@@ -3223,6 +3223,183 @@ test("volunteer events: the event's leader puts its opportunities in order", asy
     delete from volunteer_opportunities where id in ('${water}', '${setup}', '${booths}'); delete from volunteer_events`);
 });
 
+test('volunteer check-in: volunteers scan the QR code to check in and out, leaders mark who came, and leaders and the office see the hours', async () => {
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities; delete from volunteer_events`);
+  const [jen, rosa, wei, dana, sun, mark8, priya] = ['u-eng', 'u-p01', 'u-p02', 'u-p03', 'u-p04', 'u-p08', 'u-p07'];
+  const scan = (code: string, done = false) => `select volunteer_scan('${code}', ${done}) as r`;
+  const codeOf = async (args: string) => (await one(`select volunteer_check_in_code(${args}) as c`)).c as string;
+  const mark = (o: string, who: string, day: string, status: string | null, minutes?: number) =>
+    `select volunteer_mark('${o}', ${id(who)}, ${day}, ${status ? `'${status}'` : 'null'}, ${minutes ?? 'null'})`;
+  const att = (o: string, who: string, day = 'app.school_today()') => one(`select status, minutes, marked_by from volunteer_attendance
+    where opportunity_id = '${o}' and user_id = ${id(who)} and day = ${day}`);
+  const today = 'app.school_today()';
+
+  // Today, with no times: its leader shows the QR code, and volunteers who said yes scan it any time today.
+  await as(jen);
+  const shelving = (await one(`select id from volunteer_post('Library shelving', 'Reshelve the returns.', ${today}, null, null, null, 'Library', 5)`)).id;
+  const code = await codeOf(`'${shelving}'`);
+  assert.equal(await codeOf(`'${shelving}'`), code, 'the same code each time');
+  await as(rosa);
+  await rejects(`select volunteer_check_in_code('${shelving}')`, /Only its leaders/);
+  await rejects(scan(`VOL-${code}`), /isn't for anything you said yes to/);
+  await one(`select volunteer_say_yes('${shelving}')`);
+  await rejects(scan('VOL-12'), /isn't a volunteer check-in code/);
+  await rejects(scan('VOL-0123456789abcdef'), /isn't for anything you said yes to/);
+  assert.deepEqual((await one(scan(`VOL-${code}`))).r, { action: 'in', opportunityId: shelving, title: 'Library shelving' });
+  assert.equal((await att(shelving, rosa)).status, 'here');
+  // Scanning again asks whether she's done; only confirming checks her out. The short code under the QR works too.
+  assert.equal((await one(scan(`VOL-${code}`))).r.action, 'confirm');
+  assert.equal((await att(shelving, rosa)).status, 'here');
+  assert.deepEqual((await one(scan(code.slice(0, 8).toUpperCase(), true))).r, { action: 'out', opportunityId: shelving, title: 'Library shelving', minutes: 0 });
+  await rejects(scan(`VOL-${code}`), /already checked out today/);
+  assert.deepEqual(await att(shelving, rosa), { status: 'done', minutes: 0, marked_by: (await one(`select ${id(rosa)} as u`)).u });
+  // Only she and the leader see it, and nobody writes it directly.
+  await as(wei);
+  assert.equal((await rows(`select 1 from volunteer_attendance`)).length, 0);
+  await rejects(`insert into volunteer_attendance (opportunity_id, user_id, day, status) values ('${shelving}', ${id(wei)}, ${today}, 'no_show')`,
+    /permission denied/);
+  await as(jen);
+  assert.equal((await rows(`select 1 from volunteer_attendance where opportunity_id = '${shelving}'`)).length, 1);
+  // A new code replaces the old one (a lost printout, say).
+  const fresh = (await one(`select volunteer_check_in_code('${shelving}', null, true) as c`)).c;
+  assert.notEqual(fresh, code);
+  await as(wei);
+  await one(`select volunteer_say_yes('${shelving}')`);
+  await rejects(scan(`VOL-${code}`), /isn't for anything you said yes to/);
+
+  // One code for a whole event: it checks people in to whichever of its opportunities they said yes to is open now.
+  await as(jen);
+  const fair = (await one(`select volunteer_event_save(null, 'Spring Fair', '', ${today}) as id`)).id;
+  const tickets = (await one(`select id from volunteer_post('Ticket table', '', ${today}, null, null, null, 'Gate', 3, 'help', null, null, '${fair}')`)).id;
+  const cleanup = (await one(`select id from volunteer_post('Cleanup crew', '', ${today} + 1, null, null, null, 'Field', 3, 'help', null, null, '${fair}')`)).id;
+  const fairCode = await codeOf(`null, '${fair}'`);
+  await as(priya);
+  await rejects(`select volunteer_check_in_code(null, '${fair}')`, /Only its leaders/);
+  await rejects(scan(`VOL-${fairCode}`), /isn't for anything you said yes to/);
+  for (const o of [cleanup, tickets]) await one(`select volunteer_say_yes('${o}')`);
+  assert.equal((await one(scan(`VOL-${fairCode}`))).r.opportunityId, tickets, "today's, not tomorrow's");
+  assert.equal((await one(scan(`VOL-${fairCode}`))).r.action, 'confirm');
+  assert.equal((await one(scan(`VOL-${fairCode}`, true))).r.opportunityId, tickets);
+  await rejects(scan(`VOL-${fairCode}`), /already checked out today/);
+
+  // With times, check-in opens an hour before it starts and closes when it ends, on its days only.
+  await as(jen);
+  const ushers = (await one(`select id from volunteer_post('Concert ushers', '', ${today}, null, '15:00', '17:00', 'Gym', 4)`)).id;
+  const open = async (day: string, at: string) => (await one(`select app.volunteer_check_in_open(o, app.school_moment(${day}, '${at}')) as ok
+    from volunteer_opportunities o where id = '${ushers}'`)).ok;
+  assert.deepEqual([await open(today, '13:59'), await open(today, '14:00'), await open(today, '16:59'), await open(today, '17:00'),
+    await open(`${today} + 1`, '15:00')], [false, true, true, false, false]);
+  // Item requests have no check-in.
+  const cookies = (await one(`select id from volunteer_post('Cookies', '', ${today}, null, null, null, null, null, 'items', 'dozen cookies', 4)`)).id;
+  await rejects(`select volunteer_check_in_code('${cookies}')`, /has no check-in/);
+  await as(wei);
+  await one(`select volunteer_pledge('${cookies}', 1)`);
+
+  // The leader checks someone in and out on the day.
+  await as(jen);
+  await one(mark(shelving, wei, today, 'here'));
+  assert.equal((await att(shelving, wei)).status, 'here');
+  await one(mark(shelving, wei, today, 'done'));
+  assert.equal((await att(shelving, wei)).status, 'done');
+
+  // An earlier day: only its leader (or the office) marks who came, done (its scheduled time unless corrected) or a no-show.
+  await asSuper();
+  const ago = `${today} - 3`;
+  const wash = (await one(`insert into volunteer_opportunities (lead_id, title, starts_on, start_time, end_time, location)
+    values (${id(jen)}, 'Car wash', ${ago}, '09:00', '12:00', 'Parking lot') returning id`)).id;
+  await db.exec(`insert into volunteer_signups (opportunity_id, user_id)
+    select '${wash}', u from unnest(array[${[rosa, wei, dana, sun, mark8].map(id).join(', ')}]) u`);
+  for (const who of ['u-sci', rosa]) {
+    await as(who);
+    await rejects(mark(wash, rosa, ago, 'done'), /Only the leader/);
+  }
+  await as('u-admin');
+  await rejects(mark(wash, dana, ago, 'no_show'), /Only the leader/);
+  await as(jen);
+  await rejects(mark(wash, 'u-p05', ago, 'done'), /haven't said yes/);
+  await rejects(mark(wash, rosa, `${today} - 2`, 'done'), /one of its days/);
+  await rejects(mark(wash, rosa, ago, 'here'), /on the day/);
+  await rejects(mark(wash, rosa, ago, 'done', 2000), /from 0 to 24/);
+  await one(mark(wash, rosa, ago, 'done'));
+  assert.equal((await att(wash, rosa, ago)).minutes, 180, 'the scheduled three hours');
+  await one(mark(wash, rosa, ago, 'done', 150));
+  assert.equal((await att(wash, rosa, ago)).minutes, 150, 'corrected');
+  await one(mark(wash, wei, ago, 'no_show'));
+  await one(mark(wash, dana, ago, 'done'));
+  await one(mark(wash, dana, ago, null));
+  assert.equal(await att(wash, dana, ago), undefined, 'cleared');
+  await as('u-admin', true);
+  await one(mark(wash, dana, ago, 'no_show'));
+
+  // Anyone still checked in overnight is checked out at the end time.
+  await asSuper();
+  await db.exec(`insert into volunteer_attendance (opportunity_id, user_id, day, status, checked_in_at)
+    values ('${wash}', ${id(sun)}, ${ago}, 'here', app.school_moment(${ago}, '09:05'))`);
+  assert.equal((await one(`select app.close_volunteer_days() as n`)).n, 1);
+  assert.deepEqual(await att(wash, sun, ago), { status: 'done', minutes: 175, marked_by: null });
+  assert.equal((await att(shelving, wei)).status, 'done', "today's are left alone");
+
+  // Tomorrow: nothing to mark yet; as it starts, everyone who said yes is reminded to check in, once.
+  await as(jen);
+  const bake = (await one(`select id from volunteer_post('Bake sale', '', ${today} + 1, null, '10:00', '12:00', 'Gym', 6)`)).id;
+  for (const who of [rosa, wei]) { await as(who); await one(`select volunteer_say_yes('${bake}')`); }
+  await as(jen);
+  await rejects(mark(bake, rosa, `${today} + 1`, 'done'), /once it comes/);
+  await asSuper();
+  const remind = (at: string) => `select app.volunteer_check_in_reminders(app.school_moment(${today} + 1, '${at}')) as n`;
+  assert.equal((await one(remind('09:40'))).n, 0, 'not yet');
+  assert.equal((await one(remind('09:50'))).n, 2);
+  assert.equal((await one(remind('09:55'))).n, 0, 'once a day');
+  await as(rosa);
+  assert.deepEqual(await rows(`select title, body from my_notifications() where data->>'opportunityId' = '${bake}'`),
+    [{ title: '📍 Check in: Bake sale', body: 'It starts at 10:00 AM at Gym. Scan the check-in QR code when you get there.' }]);
+
+  // Everyone sees their own history; only Volunteer Leaders and the office see anyone else's, and the analytics.
+  assert.deepEqual(await rows(`select title, status, minutes from volunteer_history(${id(rosa)}) order by day, title`), [
+    { title: 'Car wash', status: 'done', minutes: 150 },
+    { title: 'Library shelving', status: 'done', minutes: 0 },
+    { title: 'Bake sale', status: 'coming', minutes: null },
+  ]);
+  await rejects(`select * from volunteer_history(${id(wei)})`, /for Volunteer Leaders and the office/);
+  await rejects(`select * from volunteer_stats()`, /for Volunteer Leaders and the office/);
+  await as(jen);
+  assert.deepEqual((await rows(`select status from volunteer_history(${id(mark8)})`)).map((r) => r.status), ['missed']);
+  const stats = async (args = '') => Object.fromEntries((await rows(`select * from volunteer_stats(${args})`)).map((r) => [r.user_id, r]));
+  const u = Object.fromEntries(await Promise.all([jen, rosa, wei, dana, sun, mark8].map(async (w) => [w, (await one(`select ${id(w)} as u`)).u])));
+  const pick = (r: any) => r && ({ shifts: r.shifts, minutes: r.minutes, no_shows: r.no_shows, unmarked: r.unmarked, led: r.led,
+    recent_shifts: r.recent_shifts, recent_minutes: r.recent_minutes, upcoming: r.upcoming, busy: r.busy });
+  let s = await stats();
+  assert.deepEqual(pick(s[u[rosa]]), { shifts: 2, minutes: 150, no_shows: 0, unmarked: 0, led: 0, recent_shifts: 2, recent_minutes: 150, upcoming: 1, busy: false });
+  assert.deepEqual(pick(s[u[wei]]), { shifts: 1, minutes: 0, no_shows: 1, unmarked: 0, led: 0, recent_shifts: 1, recent_minutes: 0, upcoming: 1, busy: false });
+  assert.deepEqual(pick(s[u[dana]]), { shifts: 0, minutes: 0, no_shows: 1, unmarked: 0, led: 0, recent_shifts: 0, recent_minutes: 0, upcoming: 0, busy: false });
+  assert.deepEqual(pick(s[u[sun]]), { shifts: 1, minutes: 175, no_shows: 0, unmarked: 0, led: 0, recent_shifts: 1, recent_minutes: 175, upcoming: 0, busy: false });
+  assert.deepEqual(pick(s[u[mark8]]), { shifts: 0, minutes: 0, no_shows: 0, unmarked: 1, led: 0, recent_shifts: 0, recent_minutes: 0, upcoming: 0, busy: false });
+  // Leading counts toward doing a lot: the car wash (3 hours), shelving and the ticket table (no times) and the ushers (2 hours);
+  // tomorrow's bake sale and cleanup are coming.
+  assert.deepEqual(pick(s[u[jen]]), { shifts: 0, minutes: 0, no_shows: 0, unmarked: 0, led: 4, recent_shifts: 4, recent_minutes: 300, upcoming: 2, busy: false });
+  assert.equal(s[u[rosa]].school_role, 'parent');
+  assert.equal(s[u[jen]].name, 'Jennifer Taylor');
+  // From yesterday on: the car wash is left out, and so is anyone who only had it.
+  s = await stats(`${today} - 1`);
+  assert.equal(s[u[rosa]].shifts, 1);
+  assert.equal(s[u[mark8]], undefined);
+
+  // The office sets how much is a lot; then the busiest are flagged.
+  assert.equal((await one(`select volunteer_busy_limits() as l`)).l.canEdit, false);
+  await rejects(`select volunteer_set_busy_limits(2, 3)`, /don't have permission/);
+  await as('u-admin', true);
+  assert.deepEqual((await one(`select volunteer_busy_limits() as l`)).l, { hours: 12, shifts: 6, canEdit: true });
+  await rejects(`select volunteer_set_busy_limits(0, 3)`, /from 1 to 200/);
+  await one(`select volunteer_set_busy_limits(2, 3)`);
+  s = await stats();
+  assert.deepEqual(Object.values(s).filter((r: any) => r.busy).map((r: any) => r.user_id).sort(), [u[jen], u[rosa], u[sun]].sort());
+
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities; delete from volunteer_events;
+    update app.settings set value = '12' where key = 'volunteer_busy_hours'; update app.settings set value = '6' where key = 'volunteer_busy_shifts'`);
+});
+
 test("photos: anyone who sees an album adds photos; staff remove anyone's with a reason, and whoever added it is told", async () => {
   await asSuper();
   const events = (await one(`select id from gallery_categories where name = 'Events'`)).id;

@@ -1,6 +1,6 @@
 /** mappers: internal API implementation. Screens import the connect facade. */
 import type { Comment, Group, Post, SchoolRole } from '../comms/types';
-import type { CriticalAlert, FamilyRequest, GroupEvent, Listing, MarketLine, MySettings, Notice, Opportunity, Person, Pickup, QuestionMessage, SchoolQuestion, Signup, SportEvent, SportRegistration, SportSeason, Vehicle, VolunteerEvent, VolunteerMessage } from './types';
+import type { CriticalAlert, FamilyRequest, GroupEvent, Listing, MarketLine, MySettings, Notice, Opportunity, Person, Pickup, QuestionMessage, SchoolQuestion, Signup, SportEvent, SportRegistration, SportSeason, Vehicle, VolunteerAttendance, VolunteerEvent, VolunteerMessage } from './types';
 import type { Tables } from './database.types';
 import { enumValue, jsonObject } from './validation';
 import { KIND_LABELS } from '../sports/categories';
@@ -97,6 +97,11 @@ export const toOpportunity = (r: Tables<'volunteer_opportunities'>): Opportunity
 });
 
 export const toSignup = (r: Tables<'volunteer_signups'>): Signup => ({ opportunityId: r.opportunity_id, userId: r.user_id, createdAt: r.created_at, quantity: r.quantity ?? null });
+
+export const toAttendance = (r: Tables<'volunteer_attendance'>): VolunteerAttendance => ({
+  opportunityId: r.opportunity_id, userId: r.user_id, day: r.day, status: enumValue(r.status, ['here', 'done', 'no_show']),
+  checkedInAt: r.checked_in_at, checkedOutAt: r.checked_out_at, minutes: r.minutes, markedBy: r.marked_by,
+});
 
 export const toMessage = (r: Tables<'volunteer_messages'>): VolunteerMessage => ({ id: r.id, opportunityId: r.opportunity_id, authorId: r.author_id, body: r.body, createdAt: r.created_at });
 

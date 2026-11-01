@@ -2,16 +2,21 @@
  * Volunteer: upcoming opportunities (people's time, and item requests with how much is
  * pledged), the ones you said yes to or pledged for, and (for leaders) the ones you lead.
  * Opportunities that are part of an event (Harvest Fest) sit inside its card, which opens
- * the event; the rest follow under "Other opportunities".
+ * the event; the rest follow under "Other opportunities". On a day you're volunteering, its
+ * check-in (scan the leader's QR code) is at the top. Leaders and the office open the volunteer analytics from here,
+ * and everyone sees their own hours from My sign-ups.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  isVolunteerLead, listVolunteer, subscribeVolunteer, type Opportunity, type Person, type Signup, type VolunteerEvent,
+  isVolunteerLead, listVolunteer, myAccess, subscribeVolunteer, type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent,
 } from '../../src/api/connect';
+import { schoolToday } from '../../src/calendar/past';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
+import { runsOn } from '../../src/volunteer/attendance';
+import { MyCheckIn } from '../../src/volunteer/CheckIn';
 import { daysLabel, isPast } from '../../src/volunteer/format';
 import { OpportunityCard, progress } from '../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, SectionTitle } from '../../src/volunteer/parts';
@@ -20,7 +25,7 @@ import { Button, C, Card, Chip, Loading, P, s } from '../../src/ui';
 
 type Tab = 'open' | 'mine' | 'leading';
 type Kind = 'all' | Opportunity['kind'];
-type Data = { opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[] };
+type Data = { opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[] };
 
 export default function Volunteer() {
   return <VolunteerGate title="Volunteer">{(me) => <Opportunities me={me} />}</VolunteerGate>;
@@ -31,14 +36,20 @@ function Opportunities({ me }: { me: Person }) {
   const [tab, setTab] = useState<Tab>('open');
   const [kind, setKind] = useState<Kind>('all');
   const showPast = usePastToggle();
+  const [office, setOffice] = useState(false);   // groups.manage: sees the analytics too
   const lead = isVolunteerLead(me);
 
-  const load = useCallback(() => listVolunteer().then(setData).catch(() => setData({ opportunities: [], signups: [], events: [] })), []);
+  const load = useCallback(() => listVolunteer().then(setData).catch(() => setData({ opportunities: [], signups: [], events: [], attendance: [] })), []);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
+  useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
   if (!data) return <Loading />;
 
   const signupsOf = (o: Opportunity) => data.signups.filter((x) => x.opportunityId === o.id);
   const said = (o: Opportunity) => signupsOf(o).some((x) => x.userId === me.id);
+  // Where you're volunteering today, to check in and out.
+  const today = schoolToday();
+  const todays = data.opportunities.filter((o) => o.status === 'open' && o.kind === 'help' && runsOn(o, today) && said(o));
+  const mineToday = (o: Opportunity) => data.attendance.find((a) => a.opportunityId === o.id && a.userId === me.id && a.day === today);
   const eventOf = (o: Opportunity) => data.events.find((e) => e.id === o.eventId);
   // Like every calendar in the app: past opportunities stay out of view until asked for, then look greyed out.
   const all: Record<Tab, Opportunity[]> = {
@@ -67,11 +78,17 @@ function Opportunities({ me }: { me: Person }) {
     <FlatList style={s.screen} contentContainerStyle={s.pad} data={shown} keyExtractor={(o) => o.id}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
+          {todays.map((o) => (
+            <MyCheckIn key={o.id} o={o} mine={mineToday(o)} showTitle />
+          ))}
           {lead && (
             <View style={s.row}>
               <View style={{ flex: 1 }}><Button label="+ Event" kind="ghost" onPress={() => router.push('/volunteer/event/new')} /></View>
               <View style={{ flex: 1 }}><Button label="+ Opportunity" onPress={() => router.push('/volunteer/new')} /></View>
             </View>
+          )}
+          {(lead || office) && (
+            <LinkRow icon="stats-chart" title="Volunteer analytics" sub="Hours, who came, and who's doing a lot" onPress={() => router.push('/volunteer/stats')} />
           )}
           <View style={[s.row, { gap: 6, flexWrap: 'wrap' }]}>
             {tabs.map((t) => (
@@ -82,6 +99,9 @@ function Opportunities({ me }: { me: Person }) {
               </Text>
             ))}
           </View>
+          {tab === 'mine' && (
+            <LinkRow icon="time-outline" title="My volunteer hours" sub="Every shift you've done, and what's coming" onPress={() => router.push(`/volunteer/person/${me.id}`)} />
+          )}
           {kinds && (
             <View style={[s.row, { gap: 6, flexWrap: 'wrap' }]}>
               {(['all', 'help', 'items'] as const).map((k) => (
@@ -130,6 +150,23 @@ function EventCard({ e, opportunities, signups, me }: { e: VolunteerEvent; oppor
         </View>
         <Ionicons name="chevron-forward" size={22} color={C.muted} />
       </View>
+    </Pressable>
+  );
+}
+
+/** A card that opens another Volunteer screen. */
+function LinkRow({ icon, title, sub, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="link" accessibilityLabel={title}
+      style={({ pressed }) => [s.card, s.row, { padding: 14, gap: 12 }, pressed && { opacity: 0.85 }]}>
+      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${GREEN}1A`, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={20} color={GREEN} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{title}</Text>
+        <Text style={{ color: C.muted }}>{sub}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={C.muted} />
     </Pressable>
   );
 }

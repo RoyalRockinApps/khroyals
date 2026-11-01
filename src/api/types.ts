@@ -147,6 +147,40 @@ export type Signup = { opportunityId: string; userId: string; createdAt: string;
 
 export type VolunteerMessage = { id: string; opportunityId: string; authorId: string | null; body: string; createdAt: string };
 
+/** A volunteer's day on an opportunity: here (checked in), done (checked out, with minutes if known) or a no-show. */
+export type VolunteerAttendance = {
+  opportunityId: string; userId: string; day: string; status: 'here' | 'done' | 'no_show';
+  checkedInAt: string | null; checkedOutAt: string | null; minutes: number | null;
+  /** Who made the last change: the volunteer, a leader, or null when it was closed overnight. */
+  markedBy: string | null;
+};
+
+/** One person in the volunteer analytics (volunteer_stats). */
+export type VolunteerStat = {
+  userId: string; name: string; schoolRole: string; isLead: boolean;
+  /** In the chosen dates: shifts done and their minutes, no-shows, past days nobody marked, days led. */
+  shifts: number; minutes: number; noShows: number; unmarked: number; led: number;
+  /** Whatever the dates: shifts done or led (and their minutes) in the last 30 days, and shifts in the next 30. */
+  recentShifts: number; recentMinutes: number; upcoming: number;
+  lastDay: string | null; busy: boolean;
+};
+
+/** A day in someone's volunteer history (volunteer_history). */
+export type VolunteerDay = {
+  opportunityId: string; title: string; eventTitle: string | null; day: string; startTime: string | null; endTime: string | null;
+  status: 'done' | 'no_show' | 'here' | 'missed' | 'coming' | 'led'; minutes: number | null;
+};
+
+/** What scanning a check-in code did: checked you in, asks you to confirm you're done, or checked you out. */
+export type VolunteerScan = {
+  action: 'in' | 'confirm' | 'out'; opportunityId: string; title: string;
+  /** When you checked in (confirm), and the minutes you gave (out). */
+  since: string | null; minutes: number | null;
+};
+
+/** How much is a lot: hours or shifts in 30 days. */
+export type BusyLimits = { hours: number; shifts: number; canEdit: boolean };
+
 /** How a school role reads on screen. */
 export const ROLE_LABELS: Record<SchoolRole, string> = {
   admin: 'Admin', teacher: 'Teacher', staff: 'Staff', parent: 'Parent', student: 'Student', family: 'Family', substitute: 'Substitute',

@@ -18,6 +18,7 @@ export const READ_ONLY_RPCS = new Set([
   'form_status', 'gallery_album_people', 'group_abilities', 'group_post_stats', 'market_terms', 'my_access', 'my_calendar', 'my_class_attendance', 'my_class_students', 'my_forms', 'my_groups', 'my_notifications',
   'my_pickup_children', 'my_pickup_transfers', 'pickup_transfer_people', 'my_sections', 'my_sub_days', 'my_tickets', 'my_sport_schedule', 'my_sports', 'my_teachers', 'my_unread_count', 'notification_open_counts',
   'permission_catalog', 'post_stats', 'sent_forms', 'sport_event_attendance', 'student_events', 'sub_options', 'sub_schedule_list', 'teacher_conversations', 'ticket_event', 'ticket_for_wallet', 'ticket_order_status', 'ticket_sales', 'tickets_on_sale', 'teacher_thread', 'teacher_thread_for',
+  'volunteer_busy_limits', 'volunteer_history', 'volunteer_stats',
 ]);
 
 /** Whether sending this request twice can't change anything. */
