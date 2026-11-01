@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Build the iPhone app and upload it to App Store Connect for TestFlight.
 #
-#   APPLE_TEAM_ID=XXXXXXXXXX scripts/testflight.sh ["What to test in this build"]
+#   [SCHOOL=wca] APPLE_TEAM_ID=XXXXXXXXXX scripts/testflight.sh ["What to test in this build"]
 #
 # Runs on a Mac with Xcode signed in (Settings → Accounts) to an Apple account on
-# the team that owns com.khroyals.app in App Store Connect (Admin or App Manager).
+# the team that owns the school's app (schools/<SCHOOL>/app.json) in App Store Connect.
 # Xcode makes the distribution certificate and profile itself. Uses the real app ID,
 # so it replaces any developer test setup in ios/ (prebuild again for your test
 # phone afterwards). Each upload gets a new build number from the date and time
@@ -23,14 +23,14 @@ cd "$(dirname "$0")/.."
 read -r year monthday time <<<"$(date -u +'%Y %m%d %H%M')"
 export IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-$year.$((10#$monthday)).$((10#$time))}"
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # CocoaPods fails without a UTF-8 locale
-unset IOS_BUNDLE_ID                          # the real app ID, com.khroyals.app
+unset IOS_BUNDLE_ID                          # the school's real app ID (schools/<SCHOOL>/app.json)
 
 key=""
 [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] && [ -n "${ASC_KEY_PATH:-}" ] && key=1
 auth=()
 [ -n "$key" ] && auth=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
 
-echo "Building KH Royals $(node -p "require('./app.json').expo.version") ($IOS_BUILD_NUMBER) for team $APPLE_TEAM_ID"
+echo "Building $(node -p "require('./schools/'+(process.env.SCHOOL||'khroyals')+'/app.json').expo.name") $(node -p "require('./app.json').expo.version") ($IOS_BUILD_NUMBER) for team $APPLE_TEAM_ID"
 CI=1 npx expo prebuild --platform ios --clean
 [ -d ios/Pods ] || { echo "pod install failed (prebuild doesn't stop for it); see above" >&2; exit 1; }
 

@@ -7,8 +7,9 @@
 import { Linking } from 'react-native';
 import { router } from 'expo-router';
 import { resolvePageId } from '../api/mockApi';
+import { SCHOOL } from '../school';
 
-const SITE_HOSTS = new Set(['www.khroyals.com', 'khroyals.com']);
+const SITE_HOSTS = new Set(SCHOOL.website.hosts);
 
 export type Route =
   | { kind: 'tab'; path: '/' | '/news' | '/calendar' }
@@ -34,8 +35,9 @@ export function routeFor(url: string): Route {
   const parts = u.pathname.split('/').filter(Boolean);
   if (parts.length === 0) return { kind: 'tab', path: '/' };
   if (parts[0] === 'news') return parts[1] ? { kind: 'article', slug: parts[1] } : { kind: 'tab', path: '/news' };
-  if (parts.length === 1) {
-    const id = resolvePageId(parts[0]);
+  // A page is its one path part, or (on a site whose pages nest, like WordPress's /about/our-story/) its last.
+  if (parts.length === 1 || SCHOOL.website.nestedPages) {
+    const id = resolvePageId(parts[parts.length - 1]);
     if (id) return { kind: 'page', id };
   }
   return { kind: 'external', url };

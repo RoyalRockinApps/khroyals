@@ -1,10 +1,10 @@
 Pod::Spec.new do |s|
   s.name           = 'KHCarPlay'
   s.version        = '1.0.0'
-  s.summary        = 'The KH Royals car line on CarPlay'
+  s.summary        = 'The school car line on CarPlay'
   s.description    = 'CarPlay scene and list screens for car line check-in (a CarPlay driving task app).'
   s.license        = { type: 'UNLICENSED' }
-  s.author         = 'KH Royals'
+  s.author         = 'RoyalRockinApps'
   s.homepage       = 'https://github.com/RoyalRockinApps/khroyals'
   s.platforms      = { :ios => '16.4' }
   s.swift_version  = '5.9'

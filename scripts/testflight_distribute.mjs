@@ -20,7 +20,8 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import { createPrivateKey, sign } from 'node:crypto';
 
-const BUNDLE_ID = 'com.khroyals.app';
+// The school's app (SCHOOL, as for the build; Kingdom Heights when unset).
+const BUNDLE_ID = JSON.parse(readFileSync(new URL(`../schools/${process.env.SCHOOL || 'khroyals'}/app.json`, import.meta.url))).expo.ios.bundleIdentifier;
 const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const build = args.find((a, i) => !a.startsWith('--') && !['--note', '--groups'].includes(args[i - 1]));

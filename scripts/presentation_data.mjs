@@ -399,7 +399,8 @@ async function main() {
   if (!parentEmail) { console.error('Usage: node scripts/presentation_data.mjs --parent <email> [--student <email>] [--day YYYY-MM-DD] [--only volunteer] [--remove] [--print]'); process.exit(1); }
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   if (!token) { console.error('Set SUPABASE_ACCESS_TOKEN (a Supabase personal access token).'); process.exit(1); }
-  const app = JSON.parse(readFileSync(new URL('../app.json', import.meta.url)));
+  // Kingdom Heights' presentation data, so always its project.
+  const app = JSON.parse(readFileSync(new URL('../schools/khroyals/app.json', import.meta.url)));
   const ref = new URL(app.expo.extra.supabaseUrl).hostname.split('.')[0];
   const q = async (query) => {
     const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {

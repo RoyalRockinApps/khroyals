@@ -20,7 +20,8 @@ import { handleCarlineResponse } from '../carline/autoCheckIn';
 import { setUpChannels } from '../alerts/loudness';
 import { notificationHref } from './inbox';
 import { clearLocalNotifications } from './localInbox';
-import appJson from '../../app.json';
+import appJson from '@school/app.json';
+import { SCHOOL } from '../school';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
@@ -51,7 +52,7 @@ export async function enablePush(opts: { critical?: boolean } = {}): Promise<{ s
     if (perm.status === 'granted' && opts.critical && Platform.OS === 'ios' && !perm.ios?.allowsCriticalAlerts) {
       perm = await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowBadge: true, allowSound: true, allowCriticalAlerts: true } });
     }
-    if (perm.status !== 'granted') return { state: 'denied', detail: 'Notifications are turned off for KH Royals in your phone\'s Settings.' };
+    if (perm.status !== 'granted') return { state: 'denied', detail: `Notifications are turned off for ${SCHOOL.appName} in your phone's Settings.` };
     if (!Device.isDevice) return { state: 'unsupported', detail: 'The school\'s pushes need a real phone; simulators only show the app\'s own notifications.' };
     const id = projectId();
     if (!id) return { state: 'not-configured', detail: 'Push isn\'t set up for this build yet (missing Expo project id).' };

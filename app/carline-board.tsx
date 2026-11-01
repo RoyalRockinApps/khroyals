@@ -27,6 +27,7 @@ import { SeasonScene, Snowfall } from '../src/carline/SeasonScene';
 import { clock, gradeLabel, hoursLabel, minutesSince } from '../src/carline/format';
 import { VehicleIcon } from '../src/carline/VehicleIcon';
 import { C } from '../src/ui';
+import { SCHOOL } from '../src/school';
 
 const BG = '#0A1030';
 const SOFT = '#AEB6D0';       // labels on the dark background
@@ -108,7 +109,7 @@ export default function CarLineBoard() {
     </View>
   );
 
-  if (!live) return screen(<Message title="Car line needs the school server" text="This build is running on demo data without Royals Connect." />);
+  if (!live) return screen(<Message title="Car line needs the school server" text={`This build is running on demo data without ${SCHOOL.connectName}.`} />);
   if (error) return screen(<Message title="Couldn't load the car line" text={error} onRetry={() => { setError(null); load(); }} />);
   if (person === undefined) return screen(<View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color="#fff" size="large" /></View>);
   if (!isSchoolStaff(person) && !isSubstitute(person)) return screen(<Message title="For school staff" text="Sign in with a teacher or staff account to show the car line on this screen." />);
@@ -190,9 +191,9 @@ function Shield({ size, ripples }: { size: number; ripples: number }) {
   return (
     <View style={{ width: size, height: size }}>
       <Ripples size={size} count={ripples} />
-      <View accessibilityRole="image" accessibilityLabel="Kingdom Heights" style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#fff',
+      <View accessibilityRole="image" accessibilityLabel={SCHOOL.name} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#fff',
         borderWidth: Math.max(3, size * 0.045), borderColor: C.primary, alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={require('../assets/icon.png')} style={{ width: size * 0.88, height: size * 0.88, borderRadius: size * 0.44 }} />
+        <Image source={require('@school/assets/icon.png')} style={{ width: size * 0.88, height: size * 0.88, borderRadius: size * 0.44 }} />
       </View>
     </View>
   );

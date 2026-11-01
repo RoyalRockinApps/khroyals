@@ -4,9 +4,10 @@
  * encoding.
  */
 import qrcode from 'qrcode-generator';
+import { SCHOOL } from '../school';
 
 /** The school's website, which the Share tab's QR code opens. */
-export const SCHOOL_WEBSITE = 'https://www.khroyals.com';
+export const SCHOOL_WEBSITE = SCHOOL.website.url;
 
 export type Run = { dark: boolean; length: number };
 export type QrRows = { size: number; rows: Run[][] };

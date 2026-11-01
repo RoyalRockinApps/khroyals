@@ -1,9 +1,52 @@
-# KH Royals — cross-platform app
+# KH Royals and WCA — one codebase, a school app each
 
-One Expo / React Native codebase that ships to **iOS, Android and web** for
-**Kingdom Heights Preparatory School** (Huntsville, AL). The site content —
-every page, news post, video and the school calendar — is imported from the
-real [khroyals.com](https://www.khroyals.com/).
+One Expo / React Native codebase that ships to **iOS, Android and web** for two schools,
+each as its own app with its own data:
+
+| School | App | Folder | Web app | Supabase project |
+|---|---|---|---|---|
+| **Kingdom Heights Preparatory School** (the Royals, Huntsville) | KH Royals (`com.khroyals.app`) | `schools/khroyals` | https://royalrockinapps.github.io/khroyals/ | `twmeenkvoedoryhterpf` |
+| **Westminster Christian Academy** (the Wildcats, Madison and Huntsville) | WCA (`org.wcahsv.app`) | `schools/wca` | https://royalrockinapps.github.io/khroyals/wca/ | `nnbhslmvgabygvhugqfm` |
+
+Each school's site content — every page, news post, video and the school calendar — is
+imported from its real website ([khroyals.com](https://www.khroyals.com/),
+[wca-hsv.org](https://wca-hsv.org/)).
+
+## Schools
+
+Every feature, workflow and test is shared; what makes an app a school's own lives in
+`schools/<id>/`, and a build picks the school with `SCHOOL` (Kingdom Heights when unset):
+
+```bash
+npx expo start                 # Kingdom Heights
+SCHOOL=wca npx expo start      # Westminster
+```
+
+```
+schools/index.js        the list of schools and SCHOOL → folder (read by app.config.js and metro.config.js)
+schools/<id>/
+  app.json              app name, app IDs, link scheme, icons, web address, its Supabase project
+  school.ts             names (app, school, community, newsletter), website, colors and fonts
+  content/site/         the website's imported content
+  assets/               icon, tiles, uniform pictures, car line map
+  menu.ts uniform.ts uniformImages.ts handbook.ts carline.ts carlineMap.ts tiles.ts fonts.ts
+supabase/schools/<id>/  database changes for that school only (its names and settings)
+```
+
+- **Shared code never names a school.** Screens read `SCHOOL` from `src/school.ts` and import
+  a school's files as `@school/…` (the bundler points that at the school's folder; tsconfig
+  at Kingdom Heights', `tsconfig.wca.json` at Westminster's, so `npm run typecheck` checks both).
+  `tests/schools.test.ts` checks each school has every file, its own app IDs and its own
+  Supabase project, and that no shared file names a school.
+- **Data never mixes.** Each school has its own Supabase project; the app only ever knows its
+  own (`@school/app.json`). The same migrations (`supabase/migrations/`) run on every project,
+  and read the school's names from `app.settings` (`app.brand('app_name')`, …); a school's own
+  values and data are in `supabase/schools/<id>/`, applied once after the shared migrations.
+- **CI builds both:** an APK per school, both web apps (WCA under `/khroyals/wca/`), and the
+  database deploy for each school's project.
+- **Adding a school:** copy `schools/wca` and `supabase/schools/wca`, change the values, add
+  its id to `SCHOOLS` and to the three workflows' matrices, and give its Supabase project's
+  token a repository secret.
 
 > **Building it or putting it on a phone?** See [DEVELOPING.md](DEVELOPING.md).
 > AI coding agents: read [AGENTS.md](AGENTS.md).
@@ -25,14 +68,15 @@ development build or the APK below rather than Expo Go to see the videos.
 
 ```bash
 pip install beautifulsoup4
-npm run import-site     # re-scrape khroyals.com into content/site/
+npm run import-site     # re-scrape khroyals.com into schools/khroyals/content/site/
+npm run import-site-wca # re-scrape wca-hsv.org (WordPress) into schools/wca/content/site/
 ```
 
 `scripts/import_site.py` reads the sitemap, every page and the news collection
 (Squarespace `?format=json`) and writes:
 
 ```
-content/site/
+schools/<id>/content/site/
   site.json        school info, colours, the site menu, footer, social links
   home.json        the home page
   pages/*.json     all 23 menu/footer pages (admissions, academies, our story, …)
@@ -60,7 +104,7 @@ to it. The calendar's dates are transcribed in the importer from the official PD
 ## Layout
 
 ```
-content/site/    real site content (see above)
+schools/         each school's own app settings, content and pictures (see Schools above)
 mock-db/comms/   Royals Connect demo data (npm run regen-comms); seeds Supabase
 supabase/        migrations, seed, local test stubs, Edge Functions (send-push)
 scripts/         import_site.py (website), gen_comms.py (Connect demo)

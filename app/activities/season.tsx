@@ -10,6 +10,7 @@ import { deleteSeason, listSports, saveSeason } from '../../src/api/connect';
 import { GradePicker } from '../../src/comms/GradePicker';
 import { Button, C, Card, Field, Loading, P, s } from '../../src/ui';
 import { DateField, toDateString } from '../../src/forms/DateTimeField';
+import { SCHOOL } from '../../src/school';
 
 
 export default function EditSeason() {
@@ -92,7 +93,7 @@ export default function EditSeason() {
       </Card>
       <Card style={{ gap: 12 }}>
         <Field label="Details" placeholder="Tryouts or auditions, practice or rehearsal times, fees, forms…" value={details} onChangeText={setDetails} multiline style={{ minHeight: 100 }} />
-        <Field label="Information link (optional)" placeholder="https://www.khroyals.com/s/…pdf" value={infoUrl} onChangeText={setInfoUrl}
+        <Field label="Information link (optional)" placeholder={SCHOOL.infoLinkExample} value={infoUrl} onChangeText={setInfoUrl}
           autoCapitalize="none" keyboardType="url" />
       </Card>
       <Button label={busy ? 'Saving…' : 'Save season'} disabled={busy || !name.trim() || !datesOk} onPress={save} />

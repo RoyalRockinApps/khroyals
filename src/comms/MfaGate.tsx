@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Alert, Image, Linking, Platform, Text, View } from 'react-native';
 import { mfaEnroll, mfaStatus, mfaVerify, myAccess, type Access } from '../api/connect';
 import { Button, C, Card, Field, H, Loading, P, s } from '../ui';
+import { SCHOOL } from '../school';
 
 export function MfaGate({ children }: { children: (access: Access) => ReactNode }) {
   const [access, setAccess] = useState<Access | null>(null);
@@ -55,7 +56,7 @@ export function MfaGate({ children }: { children: (access: Access) => ReactNode 
       {state === 'needs-code' ? (
         <Card>
           <H>Verify it's you</H>
-          <P>Enter the 6-digit code from your authenticator app for Royals Connect.</P>
+          <P>Enter the 6-digit code from your authenticator app for {SCHOOL.connectName}.</P>
           {codeBox}
         </Card>
       ) : !enroll ? (

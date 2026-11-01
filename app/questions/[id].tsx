@@ -13,6 +13,7 @@ import {
 import { age, ageColor, askerStatus, GREEN, nameOf, waiting, when } from '../../src/questions/format';
 import { QuestionsGate } from '../../src/questions/QuestionsGate';
 import { C, Card, Chip, Loading, P, ask, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 export default function QuestionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -110,7 +111,7 @@ function Detail({ id, me }: { id: string; me: Person }) {
               <View style={[s.row, { gap: 6 }]}>
                 {m.fromSchool && <Ionicons name="school" size={14} color={GREEN} />}
                 <Text style={{ fontSize: 13, fontWeight: '800', color: mine && !m.fromSchool ? '#fff' : m.fromSchool ? GREEN : C.ink }}>
-                  {mine ? 'You' : nameOf(m.authorId)}{m.fromSchool ? ' · Kingdom Heights' : ''}
+                  {mine ? 'You' : nameOf(m.authorId)}{m.fromSchool ? ` · ${SCHOOL.name}` : ''}
                 </Text>
                 <Text style={{ fontSize: 12, color: mine && !m.fromSchool ? '#DCE3F7' : C.muted }}>{when(m.createdAt)}</Text>
               </View>

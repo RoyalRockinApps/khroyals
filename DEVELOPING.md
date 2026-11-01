@@ -1,14 +1,16 @@
-# Developing KH Royals
+# Developing KH Royals and WCA
 
-How to build the app, put it on a phone, and ship changes. For the project
-overview see [README.md](README.md); for AI coding agents see [AGENTS.md](AGENTS.md).
+How to build the apps, put them on a phone, and ship changes. One codebase builds an app
+for each school (README → Schools); `SCHOOL=wca` in front of any command builds
+Westminster's, otherwise it's Kingdom Heights'. For the project overview see
+[README.md](README.md); for AI coding agents see [AGENTS.md](AGENTS.md).
 
 | What | Where |
 |---|---|
-| Web app (site + Royals Connect + admin portal) | https://royalrockinapps.github.io/khroyals/ |
-| Android APK | GitHub → **Actions → Android APK** → latest run on `main` → **Artifacts → khroyals-android-apk** |
+| Web app (site + Royals Connect + admin portal) | https://royalrockinapps.github.io/khroyals/ (WCA: https://royalrockinapps.github.io/khroyals/wca/) |
+| Android APK | GitHub → **Actions → Android APK** → the run with artifacts (only the last build where every school's app built keeps them) → **Artifacts**: **all-android-apks** (every school's), or one school's: **khroyals-android-apk**, **wca-android-apk**. |
 | iPhone (TestFlight) | App Store Connect → **KH Royals → TestFlight**; uploads come from a Mac with `scripts/testflight.sh` (§9) |
-| Backend | Supabase project `twmeenkvoedoryhterpf` (dashboard: supabase.com/dashboard) |
+| Backend | Kingdom Heights: Supabase project `twmeenkvoedoryhterpf`; WCA: `nnbhslmvgabygvhugqfm`, in a separate account (dashboard: supabase.com/dashboard) |
 | Branch | Everything goes to `main`; every push builds the APK and redeploys the web app |
 
 ---
@@ -36,8 +38,9 @@ npm run typecheck
 npm test            # app permission tests + database tests (Postgres in PGlite, no server needed)
 ```
 
-No secrets are needed to run the app: the Supabase URL and publishable key are in
-`app.json → expo.extra` (safe to ship; the database enforces permissions).
+No secrets are needed to run the app: each school's Supabase URL and publishable key are
+in `schools/<id>/app.json → expo.extra` (safe to ship; the database enforces permissions).
+`npm run typecheck` checks the code for both schools.
 
 ## 3. Run it on a phone while developing
 
@@ -124,16 +127,23 @@ it's "Deploy from a branch", GitHub publishes the README instead of the app.
 ## 5. Backend (Supabase)
 
 The schema lives in `supabase/migrations/` and is tested locally by `tests/db.test.ts`.
+Every school's project gets the same migrations; they never name a school (they read
+`app.brand('app_name')` and the other names from `app.settings`). A change for one school
+only (its names, settings or data) is a new file in `supabase/schools/<id>/`, applied once
+after the shared migrations to that school's project only.
 
 **Change the database:**
 1. Add a new file `supabase/migrations/<timestamp>_<name>.sql` (never edit one that's been applied).
 2. If seed data changes: `python3 scripts/gen_seed.py` (rewrites `supabase/seed.sql` and `supabase/setup_all.sql`).
 3. `npm test` until green.
 4. Push to `main`. The **Supabase** GitHub Action (`.github/workflows/supabase.yml`) runs the
-   tests, then applies the new migrations to the live project and redeploys the Edge Functions
-   (`node scripts/supabase_setup.mjs --deploy`). It needs the repository secret
-   `SUPABASE_ACCESS_TOKEN` (Settings → Secrets and variables → Actions). A failed migration rolls
-   back and turns the run red; fix it with a new migration and push again.
+   tests, then applies the new migrations to each school's live project and redeploys the Edge
+   Functions (`SCHOOL=<id> node scripts/supabase_setup.mjs --deploy`). It needs a repository
+   secret per school (Settings → Secrets and variables → Actions), a personal access token
+   from the Supabase account that owns that school's project: `SUPABASE_ACCESS_TOKEN` for
+   Kingdom Heights, `SUPABASE_ACCESS_TOKEN_WCA` for Westminster (until it's added, WCA's
+   deploy is skipped with a warning). A failed migration rolls back and turns the run red;
+   fix it with a new migration and push again.
 
    To apply by hand instead (also needs a Supabase **personal access token**, created at
    supabase.com/dashboard/account/tokens — keep it in an env var, never in git or chat):
@@ -142,6 +152,7 @@ The schema lives in `supabase/migrations/` and is tested locally by `tests/db.te
    export SUPABASE_SERVICE_ROLE_KEY=...   # Project Settings → API keys (secret)
    export SUPABASE_ACCESS_TOKEN=sbp_...   # personal access token
    node scripts/supabase_setup.mjs        # applies only new migrations, redeploys send-push
+   # Westminster's project: SCHOOL=wca with a token from its Supabase account (no SUPABASE_URL needed)
    # (a throwaway project can get demo accounts + groups with --demo and DEMO_PASSWORD=…)
    ```
    (Behind a corporate/agent proxy, prefix with `NODE_USE_ENV_PROXY=1`.)
@@ -280,7 +291,8 @@ in the repo. Until Stripe is set up, only free tickets can be issued.
 
 ```bash
 pip install beautifulsoup4
-npm run import-site        # re-scrapes khroyals.com into content/site/
+npm run import-site        # re-scrapes khroyals.com into schools/khroyals/content/site/
+npm run import-site-wca    # re-scrapes wca-hsv.org into schools/wca/content/site/
 npm run typecheck && npm test
 ```
 

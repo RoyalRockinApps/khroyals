@@ -1,0 +1,379 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/admissions/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "admissions",
+  "title": "Admissions",
+  "sourceUrl": "https://wca-hsv.org/admissions/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Admissions"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Why Westminster"
+    },
+    {
+     "type": "paragraph",
+     "text": "Choosing the right school for your child is one of the most important decisions you’ll make."
+    },
+    {
+     "type": "paragraph",
+     "text": "If you’re looking for an excellent, Christ-centered education in a warm and nurturing community, we hope you’ll consider Westminster."
+    },
+    {
+     "type": "paragraph",
+     "text": "We partner with Christian families to help students reach their full potential for service in God’s kingdom. Our teachers provide excellent education and discipleship for each student so that they understand their value and identity in Christ."
+    },
+    {
+     "type": "paragraph",
+     "text": "I invite you to come to visit our campus, meet our teachers and administrators, and learn what makes Westminster such a special place!"
+    },
+    {
+     "type": "cards",
+     "items": [
+      {
+       "title": "",
+       "text": "Blessings, Erica Hammond admissions@wca-hsv.org",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/erica-admin.png"
+      }
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/building-sign.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/credits.png",
+     "url": "https://www.niche.com/k12/westminster-christian-academy-huntsville-al/"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Admissions Process"
+    },
+    {
+     "type": "paragraph",
+     "text": "Before you apply, we invite you to learn more about our school to see if we’re a good fit for your family. Here’s how you can get to know us better."
+    },
+    {
+     "type": "cards",
+     "items": [
+      {
+       "title": "Give Us a Call (855) 846-2287",
+       "text": "Our admissions team looks forward to speaking with you. Give us a call today!",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/megaphone.png"
+      },
+      {
+       "title": "Take a Tour",
+       "text": "We invite you to visit campus in person or virtually to meet our staff and get to know us better.",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/school.png"
+      },
+      {
+       "title": "Schedule a Shadow Day",
+       "text": "Your child will spend a school day with someone their age to experience a day in the life of a Westminster student.",
+       "image": "https://wca-hsv.org/wp-content/uploads/2026/05/teacher.png"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Read to Apply?"
+    },
+    {
+     "type": "paragraph",
+     "text": "Here are your next steps."
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "1"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Application Form"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "2"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Pastoral Recommendation"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "3"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Covenantal Agreement"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "4"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Academic Review"
+    },
+    {
+     "type": "button",
+     "label": "Apply Now!",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Admissions Requirements"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-student-helpers.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-fourth-graders.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Pastoral Recommendation"
+    },
+    {
+     "type": "paragraph",
+     "text": "At least one parent or guardian must have a relationship with Jesus Christ."
+    },
+    {
+     "type": "paragraph",
+     "text": "Families must actively participate in a local church in which the Bible is sincerely believed to be the inspired word of God and is, therefore, the basis for all life and learning."
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Covenantal Agreement"
+    },
+    {
+     "type": "paragraph",
+     "text": "There is an understanding and agreement with the Doctrinal Basis and mission of Westminster Christian Academy to provide children with a Christ-centered education which means Jesus Christ is acknowledged in every area of life."
+    },
+    {
+     "type": "paragraph",
+     "text": "Families and students must adhere to Christian beliefs and practices included in the WCA statement of faith for new and continued enrollment."
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Academic Review"
+    },
+    {
+     "type": "paragraph",
+     "text": "Each student shows a commitment to the learning process based on:"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Teacher recommendations and report cards that indicate the student is an independent learner and can be successful in a traditional school environment.",
+      "Admissions assessment that indicates the student is equipped to succeed in a rigorous academic environment.",
+      "Satisfactory conduct records and personal references."
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Tuition"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "How much does it cost to attend Westminster? Download our current tuition & fee schedule along with a cost estimate worksheet."
+    },
+    {
+     "type": "button",
+     "label": "Tuition & Fee Schedule",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/05/Tuition_2026-27.pdf"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "TUITION ASSISTANCE"
+    },
+    {
+     "type": "paragraph",
+     "text": "In order to make high-quality Christian education available to more families, Westminster has partnered with Blackbaud Financial Aid Management as an effective and fair way to allocate tuition assistance monies."
+    },
+    {
+     "type": "paragraph",
+     "text": "Blackbaud Financial Aid Management provides a data-driven, supported, objective calculation of how much a family can afford to pay for the education of their children. Blackbaud’s comprehensive analysis is unbiased and identifies what a parent’s financial commitment to private education can and should be."
+    },
+    {
+     "type": "paragraph",
+     "text": "We accept tuition assistance applications for the upcoming school year between January 1st and March 31st of each year."
+    },
+    {
+     "type": "paragraph",
+     "text": "New applicants to Westminster should contact Erica Hammond, Director of Admissions, prior to applying for tuition assistance.",
+     "links": [
+      {
+       "label": "contact Erica Hammond",
+       "url": "mailto:admissions@wca-hsv.org?subject=I'd Like Information on Financial Aid"
+      }
+     ]
+    },
+    {
+     "type": "button",
+     "label": "Tuition Assistance Information",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/09/ADM-0008-2025-002.pdf"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/mascot.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Shadow Program"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Are you interested in finding out more about Westminster from a student's perspective? We encourage you to try our Shadow Program. Potential students are invited to spend a school day with a student their age. They will attend classes, lunch, and any special events happening that day."
+    },
+    {
+     "type": "button",
+     "label": "Request a Shadow Day",
+     "url": "https://docs.google.com/forms/d/e/1FAIpQLScCUxh_1Lug-ZyLWkK6bc47FCYH13L44HlD_G8LTuRoCpEvAg/viewform"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus-sign.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-extended-care.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/lower-campus-student-play-equipment.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "After School Care & Shuttle"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster offers convenient after-school care and transportation options to support families and provide a seamless daily experience for students."
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "After-School Care"
+    },
+    {
+     "type": "paragraph",
+     "text": "After-school care is available for students of all ages. Lower Campus serves preschool (starting at age 3) through 5th grade, while Upper Campus provides care for middle and high school students."
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "$12 per day",
+      "3:00–5:30 p.m."
+     ]
+    },
+    {
+     "type": "button",
+     "label": "Shuttle information",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/09/ADM-0020_2026_002.pdf"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Non-Discrimination Westminster Christian Academy admits students of any race, color, national and ethnic origin to all the rights, privileges, programs, and activities generally accorded or made available to students at the school. It does not discriminate on the basis of race, color, or national and ethnic origin in the administration of its educational policies, admission policies, financial aid programs, and athletic and other school-administered programs."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Inquire",
+     "url": "https://wca-hsv.myschoolapp.com/app/embed#inquiry/133795"
+    },
+    {
+     "type": "button",
+     "label": "TOUR",
+     "url": "mailto:admissions@wca-hsv.org?subject=I'd%20Like%20to%20Schedule%20a%20Tour"
+    },
+    {
+     "type": "button",
+     "label": "APPLY",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

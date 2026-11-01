@@ -7,7 +7,8 @@ import { useUnreadCount } from '../../src/comms/unread';
 import { setHomeButton, watchHomeButton } from '../../src/homeShield';
 import { headerDate } from '../../src/info/today';
 import { edgeLayout, TabBarEdge } from '../../src/ScreenEdge';
-import { C } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
+import { C, FONT_STYLE } from '../../src/ui';
 
 const BUTTON = 66;          // the shield button's diameter
 const LABEL_SIZE = 10;      // same as the other tabs' labels
@@ -19,7 +20,7 @@ const LETTER = { width: LABEL_SIZE * 1.2, height: LABEL_SIZE * 1.4 };
 const icon = (e: string) => ({ focused }: { focused: boolean }) => <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{e}</Text>;
 
 /**
- * The raised Kingdom Heights shield in the middle of the tab bar, labeled "Home"; opens the Apps page.
+ * The raised school shield in the middle of the tab bar, labeled "Home"; opens the Apps page.
  * It registers itself so the welcome screen's shield can fly into it after sign-in (src/homeShield.ts).
  */
 function AppsTabButton({ onPress, 'aria-selected': selected }: { onPress?: (e: any) => void; 'aria-selected'?: boolean }) {
@@ -34,7 +35,7 @@ function AppsTabButton({ onPress, 'aria-selected': selected }: { onPress?: (e: a
         <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Home" accessibilityState={{ selected: on }}
           hitSlop={{ bottom: 16 }}
           style={({ pressed }) => [hs.apps, on && { borderColor: C.accent }, pressed && { transform: [{ scale: 0.94 }] }]}>
-          <Image source={require('../../assets/icon.png')} style={hs.shield} />
+          <Image source={require('@school/assets/icon.png')} style={hs.shield} />
         </Pressable>
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           {HOME.map((l, i) => (
@@ -80,7 +81,7 @@ function ProfileButton() {
 export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
-      headerStyle: { backgroundColor: C.primary }, headerTintColor: '#fff',
+      headerStyle: { backgroundColor: C.primary }, headerTintColor: '#fff', headerTitleStyle: { ...FONT_STYLE.title, fontSize: 20 },
       headerTitleAlign: 'left',
       headerRight: () => <View style={{ flexDirection: 'row' }}><ProfileButton /><NotificationsButton /></View>,
       tabBarActiveTintColor: C.primary,
@@ -93,7 +94,7 @@ export default function TabsLayout() {
       {/* Today's date; the Info screen keeps it current. */}
       <Tabs.Screen name="index" options={{ title: 'Planner', headerTitle: headerDate(), tabBarIcon: icon('🗓️') }} />
       <Tabs.Screen name="share" options={{ title: 'Share', tabBarIcon: icon('📲') }} />
-      <Tabs.Screen name="apps" options={{ title: 'Apps', headerTitle: 'Boldly Christian', tabBarButton: (props) => <AppsTabButton {...props} /> }} />
+      <Tabs.Screen name="apps" options={{ title: 'Apps', headerTitle: SCHOOL.tagline, tabBarButton: (props) => <AppsTabButton {...props} /> }} />
       <Tabs.Screen name="connect" options={{ title: 'Connect', tabBarIcon: icon('💬') }} />
       <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: icon('☰') }} />
     </Tabs>

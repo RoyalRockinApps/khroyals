@@ -12,18 +12,19 @@ import { schoolToday } from '../../src/calendar/past';
 import { AlbumCard } from '../../src/gallery/AlbumCard';
 import { DayPager } from '../../src/info/DayPager';
 import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
-import { ROYAL_NEWS_URL, addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
+import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
 import { TodaySection } from '../../src/info/TodaySection';
 import { ArticleCard } from '../../src/site/Blocks';
-import { C, Card, H, Loading, P, s, useLoad } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
+import { C, Card, FONT_STYLE, H, Loading, P, s, useLoad } from '../../src/ui';
 import { dateRange } from '../../src/site/calendar';
 
 /**
  * Planner: today's date in the header, a greeting, the next two weeks one day at a time
  * (swipe, or tap a day in the strip; it opens on today): the uniform, assignments, a
  * card for each of a parent's children, and the day's events, activities, volunteer
- * sign-ups and car line hours. Then the school calendar's next two weeks, Royal News (the
- * emailed newsletter) and the latest news. (The khroyals.com home page's other sections aren't shown here; its F.A.Q.s are
+ * sign-ups and car line hours. Then the school calendar's next two weeks, the school's newsletter
+ * (Royal News) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
  * in Ask the School.)
  */
 export default function Home() {
@@ -57,7 +58,7 @@ export default function Home() {
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 22 }]}>
-      <Text style={{ fontSize: 28, fontWeight: '800', color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
+      <Text style={{ fontSize: 28, ...FONT_STYLE.heading, color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
 
       <DayPager plans={plans} index={index} onIndex={setIndex} render={(p) => <TodaySection plan={p} onToggle={toggle} />} />
 
@@ -78,16 +79,16 @@ export default function Home() {
         <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => router.navigate('/calendar')}>Full calendar ›</Text>
       </View>
 
-      <Card onPress={() => (ROYAL_NEWS_URL ? Linking.openURL(ROYAL_NEWS_URL) : router.navigate('/royal-news'))}
+      <Card onPress={() => (SCHOOL.newsUrl ? Linking.openURL(SCHOOL.newsUrl) : router.navigate('/royal-news'))}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${C.primary}1A`, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="mail-open-outline" size={22} color={C.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>Royal News</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{SCHOOL.newsName}</Text>
           <P muted>The school newsletter, sent to families by email. Read this week's and past issues.</P>
         </View>
-        <Ionicons name={ROYAL_NEWS_URL ? 'open-outline' : 'chevron-forward'} size={18} color={C.muted} />
+        <Ionicons name={SCHOOL.newsUrl ? 'open-outline' : 'chevron-forward'} size={18} color={C.muted} />
       </Card>
 
       {photos.length > 0 && (
@@ -100,11 +101,13 @@ export default function Home() {
         </View>
       )}
 
-      <View style={{ gap: 8 }}>
-        <H>Latest News</H>
-        {data.news.articles.slice(0, 3).map((a) => <ArticleCard key={a.id} a={a} compact />)}
-        <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => router.navigate('/news')}>All news ›</Text>
-      </View>
+      {data.news.articles.length > 0 && (
+        <View style={{ gap: 8 }}>
+          <H>Latest News</H>
+          {data.news.articles.slice(0, 3).map((a) => <ArticleCard key={a.id} a={a} compact />)}
+          <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => router.navigate('/news')}>All news ›</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }

@@ -1,0 +1,263 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/about/our-leadership/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "our-leadership",
+  "title": "Our Leadership",
+  "sourceUrl": "https://wca-hsv.org/about/our-leadership/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Our Leadership"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Our Leadership Team"
+    },
+    {
+     "type": "paragraph",
+     "text": "Meet the team at the heart of Westminster Christian Academy."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/8193046.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Todd Zylstra"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Head of School"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572479.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Jason Anderson"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Head of Upper Campus & Principal"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572426.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Amy Collier"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Upper Campus Assistant Principal"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572446.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Louis LeBlanc"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Upper School Dean of Students"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/mlyman.png"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Maria Lyman"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Head of Lower Campus & Principal"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/cvankirk.png"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Carey Vankirk"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Lower Campus Assistant Principal"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5724422.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Marshall Ellson"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Director of Academics"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/ADAMSJ.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Jonathan Adams"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Athletic Director"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5488682.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Debra Killen"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Director of Technology & Academic Coach"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572498.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Davelle King"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "College & Career Advisor"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572466.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Kerry St. John"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Director of Christian Life"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5572490.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Erica Hammond"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Director of Admissions"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Glenn Martin"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Director of Advancement"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/5573806.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Matthew Wilson"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "CFO/COO"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "What makes Westminster Christian Academy truly unique? Learn more about our difference."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Our Difference",
+     "url": "https://wca-hsv.org/about/our-difference/"
+    },
+    {
+     "type": "button",
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "type": "button",
+     "label": "Admissions",
+     "url": "https://wca-hsv.org/admissions/"
+    }
+   ]
+  }
+ ]
+}

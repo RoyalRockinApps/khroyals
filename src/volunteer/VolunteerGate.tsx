@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { canVolunteer, live, session, type Person } from '../api/connect';
 import { Button, Card, H, Loading, P, s } from '../ui';
+import { SCHOOL } from '../school';
 
 export function VolunteerGate({ title, children }: { title: string; children: (me: Person) => React.ReactNode }) {
   const [me, setMe] = useState<Person | null | undefined>();
@@ -20,11 +21,11 @@ export function VolunteerGate({ title, children }: { title: string; children: (m
   if (!me) return box(
     <Card>
       <H>Sign in to volunteer</H>
-      <P muted>See how you can help at Kingdom Heights and say yes in a tap.</P>
+      <P muted>See how you can help at {SCHOOL.name} and say yes in a tap.</P>
       <Button label="Sign in" onPress={() => router.navigate('/connect')} />
     </Card>,
   );
   if (me.pending) return box(<Card><H>Waiting for approval</H><P muted>Volunteering opens once the school office approves your account.</P></Card>);
-  if (!canVolunteer(me)) return box(<Card><H>For parents and staff</H><P muted>Volunteer opportunities are for Kingdom Heights parents and staff.</P></Card>);
+  if (!canVolunteer(me)) return box(<Card><H>For parents and staff</H><P muted>Volunteer opportunities are for {SCHOOL.name} parents and staff.</P></Card>);
   return <>{header}{children(me)}</>;
 }

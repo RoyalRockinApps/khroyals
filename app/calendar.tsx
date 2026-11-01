@@ -7,6 +7,7 @@ import { isPastDay, splitPast } from '../src/calendar/past';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../src/calendar/PastToggle';
 import { dateRange } from '../src/site/calendar';
 import { Button, C, Card, Chip, Loading, P, s } from '../src/ui';
+import { SCHOOL } from '../src/school';
 
 const CATEGORY_COLOR: Record<string, string> = {
   'No School': C.accent,
@@ -16,10 +17,10 @@ const CATEGORY_COLOR: Record<string, string> = {
   Academic: '#7C3AED',
 };
 
-const PDF = 'https://www.khroyals.com/s/2026-2027-Calendar-2.pdf';
+const PDF = SCHOOL.calendarPdf;
 
 /**
- * School calendar, plus (when signed in to Royals Connect) the calendars of your groups.
+ * School calendar, plus (when signed in) the calendars of your groups.
  * Like every calendar in the app, it shows what's coming; past events stay out of view
  * until "Show past events", and then look greyed out.
  */
@@ -77,10 +78,12 @@ export default function Calendar() {
       ListEmptyComponent={<Card><P muted>Nothing coming up on the calendar.</P></Card>}
       ListHeaderComponent={
         <View style={{ gap: 8 }}>
-          <Card onPress={() => Linking.openURL(PDF)}>
-            <Text style={{ fontWeight: '800', fontSize: 16, color: C.ink }}>2026–2027 School Calendar</Text>
-            <P muted>Important dates from the official calendar{live ? ', plus events from your groups' : ''}. Tap to open the PDF.</P>
-          </Card>
+          {PDF && (
+            <Card onPress={() => Linking.openURL(PDF)}>
+              <Text style={{ fontWeight: '800', fontSize: 16, color: C.ink }}>2026–2027 School Calendar</Text>
+              <P muted>Important dates from the official calendar{live ? ', plus events from your groups' : ''}. Tap to open the PDF.</P>
+            </Card>
+          )}
           {staff && <Button kind="ghost" label="🗓️ My calendar and my students' events" onPress={() => router.push('/my-calendar')} />}
           {canAdd && <Button label="+ Add event" onPress={() => router.push('/event/new')} />}
           {dressUp && <Button kind="ghost" label="👕 Dress-up days (Spirit Week)" onPress={() => router.push('/dress-days')} />}

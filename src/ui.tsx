@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Alert, Image, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions, type TextInputProps, type ViewStyle } from 'react-native';
-import site from '../content/site/site.json';
+import site from '@school/content/site/site.json';
+import { SCHOOL } from './school';
 
 export const C = {
   primary: site.school.colors.primary,
@@ -115,6 +116,16 @@ export function useContentWidth() {
   return Math.min(width, CONTENT_MAX) - 32;
 }
 
+/**
+ * The school's heading and title styles: its own typeface (schools/<id>/school.ts, loaded in
+ * app/_layout.tsx; the phone's font until it loads) or the phone's font in bold.
+ */
+const fonts = SCHOOL.theme.fonts;
+export const FONT_STYLE = {
+  heading: fonts ? { fontFamily: fonts.heading } : { fontWeight: '800' as const },
+  title: fonts ? { fontFamily: fonts.title } : { fontWeight: '700' as const },
+};
+
 export const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   // Room at the bottom to scroll the last item above the Android nav bar / iPhone home indicator.
@@ -123,7 +134,7 @@ export const s = StyleSheet.create({
   sheet: { width: '100%', maxWidth: 560, alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: { backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.line, gap: 6 },
-  h: { fontSize: 18, fontWeight: '700', color: C.ink },
+  h: { fontSize: 18, ...(fonts ? { fontFamily: fonts.heading } : { fontWeight: '700' }), color: C.ink },
   p: { fontSize: 15, lineHeight: 21, color: C.ink },
   chip: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   chipT: { fontSize: 12, fontWeight: '600' },

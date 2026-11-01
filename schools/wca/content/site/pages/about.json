@@ -1,0 +1,137 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/about/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "about",
+  "title": "About Us",
+  "sourceUrl": "https://wca-hsv.org/about/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "About Us"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Who We Are"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster Christian Academy is a college preparatory private school in North Alabama that serves Huntsville, Madison, and the surrounding areas. We partner with Christian families in the education and discipleship of their children from preschool through 12th grade."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our Vision is to educate and disciple students in partnership with Christian families, for life-long learning and service in God’s world."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our Mission is to provide an exceptional educational community encouraging students to reach their highest potential through growth, spiritual formation, and service while surrounded by relationships that support a Christ-centered life."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus-layout.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Our School"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster Christian Academy has two campuses: the Lower Campus for elementary school students and the Upper Campus for middle and high school students."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our Upper Campus features the beautiful Van Dyke Athletic Complex and is located near Research Park, which is easily accessible from Huntsville or Madison."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our Lower Campus is in the heart of Madison with a state-of-the-art facility that includes a tornado-safe area and a competition gym with plenty of space for family and community events."
+    },
+    {
+     "type": "paragraph",
+     "text": "With more than 975 students from at least 180 Christian churches across North Alabama, we offer a breadth of athletic, fine art, co-curricular, and service opportunities to support each student’s individual growth."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Annual Report Snapshot"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster Christian Academy Fall 2026"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/09/page-12-scaled.jpg",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/09/page-12-scaled.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/09/page-13-scaled.jpg",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/09/page-13-scaled.jpg"
+    },
+    {
+     "type": "button",
+     "label": "Download Report",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/09/WCA-Annual-Report-4-pages.pdf"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "What makes Westminster Christian Academy truly unique? Download the Why Westminster Brochure to learn more."
+    },
+    {
+     "type": "button",
+     "label": "Why Westminster",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/06/WCA_RecruitmentBrochure_26.pdf"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Our Difference",
+     "url": "https://wca-hsv.org/about/our-difference/"
+    },
+    {
+     "type": "button",
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "type": "button",
+     "label": "Our Leadership",
+     "url": "https://wca-hsv.org/about/our-leadership/"
+    }
+   ]
+  }
+ ]
+}

@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { errorText, myLocationConsent, setLocationConsent } from '../api/connect';
 import { C, Card, H, P } from '../ui';
 import { allowAlertLocation } from './LocationConsent';
+import { SCHOOL } from '../school';
 
 export function AlertLocationCard() {
   const [consent, setConsent] = useState<boolean | null | undefined>(undefined);
@@ -34,7 +35,7 @@ export function AlertLocationCard() {
       <P muted>When you answer a critical alert, send where you are (your phone’s location and the school Wi-Fi access point
         it’s on) so the office can find you. Only alert senders see it, and it’s erased after the alert.</P>
       {!!consent && !phoneAllows && (<>
-        <Text style={{ color: C.ink }}>⚠️ Location is off for KH Royals on this phone, so none will be sent.</Text>
+        <Text style={{ color: C.ink }}>⚠️ Location is off for {SCHOOL.appName} on this phone, so none will be sent.</Text>
         <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="button" onPress={() => Linking.openSettings()}>Open phone settings</Text>
       </>)}
       {!!error && <P muted>{error}</P>}

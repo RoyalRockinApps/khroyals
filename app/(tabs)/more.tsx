@@ -6,6 +6,8 @@ import { openLink, routeFor } from '../../src/site/links';
 import { moreMenu } from '../../src/site/moreMenu';
 import { C, Card, H, Loading, P, s, useLoad } from '../../src/ui';
 
+type Campus = { name: string; grades: string; line1: string; city: string; state: string; zip: string; phone: string };
+
 /** The website's menu (shaped for the app in src/site/moreMenu.ts), contact details and footer. */
 export default function More() {
   const { data } = useLoad(getSite);
@@ -35,8 +37,17 @@ export default function More() {
 
       <Card>
         <H>Contact</H>
-        <P>{school.address.line1}{'\n'}{school.address.city}, {school.address.state} {school.address.zip}</P>
-        <Text style={{ color: C.primary }} onPress={() => Linking.openURL(`tel:${school.phone.replace(/\D/g, '')}`)}>{school.phone}</Text>
+        {/* A school on several campuses lists each, with its grades and phone. */}
+        {(school as { campuses?: Campus[] }).campuses?.map((c) => (
+          <View key={c.name} style={{ gap: 2, marginBottom: 6 }}>
+            <Text style={{ fontWeight: '700', color: C.ink }}>{c.name} <Text style={{ color: C.muted, fontWeight: '400' }}>· {c.grades}</Text></Text>
+            <P>{c.line1}{'\n'}{c.city}, {c.state} {c.zip}</P>
+            <Text style={{ color: C.primary }} onPress={() => Linking.openURL(`tel:${c.phone.replace(/\D/g, '')}`)}>{c.phone}</Text>
+          </View>
+        )) ?? (<>
+          <P>{school.address.line1}{'\n'}{school.address.city}, {school.address.state} {school.address.zip}</P>
+          <Text style={{ color: C.primary }} onPress={() => Linking.openURL(`tel:${school.phone.replace(/\D/g, '')}`)}>{school.phone}</Text>
+        </>)}
         <Text style={{ color: C.primary }} onPress={() => Linking.openURL(`mailto:${school.email}`)}>{school.email}</Text>
         <Text style={{ color: C.primary }} onPress={() => Linking.openURL(`mailto:${school.admissionsEmail}`)}>{school.admissionsEmail}</Text>
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>

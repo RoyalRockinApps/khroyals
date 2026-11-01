@@ -8,6 +8,7 @@ import { getPage } from '../../src/api/mockApi';
 import { Sections } from '../../src/site/Blocks';
 import { ReadingScroll } from '../../src/Reading';
 import { C, Loading, P, s, useLoad } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 const titleCase = (t: string) => (t === t.toUpperCase() ? t.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : t);
 
@@ -20,7 +21,7 @@ export default function Page() {
     <ReadingScroll doneLabel="Done">
       <Stack.Screen options={{ title: titleCase(data.page.title) }} />
       <Sections sections={data.sections} />
-      <Text style={{ color: C.primary, fontWeight: '600', marginTop: 8 }} onPress={() => Linking.openURL(data.page.sourceUrl)}>View on khroyals.com ›</Text>
+      <Text style={{ color: C.primary, fontWeight: '600', marginTop: 8 }} onPress={() => Linking.openURL(data.page.sourceUrl)}>View on {SCHOOL.website.label} ›</Text>
     </ReadingScroll>
   );
 }

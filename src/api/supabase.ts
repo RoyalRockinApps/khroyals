@@ -13,7 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { retryingFetch } from './retryFetch';
 // Read straight from app.json so web, Android and iOS builds all get it.
-import appJson from '../../app.json';
+import appJson from '@school/app.json';
 
 const extra = appJson.expo.extra;
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL || extra.supabaseUrl;

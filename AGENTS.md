@@ -36,6 +36,17 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
 
 ## Rules and traps
 
+- **Two schools, one codebase** (README → Schools). `SCHOOL` picks the school at build time
+  (`schools/index.js`; Kingdom Heights when unset); its `schools/<id>/` folder holds the app name,
+  IDs, Supabase project, content, pictures, colors, uniform, handbook, menu and car line map.
+  **Shared code never names a school**: read `SCHOOL` from `src/school.ts`, import a school's files as
+  `@school/…` (never `../../app.json` or `content/site`), and put new per-school differences in
+  `src/schoolTypes.ts` + every school's folder (`tests/schools.test.ts` checks). **Data never mixes**:
+  each school has its own Supabase project. Shared migrations must not name a school either (use
+  `app.brand('app_name' | 'school_name' | 'school_full_name' | 'connect_name' | 'news_name' | 'web_app')`;
+  `tests/db.test.ts` checks); a school's own data or settings go in `supabase/schools/<id>/<timestamp>_x.sql`.
+  `npm run typecheck` checks both schools; build WCA with `SCHOOL=wca`.
+
 - **Never commit secrets.** Only the Supabase URL and *publishable* key belong in
   the repo (`app.json → expo.extra`). Service-role keys, `sb_secret_…` keys and
   `sbp_…` access tokens go in environment variables. The repo is public.

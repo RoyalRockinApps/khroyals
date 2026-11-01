@@ -9,6 +9,7 @@ import { enablePush, pushStatus, type Permission } from '../src/comms/push';
 import { clearUnread, refreshUnread } from '../src/comms/unread';
 import { SwipeToDelete } from '../src/comms/SwipeToDelete';
 import { Button, C, Card, H, Loading, P, s } from '../src/ui';
+import { SCHOOL } from '../src/school';
 
 /** The phone's own notifications (car line) are listed with ids like "local:<key>"; the rest are the school's. */
 const LOCAL = 'local:';
@@ -37,7 +38,7 @@ function PhoneStatus({ status, onChange }: { status: { permission: Permission; d
   if (status.permission === 'denied') return (
     <Card>
       <H>Notifications are off</H>
-      <P muted>KH Royals can't alert you on this phone. Everything still shows up here. To turn alerts on, allow notifications for KH Royals in Settings.</P>
+      <P muted>{SCHOOL.appName} can't alert you on this phone. Everything still shows up here. To turn alerts on, allow notifications for {SCHOOL.appName} in Settings.</P>
       <Button label="Open Settings" kind="ghost" onPress={() => Linking.openSettings()} />
     </Card>
   );
@@ -130,7 +131,7 @@ export default function NotificationsScreen() {
     <View style={[s.screen, s.pad]}>{header}
       <Card>
         <H>Sign in to see your notifications</H>
-        <P muted>New posts in your groups, announcements and messages from the school show up here once you're signed in to Royals Connect.</P>
+        <P muted>New posts in your groups, announcements and messages from the school show up here once you're signed in to {SCHOOL.connectName}.</P>
         <Button label="Sign in" onPress={() => router.navigate('/connect')} />
       </Card>
     </View>

@@ -1,5 +1,5 @@
 /** auth: internal API implementation. Screens import the connect facade. */
-import appJson from '../../app.json';
+import appJson from '@school/app.json';
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
@@ -9,6 +9,7 @@ import { updateMyName } from './profile';
 import { askForCode } from './retryFetch';
 import { session } from './session';
 import { supabaseKey, supabaseUrl } from './supabase';
+import { SCHOOL } from '../school';
 
 /** Email a 6-digit sign-in code (creates the account on first use; admins approve new people). */
 export class NoAccountError extends Error {}
@@ -136,7 +137,7 @@ export async function mfaStatus(): Promise<{ state: 'none' | 'needs-code' | 'ver
 export async function mfaEnroll() {
   const factors = await run(sb().auth.mfa.listFactors());
   for (const f of factors.all ?? []) if (f.status !== 'verified') await sb().auth.mfa.unenroll({ factorId: f.id });
-  const r = await run(sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Royals Connect' }));
+  const r = await run(sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: SCHOOL.connectName }));
   return { factorId: r.id as string, secret: r.totp.secret as string, uri: r.totp.uri as string, qr: r.totp.qr_code as string };
 }
 

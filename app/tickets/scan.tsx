@@ -10,6 +10,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { admitTicket, errorText, ticketEvent, type AdmitResult, type TicketEvent } from '../../src/api/connect';
 import { Button, C, Loading, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 const GREEN = '#15803D';
 
@@ -64,7 +65,7 @@ export default function ScanTickets() {
         <View style={{ gap: 8 }}>
           <P>Scanning uses the camera to read each ticket's QR code.</P>
           <Button label="Turn on the camera" onPress={() => ask()} />
-          {permission && !permission.canAskAgain && <P muted>Camera access is off for KH Royals. Turn it on in Settings, or type the codes below.</P>}
+          {permission && !permission.canAskAgain && <P muted>Camera access is off for {SCHOOL.appName}. Turn it on in Settings, or type the codes below.</P>}
         </View>
       ))}
 
@@ -87,7 +88,7 @@ export default function ScanTickets() {
           onSubmitEditing={() => { if (typed.trim()) { last.current = null; admit(typed.trim()); setTyped(''); } }} />
         <Button label="Admit" disabled={!typed.trim()} onPress={() => { last.current = null; admit(typed.trim()); setTyped(''); }} />
       </View>
-      {!camera && <P muted>On a phone, KH Royals scans the QR codes with the camera.</P>}
+      {!camera && <P muted>On a phone, {SCHOOL.appName} scans the QR codes with the camera.</P>}
     </View>
   );
 }

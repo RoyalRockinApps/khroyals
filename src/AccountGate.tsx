@@ -21,6 +21,7 @@ import { gateFor, type Gate } from './gate';
 import { flightPath, frameOf, hideHomeButton, homeButtonFrame } from './homeShield';
 import { Shield } from './Shield';
 import { Button, C, Card, Field, H, P, s } from './ui';
+import { SCHOOL } from './school';
 
 /** Where the signed-in person stands; checks again on sign-in and out, when the app comes back to the front, and every minute while waiting. */
 export function useAccountGate(): { gate: Gate; recheck: (refresh?: boolean) => void } {
@@ -158,7 +159,7 @@ function Waiting({ recheck }: { recheck: (refresh?: boolean) => void }) {
   return (
     <Card>
       <H>Waiting for approval</H>
-      <P>Thanks{person?.firstName ? `, ${person.firstName}` : ''}! The Kingdom Heights office will confirm your account, and then the app opens for you.</P>
+      <P>Thanks{person?.firstName ? `, ${person.firstName}` : ''}! The {SCHOOL.name} office will confirm your account, and then the app opens for you.</P>
       {needsName && (
         <>
           <P muted>Add your name so the office knows who you are.</P>

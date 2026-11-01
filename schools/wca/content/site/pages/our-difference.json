@@ -1,0 +1,238 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/about/our-difference/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "our-difference",
+  "title": "Our Difference",
+  "sourceUrl": "https://wca-hsv.org/about/our-difference/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Our Difference"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "The Westminster Difference"
+    },
+    {
+     "type": "paragraph",
+     "text": "We help students reach their highest potential through the Student Core Values of Excellence, Growth, Service, and Community. Westminster students become leaders who understand their identity in Christ, love and serve others, and do their best in every situation."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Excellence"
+    },
+    {
+     "type": "paragraph",
+     "text": "As a private school committed to Christian education, we understand the importance of making the most of the gifts God has given us. That’s why we prioritize excellence, teaching students how to do their best in every situation."
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster is Alabama’s only CESA-accredited school, which shows our commitment to exceptional academic and institutional standards."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/icon-cesa.png"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/03/2026-badge.png"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/icon-cognia.png"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-group-boys-singing.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-girls-in-math-class.jpg"
+    },
+    {
+     "type": "quote",
+     "text": "Our teachers have a genuine love of the Lord that shows in all of the learning activities in and out of the classroom. We work hard to create a caring community for all our students. (Maria Lyman, Head of Lower Campus)"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Growth"
+    },
+    {
+     "type": "paragraph",
+     "text": "Although Westminster started with just one kindergarten class, we now have over 975 students across two campuses."
+    },
+    {
+     "type": "paragraph",
+     "text": "With over a dozen clubs and organizations, theater, 17 unique sports, and an award-winning band, your child will find plenty of opportunities for growth outside the classroom."
+    },
+    {
+     "type": "paragraph",
+     "text": "We are a covenantal school for all students, not just the academically elite. Therefore, we offer academic support for students with all types of learning differences."
+    },
+    {
+     "type": "quote",
+     "text": "All students have an incredible purpose for Christ's kingdom. If God's power is to be shown through them, then Christian schools need to be at the forefront of this mission. (Marshall Ellson, Director of Academics Herzog Foundation National Christian Teacher of the Year)"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-volleyball-team.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-class-trip-outdoors.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Service"
+    },
+    {
+     "type": "paragraph",
+     "text": "Students have many opportunities to serve others in our community and around the world. Whether it’s donating food to a local food bank or collecting cans to buy new playground equipment for children in Kenya through the HODI Project, our students are continually making a difference outside of school."
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Kids to Love",
+      "Downtown Rescue Mission",
+      "Tech Team",
+      "School Store"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Rose of Sharon",
+      "Reading Buddies",
+      "Campus Beautification",
+      "Chapel Team"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "HODI Project",
+      "School Announcements",
+      "House of Harvest",
+      "And More!"
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-upper-campus-service-group.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-key-club-volunteers.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-upper-campus-service-group-2.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Community"
+    },
+    {
+     "type": "paragraph",
+     "text": "We value strong relationships that support a Christ-centered life. Our teachers and staff are committed to mentoring students so that they are ready to face challenges with faith, courage, and grace."
+    },
+    {
+     "type": "paragraph",
+     "text": "Although we have two campuses, we are one community, one school. Our students support and encourage each other in many ways including peer tutoring, reading buddies, and advisory groups."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-lower-campus-student-activity.jpg"
+    },
+    {
+     "type": "quote",
+     "text": "At Westminster, I feel like I’m part of something bigger than just a school. I’m part of a community that comes together in Christ and truly cares for each other! (Julia, Upper School Student)"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/cores.webp"
+    },
+    {
+     "type": "paragraph",
+     "text": "To learn more about the Westminster Difference, download our brochure."
+    },
+    {
+     "type": "button",
+     "label": "Why Westminster",
+     "url": "https://wca-hsv.org/wp-content/uploads/2026/06/WCA_RecruitmentBrochure_26.pdf"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Explore the history of Westminster Christian Academy. Learn more about our story."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Our Story",
+     "url": "https://wca-hsv.org/about/our-story/"
+    },
+    {
+     "type": "button",
+     "label": "Academics",
+     "url": "https://wca-hsv.org/academics/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

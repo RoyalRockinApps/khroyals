@@ -18,6 +18,7 @@ import { MyVehicles } from '../src/carline/MyVehicles';
 import { disablePush, enablePush } from '../src/comms/push';
 import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../src/ui';
 import { TimeField } from '../src/forms/DateTimeField';
+import { SCHOOL } from '../src/school';
 
 const TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
 const LEVELS: [GroupPref['pref'], string][] = [['all', 'Everything'], ['mentions', 'Important only'], ['none', 'Off']];
@@ -67,7 +68,7 @@ export default function Profile() {
   }, []);
   useEffect(() => { load().catch(fail).finally(() => setLoaded(true)); }, [load]);
 
-  if (!live) return <View style={[s.screen, s.pad]}><P muted>Profiles need the school's Royals Connect account.</P></View>;
+  if (!live) return <View style={[s.screen, s.pad]}><P muted>Profiles need the school's {SCHOOL.connectName} account.</P></View>;
   if (loaded && !person) {
     return (
       <View style={[s.screen, s.pad]}>
@@ -117,7 +118,7 @@ export default function Profile() {
     const r = await enablePush();
     setDevice(r.state === 'on' ? 'Notifications are on for this device.' : r.detail ?? 'Notifications are off for this device.');
     if (r.state === 'denied') {
-      Alert.alert('Notifications are off', 'Turn on notifications for KH Royals in your phone\'s settings.', [
+      Alert.alert('Notifications are off', `Turn on notifications for ${SCHOOL.appName} in your phone's settings.`, [
         { text: 'Not now', style: 'cancel' }, { text: 'Open settings', onPress: () => Linking.openSettings() },
       ]);
     }
@@ -140,7 +141,7 @@ export default function Profile() {
             </>
           )}
         </View>
-        <P muted>Everyone at school who uses Royals Connect can see your photo.</P>
+        <P muted>Everyone at school who uses {SCHOOL.connectName} can see your photo.</P>
       </Card>
 
       {adult && (

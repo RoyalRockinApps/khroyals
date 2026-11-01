@@ -5,6 +5,7 @@ import { carlineConfig, type CarlineConfig } from '../api/connect';
 import { C, Card, P, s } from '../ui';
 import { autoCheckInEnabled, autoCheckInSupported, disableAutoCheckIn, enableAutoCheckIn, refreshAutoCheckIn } from './autoCheckIn';
 import { hoursLabel } from './format';
+import { SCHOOL } from '../school';
 
 export function AutoCheckInCard() {
   const [on, setOn] = useState<boolean | null>(null);
@@ -32,7 +33,7 @@ export function AutoCheckInCard() {
       setOn(want);
     } catch (e: any) {
       console.warn('Automatic check-in', e?.message ?? e);
-      setProblem({ text: 'Automatic check-in couldn\'t start on this phone. Update KH Royals and try again, or tap I\'m here when you arrive.', settings: false });
+      setProblem({ text: `Automatic check-in couldn't start on this phone. Update ${SCHOOL.appName} and try again, or tap I'm here when you arrive.`, settings: false });
     } finally {
       setBusy(false);
     }

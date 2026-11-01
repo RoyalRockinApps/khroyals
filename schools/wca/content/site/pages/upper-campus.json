@@ -1,0 +1,282 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/academics/upper-campus/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "upper-campus",
+  "title": "Upper Campus",
+  "sourceUrl": "https://wca-hsv.org/academics/upper-campus/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Upper Campus"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-graduates-outside.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Welcome to our Upper Campus"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Excellence in Education Purposeful Discipleship"
+    },
+    {
+     "type": "paragraph",
+     "text": "As a parent, you want your child to have a strong foundation of faith and be prepared for success in college and beyond; to explore their interests and find an encouraging community of friends and mentors."
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster’s Upper School provides a high-quality education that equips students with the skills and knowledge they need for success in college, the military, technical careers, and missions."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our academic program includes AP Courses, fine arts, foreign language, academic support, and mentorship for every student through the Advisory Program. We encourage students to develop their knowledge and skills based on their interests so that their education today is exciting and relevant to their goals after high school."
+    },
+    {
+     "type": "paragraph",
+     "text": "Every high school student has a mentor through our monthly small-group advisory program, which is crucial to our mission of Christian discipleship."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-basketball-court-prayer.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Exciting Programs & Electives"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Stem",
+      "Media Arts",
+      "Personal Finance",
+      "Video Production"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Computer Programming",
+      "Entrepreneurship",
+      "Digital Literacy"
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-upper-campus-banner.png"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Classes & College Readiness"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Want to learn more about our class offerings? Download our course descriptions for more information."
+    },
+    {
+     "type": "button",
+     "label": "Course Descriptions",
+     "url": "https://docs.google.com/document/d/1w05UGTSGFTxxaoKcX2wQZTdP2vGxo6bIy_RdorMcmM0/edit?tab=t.0"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/04/wca-campus-sign.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Growth Outside the Classroom"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "In addition to required coursework, we offer a variety of electives, clubs, sports, and other co-curricular activities to help students develop their interests and talents."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-football-player-and-coach.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Athletics"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster’s athletics program offers 17 unique sports including football, basketball, swimming, volleyball, softball, golf, tennis, bowling, track and field, cheerleading, dance team, and more. Our highly qualified coaches help student-athletes grow into young men and women for Christ.",
+     "links": [
+      {
+       "label": "athletics program",
+       "url": "https://westminsterwildcats.org/"
+      }
+     ]
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Fine Arts"
+    },
+    {
+     "type": "paragraph",
+     "text": "Students participating in our fine arts program learn new skills to last a lifetime. We offer award-winning band and choral programs, theatre, chapel team, and visual arts courses."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-marching-band.jpg"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-hands-activities.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Other Activities Include..."
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Cross-cultural trips abroad",
+      "Growing international student programs",
+      "Service opportunities and organizations",
+      "Outward focus on people groups across the world",
+      "Connections to veterans and honoring the history of our country"
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Enrichment Opportunities"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Ambassadors",
+      "Student Government",
+      "Beta Club",
+      "Key Club",
+      "National Honor Society"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Math Team",
+      "Mu Alpha Theta",
+      "Spanish Club",
+      "Chapel Team",
+      "Bible Studies"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "School Store",
+      "Fellowship of Christian Athletes (FCA)",
+      "Africa/Hodi Mission Outreach",
+      "Local Missions with Community Organizations",
+      "And Many More!"
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/upper-school-students.png"
+    },
+    {
+     "type": "paragraph",
+     "text": "Whatever their interests, students are encouraged to develop and use their God-given artistic talents for the benefit of their school, church, and community."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-2026-grads.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Our Graduates"
+    },
+    {
+     "type": "paragraph",
+     "text": "Westminster is more than just a school. It’s a place where everyone works together to help students become servant leaders who understand their identity in Christ, love others, and do their best in every situation. Westminster graduates are…"
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Prepared for college, the military, and missions",
+      "Connected to classmates, faculty, and staff",
+      "Ready to explore any career field they choose",
+      "Able to view life through the lens of Scripture"
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "Are you ready to become part of the Westminster family? \"Teaching them to obey everything I have commanded you. And surely I am with you always, to the very end of the age.\" Matthew 28:20"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Lower Campus",
+     "url": "https://wca-hsv.org/academics/lower-campus/"
+    },
+    {
+     "type": "button",
+     "label": "Preschool",
+     "url": "https://wca-hsv.org/academics/preschool-program/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

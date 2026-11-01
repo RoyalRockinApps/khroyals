@@ -30,6 +30,24 @@ documents or accounts waits for Phase 2.
 4. **[Full release](#phase-4--full-release)** — the app stores, for every family
 5. **[Future features and bug fixes](#phase-5--future-features-and-bug-fixes)** — ongoing
 
+## WCA setup
+
+Westminster Christian Academy's app (`schools/wca`, built from this codebase with `SCHOOL=wca`; the old
+RoyalRockinApps/wca repo is no longer used). Its Supabase project (`nnbhslmvgabygvhugqfm`, separate account)
+has every migration; nobody has an account yet.
+
+| Item | Owner | Status | Needs | Notes |
+|---|---|---|---|---|
+| Deploy secret for WCA's database | — | Not started | A personal access token from WCA's Supabase account | Add it as the `SUPABASE_ACCESS_TOKEN_WCA` repository secret; until then pushes skip WCA's database deploy with a warning. |
+| WCA's first director | — | Not started | Who runs WCA's app | They sign in once, then `SCHOOL=wca SUPABASE_ACCESS_TOKEN=… node scripts/supabase_setup.mjs --director=<email>` (DEVELOPING §5). |
+| WCA sign-in and email | — | Not started | WCA's own email (SMTP), Google/Apple sign-in, a Resend key | Same steps as Kingdom Heights (DEVELOPING §5) on WCA's project; free Supabase email sends a link, not a code, and only a few an hour. |
+| School calendar | — | Not started | WCA's 2026–27 calendar | `schools/wca/content/site/calendar.json` is empty; the office can add dates in the app. |
+| Dress code on the Planner | — | Not started | WCA's uniform guide | Fill `schools/wca/uniform.ts` (and pictures in `uniformImages.ts`) like Kingdom Heights'. |
+| Family handbook | — | Not started | The handbook PDF | `SCHOOL=wca swift scripts/import_handbook.swift <pdf>`; the Handbook tile appears once it has pages. |
+| Car line spot and traffic map | — | Not started | Which campus and where cars line up | The pickup zone starts at the Lower Campus (375 Mt. Zion Rd.); car line leads move it in the app. Add a traffic map in `schools/wca/carline.ts` / `carlineMap.ts`. |
+| Newsletter | — | Not started | What WCA sends families | WCA News imports Smore newsletters; adjust if WCA uses something else. |
+| App store accounts and push | — | Not started | WCA's Apple and Google accounts | Its own listings (`org.wcahsv.app`); same steps as Kingdom Heights (DEVELOPING §7, §9 with `SCHOOL=wca`). |
+
 ## Phase 1 — RFI development
 
 What the presentation should show. All of it can be built and demoed without the
@@ -119,6 +137,10 @@ Ongoing after release; bugs reported in beta and after release go here too.
 | CarPlay | Ben | Waiting on Apple | Built; needs Apple's CarPlay entitlement and a first look at the car screen in the simulator ([DEVELOPING §8](DEVELOPING.md#8-carplay)). |
 | File and photo attachments in Connect posts | — | Not started | The storage bucket and "attach files" permission exist, but the app has no upload button. |
 | Better graphics for the car line's festive touches | Ben | Not started | The big screen's holiday and break scenes (`src/carline/SeasonScene.tsx`) are built from emoji piles and pop-out emoji characters, which look a little different on each TV and computer. Replace them with custom artwork: drawn piles and characters for each break and holiday, matched to the school's look. |
+| Pickup display for kids lining up inside | — | Not started | A screen inside the school per child: red (no one coming), yellow (their pickup is on the way: inside a wider radius around school, e.g. on Holmes Ave), green (in line). Yellow needs a second, larger geofence next to automatic check-in's; like it, it works with the app closed only with "Always" location. |
+| "Evaluate" flag for custody concerns | — | Not started | The office flags a child; staff must confirm and sign off on who they release that child to, in the car line and at check-out. |
+| QR check at release | — | Not started | Staff scan a QR code from the adult's app to confirm they're on the child's pickup list; who and when is kept on the child's record. |
+| Employee time tracking | — | Not started | Staff clock in automatically on campus (a geofence like the car line's) and out when they leave; needs the school's rules for hours and who sees them. |
 | Tuition calculator | — | Not started | Links to the website's widget instead of running in the app. |
 | Notification switches for Activities and Ask the School | — | Needs a decision | My profile has switches for groups, replies, Marketplace, Volunteer and school announcements; these two can only be held back by quiet hours. |
 | Yearly upkeep | — | Recurring | Load the new school calendar (typed in by hand from the PDF), update the handbook, check the July 1 grade rollover, upgrade Expo once a year for new iOS and Android versions. |

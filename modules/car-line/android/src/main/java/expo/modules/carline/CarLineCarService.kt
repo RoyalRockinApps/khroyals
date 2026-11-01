@@ -85,9 +85,13 @@ class CarLineScreen(carContext: CarContext) : Screen(carContext), DefaultLifecyc
     }
   }
 
+  /** This school's app name (KH Royals, WCA), as the phone shows it. */
+  private val appName: String
+    get() = carContext.applicationInfo.loadLabel(carContext.packageManager).toString()
+
   override fun onGetTemplate(): Template {
     if (CarPass.load(carContext) == null) {
-      return MessageTemplate.Builder("Open KH Royals on your phone and log in as a parent to use the car line here.")
+      return MessageTemplate.Builder("Open $appName on your phone and log in as a parent to use the car line here.")
         .setTitle("Car line")
         .setHeaderAction(Action.APP_ICON)
         .build()
@@ -122,7 +126,7 @@ class CarLineScreen(carContext: CarContext) : Screen(carContext), DefaultLifecyc
               invalidate()
               fetch { pass ->
                 val at = CarLocation.current(carContext)
-                  ?: throw CarPass.CarLineException("Turn on location for KH Royals on your phone so the school knows you're here.")
+                  ?: throw CarPass.CarLineException("Turn on location for $appName on your phone so the school knows you're here.")
                 CarPass.checkIn(pass, at.latitude, at.longitude, if (at.hasAccuracy()) at.accuracy else null)
               }
             }

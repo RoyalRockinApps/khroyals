@@ -2,10 +2,11 @@
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { SCHOOL } from './school';
 
 export async function pickSquarePhoto(camera: boolean): Promise<string | null> {
   if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
-    Alert.alert('Camera is off', 'Allow camera access for KH Royals in Settings to take a photo.');
+    Alert.alert('Camera is off', `Allow camera access for ${SCHOOL.appName} in Settings to take a photo.`);
     return null;
   }
   const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 };

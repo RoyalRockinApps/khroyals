@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { faqSection, isFaqSection } from '../src/site/faq';
 import type { Section } from '../src/site/types';
 
-const home = JSON.parse(readFileSync(join(__dirname, '../content/site/home.json'), 'utf8')) as { sections: Section[] };
+const home = JSON.parse(readFileSync(join(__dirname, '../schools/khroyals/content/site/home.json'), 'utf8')) as { sections: Section[] };
 
 test('the home page has one F.A.Q.s section, which the Planner tab leaves out', () => {
   assert.equal(home.sections.filter(isFaqSection).length, 1);

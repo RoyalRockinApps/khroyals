@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "WCA",
+    "slug": "wca",
+    "scheme": "wcahsv",
+    "ios": {
+      "bundleIdentifier": "org.wcahsv.app"
+    },
+    "android": {
+      "package": "org.wcahsv.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./schools/wca/assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "icon": "./schools/wca/assets/icon.png",
+    "web": {
+      "favicon": "./schools/wca/assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/khroyals/wca"
+    },
+    "extra": {
+      "school": "wca",
+      "supabaseUrl": "https://nnbhslmvgabygvhugqfm.supabase.co",
+      "supabaseKey": "sb_publishable_6YY-QWANHTz477m-PX5lRg_h-IwW4vt"
+    }
+  }
+}

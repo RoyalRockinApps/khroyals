@@ -1,0 +1,260 @@
+{
+ "_meta": {
+  "source": "https://wca-hsv.org/academics/lower-campus/",
+  "scrapedAt": "2026-10-27"
+ },
+ "page": {
+  "id": "lower-campus",
+  "title": "Lower Campus",
+  "sourceUrl": "https://wca-hsv.org/academics/lower-campus/"
+ },
+ "sections": [
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 1,
+     "text": "Lower Campus"
+    }
+   ],
+   "background": {
+    "type": "image",
+    "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-kindergarten-field-trip.jpg"
+   }
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Welcome to our Lower Campus"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-second-grade-on-playground.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Developing Skills, Growing in Faith"
+    },
+    {
+     "type": "paragraph",
+     "text": "As a parent, you have the unique responsibility of helping your child become the person God created them to be; but you shouldn’t have to do it alone."
+    },
+    {
+     "type": "paragraph",
+     "text": "At Westminster Christian Academy’s Lower Campus, you’ll find a caring community of teachers and families to partner with you in your child’s education and faith development."
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Education for a Bright Future"
+    },
+    {
+     "type": "paragraph",
+     "text": "The chief goal of our elementary school is to develop a Christ-centered view of the world along with excellent academic preparation for middle school."
+    },
+    {
+     "type": "paragraph",
+     "text": "Our program includes daily Bible lessons with integration across the curriculum, reading, language development, math, science, social studies, and leadership development. Academic Support Specialists ensure that all students have the resources they need for success."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/wca-lower-campus-students.png"
+    },
+    {
+     "type": "paragraph",
+     "text": "We offer hands-on activities and STEM opportunities to keep students engaged in learning including computer applications and coding. They can also participate in music, band, choir, and art. In addition to a strong foundation in core subjects, students are prepared emotionally and socially for the next step in their education."
+    },
+    {
+     "type": "paragraph",
+     "text": "Elementary students also need plenty of exercise and time for play. Our curriculum includes physical education and outdoor play so that students will develop healthy bodies, improve their social skills, and increase their attention spans."
+    },
+    {
+     "type": "button",
+     "label": "Our Curriculum",
+     "url": "https://docs.google.com/document/d/1ii1RVqqQnewzQxab18fkkQcZTDkKBRWhHBHIsacP_TM/edit?usp=sharing"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "A Safe, Nurturing Environment"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "The Lower School at Westminster houses preschool through 5th-grade students."
+    },
+    {
+     "type": "paragraph",
+     "text": "We have qualified and experienced teachers who are dedicated to serving students and sharing the love of Jesus. It’s the perfect place for your child to grow spiritually, academically, and emotionally."
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/06/wca-boy-with-plant.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/04/children-playing-outside.jpg"
+    },
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Growth Outside the Classroom"
+    },
+    {
+     "type": "paragraph",
+     "text": "Learning extends far beyond the classroom. Our students have access to a variety of enriching extracurricular opportunities. Our clubs and extracurriculars encourage students to explore their interests, discover their God-given gifts, build friendships, and grow in confidence. There truly is something for everyone."
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Baton Club",
+      "Bible Bowl Team",
+      "Chapel Leadership"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Drama Club",
+      "Field Trips",
+      "Garden/Outdoor Classroom"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Junior Entomologist Bug Club",
+      "Kick it for Christ Martial Arts",
+      "Lego Club"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Little Larvae Bug Club",
+      "& More!"
+     ]
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "WESTMINSTER ALLIANCE FOR YOUTH SPORTS (WAYS)"
+    },
+    {
+     "type": "paragraph",
+     "text": "The objective of WAYS is to introduce sports to students in kindergarten through 6th grade in a Christian environment that will help them build character and understand the value of sportsmanship and teamwork. By competing against local teams, the WAYS program prepares younger students for the transition to Westminster’s Upper Campus athletic program."
+    },
+    {
+     "type": "paragraph",
+     "text": "If you have any questions, please contact John Knight, WAYS Director.",
+     "links": [
+      {
+       "label": "John Knight",
+       "url": "mailto:john.knight@wca-hsv.org?subject=RequestWAYSInformation"
+      }
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Pep Squad",
+      "Soccer",
+      "Volleyball"
+     ]
+    },
+    {
+     "type": "list",
+     "ordered": false,
+     "items": [
+      "Basketball",
+      "Flag Football",
+      "Track & Field"
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/lower-campus-pep-squad.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 2,
+     "text": "Extended Care & Shuttle Information"
+    },
+    {
+     "type": "paragraph",
+     "text": "After-school care is available for all Westminster students, with Lower Campus serving Preschool through 5th grade. Transportation options, including shuttle services between campuses and from South Huntsville, are also available to support families."
+    },
+    {
+     "type": "paragraph",
+     "text": "For full details on programs, schedules, and pricing, please visit our Admissions page.",
+     "links": [
+      {
+       "label": "visit our Admissions page",
+       "url": "https://wca-hsv.org/admissions/"
+      }
+     ]
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/05/lower-campus-outdoor-reading.jpg"
+    }
+   ]
+  },
+  {
+   "blocks": [
+    {
+     "type": "heading",
+     "level": 3,
+     "text": "We're ready to help your student develop a love of god and a love of learning to last a lifetime. \"Don't let anyone look down on you because you are young, but set an example for the believers in speech, in conduct, in love, in faith and in purity.\" 1 Timothy 4:12"
+    },
+    {
+     "type": "image",
+     "src": "https://wca-hsv.org/wp-content/uploads/2026/10/WCA_Logo_Icon_Red-2048x2048.png"
+    },
+    {
+     "type": "button",
+     "label": "Upper Campus",
+     "url": "https://wca-hsv.org/academics/upper-campus/"
+    },
+    {
+     "type": "button",
+     "label": "Preschool",
+     "url": "https://wca-hsv.org/academics/preschool-program/"
+    },
+    {
+     "type": "button",
+     "label": "Apply",
+     "url": "https://wca-hsv.myschoolapp.com/app#login/apply"
+    }
+   ]
+  }
+ ]
+}

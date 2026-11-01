@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { moreMenu } from '../src/site/moreMenu';
 import type { Link, NavItem } from '../src/site/types';
 
-const site = JSON.parse(readFileSync(join(__dirname, '../content/site/site.json'), 'utf8')) as {
+const site = JSON.parse(readFileSync(join(__dirname, '../schools/khroyals/content/site/site.json'), 'utf8')) as {
   navigation: NavItem[]; footer: { actions: Link[]; quickLinks: Link[] };
 };
 

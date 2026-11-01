@@ -11,8 +11,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { isSchoolStaff, listAlerts, live, me, myLocationConsent, onAuthChange, session, setLocationConsent } from '../api/connect';
 import { C } from '../ui';
+import { SCHOOL } from '../school';
 
-const NAVY = '#0A1F4D';
+const NAVY = SCHOOL.theme.dark;
 
 /** Yes: ask the phone for location while the app is open (the web asks when it's first used). */
 export async function allowAlertLocation() {
@@ -53,7 +54,7 @@ export function LocationConsent() {
         <Text style={{ fontSize: 26, fontWeight: '900', color: NAVY }} accessibilityRole="header">Your location in an emergency</Text>
         <Text style={{ fontSize: 17, lineHeight: 25, color: C.ink }}>
           When there’s a critical alert (an active threat, severe weather or another danger) and you tap I’m safe or I need help,
-          KH Royals can send where you are along with your answer, so the office can find you and get help to you faster.
+          {SCHOOL.appName} can send where you are along with your answer, so the office can find you and get help to you faster.
         </Text>
         {[
           ['crosshairs-gps', 'Your phone’s location and the school Wi-Fi access point it’s on, which tells the office the room or area.'],
@@ -67,7 +68,7 @@ export function LocationConsent() {
           </View>
         ))}
         <Text style={{ color: C.muted, fontSize: 14 }}>
-          You can change this any time in My profile.{Platform.OS !== 'web' ? ' Your phone will ask you to allow location for KH Royals next.' : ''}
+          You can change this any time in My profile.{Platform.OS !== 'web' ? ` Your phone will ask you to allow location for ${SCHOOL.appName} next.` : ''}
         </Text>
         <Pressable disabled={busy} onPress={() => answer(true)} accessibilityRole="button"
           style={({ pressed }) => ({ backgroundColor: NAVY, borderRadius: 14, padding: 16, alignItems: 'center', opacity: pressed || busy ? 0.7 : 1 })}>
