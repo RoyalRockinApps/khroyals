@@ -76,3 +76,9 @@ test('rule sync: guardians follow students; manual roles preserved', () => {
   assert.equal(out.find((m) => m.userId === 'u-p07'), undefined);       // parent of 9th grader
   assert.equal(out.find((m) => m.userId === 'u-ap')?.role, 'owner');
 });
+
+test('archived groups are only their owners\'', () => {
+  const archived = (u: string) => ({ ...ctx(u, 'g-eng-p3'), group: { ...G('g-eng-p3'), archivedAt: '2026-11-02T10:00:00Z' } });
+  assert.equal(can(archived('u-s01'), 'viewContent').allowed, false, 'a member no longer sees it');
+  assert.equal(can(archived('u-eng'), 'viewContent').allowed, true, 'its owner does');
+});

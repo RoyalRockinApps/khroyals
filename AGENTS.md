@@ -79,6 +79,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   switch them off for every screen, all or one by one (`carline_set_festive`, Car line settings; birthdays too).
   The keys are in both `FESTIVE` and `app.festive_keys()` (`tests/carline-festive.test.ts` checks). It's dark and
   full width on the web (the root layout's `skip` list and column width), so keep it out of both.
+- **Connect groups: hide, archive, delete.** A member's hide is only theirs (`memberships.hidden_at`, `group_hide`;
+  `my_groups` leaves it out). Archived groups (`groups.archived_at`, `group_archive`: owners or `groups.manage`, `app.owns_group`)
+  exist only for their owners (`app.effective_role` returns null for anyone else, mirrored in `src/comms/permissions.ts`)
+  and take no new posts, comments or events (trigger `app.refuse_archived`). Only an archived group is deleted
+  (`group_delete`, its name typed to confirm), logged in the school-wide audit log.
 - **Family accounts** (`school_role = 'family'`: grandparents, other relatives) are closed
   by default. They get car line pickup for the children the office links in
   `family_pickups` (never `guardians`), Volunteer, Activities (follow, no sign-ups) and the

@@ -33,6 +33,8 @@ const isStaff = (u: User) => u.schoolRole === 'admin' || u.schoolRole === 'teach
 export function effectiveRole(ctx: Context): GroupRole | null {
   if (ctx.user.schoolRole === 'family' || ctx.user.schoolRole === 'substitute') return null;
   if (ctx.user.schoolRole === 'admin') return 'owner';
+  // An archived group is only there for its owners.
+  if (ctx.group.archivedAt) return ctx.membership?.role === 'owner' ? 'owner' : null;
   if (ctx.membership) return ctx.membership.role;
   const v = ctx.group.settings.visibility;
   // Non-members of public/school groups can read as if subscribers.

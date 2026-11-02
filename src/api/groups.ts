@@ -5,6 +5,7 @@ import { abilitiesSchema, groupRole } from './schemas';
 import type { Comment, Group, GroupRole, GroupSettings, Post } from '../comms/types';
 import * as mock from './mockApi';
 import { live, run, sb, rpc } from './client';
+import { current } from './session';
 import { toComment, toGroup, toPost } from './mappers';
 import type { Abilities, GroupView, Member } from './types';
 
@@ -13,26 +14,50 @@ export async function listMyGroups(): Promise<Group[]> {
   return (await rpc('my_groups')).map(toGroup);
 }
 
-/** Groups the person can discover but hasn't joined (open/school-visible). */
+/** Groups the person can discover but hasn't joined (open/school-visible); not archived or hidden ones. */
 export async function listDiscoverableGroups(): Promise<Group[]> {
   if (!live) return [];
-  const mine = new Set((await listMyGroups()).map((g) => g.id));
-  return (await run(sb().from('groups').select('*').order('name'))).map(toGroup).filter((g) => !mine.has(g.id));
+  const [my, hidden] = await Promise.all([listMyGroups(), listHiddenGroups()]);
+  const mine = new Set([...my, ...hidden].map((g) => g.id));
+  return (await run(sb().from('groups').select('*').is('archived_at', null).order('name'))).map(toGroup).filter((g) => !mine.has(g.id));
 }
+
+/** Groups the person hid from their own list. */
+export async function listHiddenGroups(): Promise<Group[]> {
+  if (!live) return [];
+  return (await rpc('my_hidden_groups')).map(toGroup);
+}
+
+/** Archived groups the person can restore or delete (their owners, and groups.manage). */
+export async function listArchivedGroups(): Promise<Group[]> {
+  if (!live) return [];
+  return (await rpc('archived_groups')).map(toGroup);
+}
+
+/** Take a group out of your own list, or put it back. */
+export async function hideGroup(groupId: string, hidden: boolean) { await rpc('group_hide', { p_group: groupId, p_hidden: hidden }); }
+
+/** Owners: archive a group (gone for everyone else, restorable) or restore it. */
+export async function archiveGroup(groupId: string, archived: boolean) { await rpc('group_archive', { p_group: groupId, p_archived: archived }); }
+
+/** Owners: delete an archived group for good; `name` is the group's name, typed to confirm. */
+export async function deleteGroup(groupId: string, name: string) { await rpc('group_delete', { p_group: groupId, p_name: name }); }
 
 export async function getGroup(id: string): Promise<GroupView> {
   if (!live) {
     const d = await mock.getGroup(id);
     return { group: d.group, myRole: d.myRole, posts: d.posts, abilities: d.abilities as Abilities };
   }
-  const [g, abilities, posts] = await Promise.all([
+  const me = current?.id ?? '';
+  const [g, abilities, posts, membership] = await Promise.all([
     run(sb().from('groups').select('*').eq('id', id).single()),
     rpc('group_abilities', { p_group: id }),
     run(sb().from('posts').select('*, reactions(emoji, user_id), poll_options(id, label, position, poll_votes(user_id))')
       .eq('group_id', id).neq('status', 'removed').order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100)),
+    run(sb().from('memberships').select('hidden_at').eq('group_id', id).eq('user_id', me)),
   ]);
   const { role, ...rest } = abilitiesSchema.parse(abilities);
-  return { group: toGroup(g), myRole: role, posts: posts.map(toPost), abilities: rest };
+  return { group: toGroup(g), myRole: role, posts: posts.map(toPost), abilities: rest, hidden: membership[0] ? !!membership[0].hidden_at : null };
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {

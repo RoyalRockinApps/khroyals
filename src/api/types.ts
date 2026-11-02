@@ -12,7 +12,8 @@ export type Abilities = {
   moderate: boolean; editSettings: boolean; createEvents: boolean;
 };
 
-export type GroupView = { group: Group; myRole: GroupRole | null; posts: Post[]; abilities: Abilities };
+/** `hidden`: the person hid it from their list (null when they aren't a member). */
+export type GroupView = { group: Group; myRole: GroupRole | null; posts: Post[]; abilities: Abilities; hidden?: boolean | null };
 
 export type Person = User & { email?: string | null; pending?: boolean; carlineDuty?: boolean; volunteerLead?: boolean };
 

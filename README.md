@@ -459,6 +459,15 @@ app has no demo logins.
 
 Every group is one primitive with a **style preset** plus fully overridable settings.
 
+**Hide, archive, delete.** Any member hides a group from their own list (*Hide from my groups* on
+the group; it comes back under *Hidden from my list* on the Connect tab), which matters for groups
+the school put them in and they can't leave (`group_hide`, `memberships.hidden_at`). A group's owners
+(and `groups.manage`) **archive** it in Group settings: it's gone for everyone else (lists, its posts,
+events and members) and takes nothing new, until they restore it (`group_archive`; `app.effective_role`
+and a trigger on posts, comments and events). Only an archived group can be **deleted**, by typing its
+name; its posts, comments, events and members go with it, and the school's activity log keeps who
+deleted it (`group_delete`).
+
 | Style | Feels like | Default |
 |---|---|---|
 | Group Chat | GroupMe | everyone in the group talks |

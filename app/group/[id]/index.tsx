@@ -3,7 +3,7 @@ import { Alert, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, Swit
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  addComment, createPost, getComments, getGroup, getUser, live, me, moderatePost, myFollows, recordPostViews, setPostFollow,
+  addComment, createPost, errorText, getComments, getGroup, getUser, hideGroup, live, me, moderatePost, myFollows, recordPostViews, setPostFollow,
   subscribeGroup, toggleReaction, votePoll, type GroupView,
 } from '../../../src/api/connect';
 import type { Comment, Post } from '../../../src/comms/types';
@@ -149,7 +149,9 @@ export default function GroupScreen() {
   };
   if (!view) return <Loading />;
 
-  const { group, abilities, posts, myRole } = view;
+  const { group, abilities, posts, myRole, hidden } = view;
+  const archived = !!group.archivedAt;
+  const hide = (on: boolean) => hideGroup(id, on).then(reload).catch((e) => Alert.alert('Not allowed', errorText(e)));
   const mode = group.settings.mode;
   const isChat = mode === 'chat';
   const asQuestion = !abilities.post.allowed && abilities.askQuestion.allowed;
@@ -188,8 +190,16 @@ export default function GroupScreen() {
             <View style={s.row}>
               <Chip label={`You: ${myRole ?? 'viewer'}`} />
               {group.settings.locked && <Chip label="🔒 Locked" color={C.danger} />}
+              {archived && <Chip label="🗄 Archived" color={C.muted} />}
               {live && <Chip label="● Live" color="#047857" />}
             </View>
+            {archived && <P muted>Only its owners see this group. Restore it in Group settings to post again, or delete it there.</P>}
+            {!archived && hidden != null && (
+              <Text style={{ color: C.primary, fontWeight: '600' }} accessibilityRole="button" onPress={() => hide(!hidden)}>
+                {hidden ? 'Show in my groups' : 'Hide from my groups'}
+              </Text>
+            )}
+            {hidden && <P muted>Hidden from your list. You’re still in the group.</P>}
           </View>}
         ListEmptyComponent={<P muted>Nothing here yet.</P>}
         renderItem={({ item }) => (
@@ -197,7 +207,7 @@ export default function GroupScreen() {
         )}
       />
       <View style={{ padding: 12, paddingBottom: 12 + bottomInset, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: '#fff', gap: 8 }}>
-        {composer.allowed ? (
+        {archived ? <P muted>🗄 This group is archived.</P> : composer.allowed ? (
           <>
             {(!isChat || poll) && <Input value={title} onChangeText={setTitle} placeholder={poll ? 'Poll question' : asQuestion ? 'Question title' : 'Title'} />}
             {poll && (

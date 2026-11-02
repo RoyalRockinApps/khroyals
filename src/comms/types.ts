@@ -107,6 +107,8 @@ export interface Group {
   /** Optional parent group for nested channels (e.g. Band → Band: Parents). */
   parentGroupId?: string | null;
   tags: string[];
+  /** When its owners archived it: gone for everyone else, restorable, and deletable for good. */
+  archivedAt?: string | null;
 }
 
 export interface Membership {

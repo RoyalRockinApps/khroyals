@@ -922,6 +922,8 @@ export type Database = {
       }
       groups: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           category: string
           color: string
           created_at: string
@@ -936,6 +938,8 @@ export type Database = {
           tags: string[]
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string
           color?: string
           created_at?: string
@@ -950,6 +954,8 @@ export type Database = {
           tags?: string[]
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           category?: string
           color?: string
           created_at?: string
@@ -1161,6 +1167,7 @@ export type Database = {
       }
       memberships: {
         Row: {
+          hidden_at: string | null
           can_post: boolean
           group_id: string
           joined_at: string
@@ -1172,6 +1179,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          hidden_at?: string | null
           can_post?: boolean
           group_id: string
           joined_at?: string
@@ -1183,6 +1191,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          hidden_at?: string | null
           can_post?: boolean
           group_id?: string
           joined_at?: string
@@ -3136,6 +3145,7 @@ export type Database = {
       }
       alert_location_consent: { Args: { p_allowed: boolean }; Returns: undefined }
       anonymous_author: { Args: { p_post: string }; Returns: string }
+      archived_groups: { Args: never; Returns: Database["public"]["Tables"]["groups"]["Row"][] }
       ask_school: {
         Args: { p_body: string; p_subject: string; p_topic: string }
         Returns: {
@@ -3326,6 +3336,10 @@ export type Database = {
         Args: { p_day?: string; p_section: string }
         Returns: Json
       }
+      group_archive: { Args: { p_archived: boolean; p_group: string }; Returns: Database["public"]["Tables"]["groups"]["Row"] }
+      group_delete: { Args: { p_group: string; p_name: string }; Returns: undefined }
+      group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
+      my_hidden_groups: { Args: never; Returns: Database["public"]["Tables"]["groups"]["Row"][] }
       my_tickets: { Args: never; Returns: Json }
       school_check: { Args: { p_kind: string; p_note?: string; p_person?: string | null; p_reason?: string; p_student: string }; Returns: string }
       school_check_undo: { Args: { p_id: string }; Returns: undefined }
@@ -3857,29 +3871,7 @@ export type Database = {
         }[]
       }
       my_forms: { Args: never; Returns: Json }
-      my_groups: {
-        Args: never
-        Returns: {
-          category: string
-          color: string
-          created_at: string
-          created_by: string | null
-          description: string
-          icon: string
-          id: string
-          name: string
-          parent_group_id: string | null
-          settings: Json
-          slug: string | null
-          tags: string[]
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "groups"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      my_groups: { Args: never; Returns: Database["public"]["Tables"]["groups"]["Row"][] }
       my_notifications: {
         Args: { p_limit?: number }
         Returns: {

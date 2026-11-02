@@ -3631,6 +3631,63 @@ test("one database for every school: names come from settings, and a school's ow
   assert.equal((await one(`select app.brand('app_name') a`)).a, 'KH Royals');
 });
 
+test('Connect groups: members hide a group from their list; owners archive, restore and delete it', async () => {
+  // Jennifer starts a group and adds Ava; Ava posts.
+  await as('u-eng');
+  const settings = JSON.stringify((await one(`select settings from groups where id = ${id('g-eng-p3')}`)).settings).replace(/'/g, "''");
+  const g = (await one(`select id from create_group('Book club', '', '📖', '#00239C', 'club', '${settings}'::jsonb, '[]'::jsonb)`)).id as string;
+  await one(`select set_membership('${g}', ${id('u-s01')}, 'member')`);
+  await as('u-s01');
+  await one(`select id from create_post('${g}', 'message', 'Chapter 1 thoughts')`);
+  const mine = async () => (await rows(`select id from my_groups()`)).map((r) => r.id);
+
+  // Hide: only from Ava's own list (she was put in it, so she can't leave), and back again.
+  assert.ok((await mine()).includes(g));
+  await one(`select group_hide('${g}', true)`);
+  assert.ok(!(await mine()).includes(g));
+  assert.deepEqual((await rows(`select id from my_hidden_groups()`)).map((r) => r.id), [g]);
+  assert.equal((await rows(`select 1 from posts where group_id = '${g}'`)).length, 1, 'hidden, not gone: she can still open it');
+  await rejects(`select group_hide(${id('g-faculty')}, true)`, /not in this group/);
+  await one(`select group_hide('${g}', false)`);
+  assert.ok((await mine()).includes(g));
+
+  // Only the owner (or groups.manage) archives; an unverified admin is asked to verify.
+  await rejects(`select * from group_archive('${g}', true)`, /Only the group's owners can archive it/);
+  await as('u-ap');
+  await rejects(`select * from group_archive('${g}', true)`, /MFA_REQUIRED/);
+  await as('u-eng');
+  await rejects(`select group_delete('${g}', 'Book club')`, /Archive the group first/);
+  await one(`select * from group_archive('${g}', true)`);
+
+  // Archived: gone for Ava (list, the group, its posts) and closed to new posts; still there for its owner.
+  await as('u-s01');
+  assert.ok(!(await mine()).includes(g));
+  assert.equal((await rows(`select 1 from groups where id = '${g}'`)).length, 0);
+  assert.equal((await rows(`select 1 from posts where group_id = '${g}'`)).length, 0);
+  await rejects(`select * from create_post('${g}', 'message', 'Hello?')`, /archived|permission|not/i);
+  await as('u-eng');
+  assert.ok(!(await mine()).includes(g));
+  assert.deepEqual((await rows(`select id from archived_groups()`)).map((r) => r.id), [g]);
+  assert.equal((await rows(`select 1 from posts where group_id = '${g}'`)).length, 1);
+  await rejects(`select * from create_post('${g}', 'message', 'Anyone?')`, /archived/);
+
+  // Restore brings it back for everyone.
+  await one(`select * from group_archive('${g}', false)`);
+  await as('u-s01');
+  assert.ok((await mine()).includes(g));
+
+  // Delete: archived first, then the name typed to confirm; the school's log keeps it.
+  await as('u-eng');
+  await one(`select * from group_archive('${g}', true)`);
+  await rejects(`select group_delete('${g}', 'book')`, /Type the group's name, Book club/);
+  await one(`select group_delete('${g}', ' book CLUB ')`);
+  await asSuper();
+  assert.equal((await rows(`select 1 from groups where id = '${g}'`)).length, 0);
+  assert.equal((await rows(`select 1 from posts where group_id = '${g}'`)).length, 0);
+  assert.deepEqual(await one(`select action, detail->>'name' as name, detail->>'posts' as posts from audit_log where target_id = '${g}' and action = 'group.deleted'`),
+    { action: 'group.deleted', name: 'Book club', posts: '1' });
+});
+
 test('the bell counts new notifications until the bell page opens them', async () => {
   await as('u-p04');
   await one('select clear_my_notifications()');

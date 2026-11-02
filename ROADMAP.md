@@ -185,6 +185,7 @@ Working in the app and on the server today.
 | School site | Handbook | Page-by-page reader with search and highlighting, works signed out |
 | Royals Connect | Groups | Chat, Discussion Board, Announcements and Q&A styles, each action's "who can" set separately |
 | Royals Connect | Moderation | Lock, approval queues, slow mode, quiet hours, mutes, pinning, audit log |
+| Royals Connect | Hide, archive, delete | Members hide a group from their own list; owners archive a group (gone for everyone else, restorable) and delete an archived one for good |
 | Royals Connect | Auto-membership | Rules add people by role, grade, section, team or club, plus their guardians |
 | Royals Connect | Post stats and following | Who saw each post, opens, reactions; follow a post for reply notifications |
 | Car Line | Parent check-in | Check In with a location check, pickup numbers, saved vehicles (a button under Check In switches today's vehicle, even while in line), and the traffic flow map with each family’s line (blue for K2–K4, red for K–12th) |

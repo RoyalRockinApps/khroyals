@@ -20,7 +20,7 @@ export const toPerson = (p: ProfileRow, avatar = ''): Person => ({
 export const toGroup = (g: Tables<'groups'>): Group => ({
   id: g.id, name: g.name, description: g.description, icon: g.icon, color: g.color, category: enumValue(g.category, ['school-wide', 'class', 'grade', 'athletics', 'club', 'staff', 'parents', 'district']),
   createdBy: g.created_by ?? '', createdAt: g.created_at, settings: groupSettingsSchema.parse(g.settings), assignmentRules: [],
-  parentGroupId: g.parent_group_id, tags: g.tags ?? [],
+  parentGroupId: g.parent_group_id, tags: g.tags ?? [], archivedAt: g.archived_at ?? null,
 });
 
 type PostRow = Tables<'posts'> & {

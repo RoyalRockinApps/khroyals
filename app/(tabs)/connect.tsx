@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import {
-  ROLE_LABELS, isFamily, isSubstitute, joinGroup, listDiscoverableGroups, listMyGroups, listUsers, live, onAuthChange, session,
+  ROLE_LABELS, hideGroup, isFamily, isSubstitute, joinGroup, listArchivedGroups, listDiscoverableGroups, listHiddenGroups, listMyGroups, listUsers, live, onAuthChange, session,
   setMockUser, signOut, type Person,
 } from '../../src/api/connect';
 import { forgetCarPass } from '../../src/carline/carPass';
@@ -39,6 +39,9 @@ export default function Connect() {
   const [person, setPerson] = useState<Person | null>(null);
   const [groups, setGroups] = useState<Group[] | null>(null);
   const [discover, setDiscover] = useState<Group[]>([]);
+  const [hidden, setHidden] = useState<Group[]>([]);
+  const [archived, setArchived] = useState<Group[]>([]);
+  const [open, setOpen] = useState<'hidden' | 'archived' | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
 
   const load = useCallback(async () => {
@@ -50,6 +53,9 @@ export default function Connect() {
       } else if (p && !p.pending) {
         setGroups(await listMyGroups());
         setDiscover(await listDiscoverableGroups());
+        // Groups you hid from your list, and (for their owners) archived ones.
+        const [h, a] = await Promise.all([listHiddenGroups().catch(() => []), listArchivedGroups().catch(() => [])]);
+        setHidden(h); setArchived(a);
         if (!live) setPeople(await listUsers());
       }
     } catch (e: any) {
@@ -136,6 +142,22 @@ export default function Connect() {
 
       {groups.length === 0 && !isFamily(person) && !isSubstitute(person) && <P muted>You're not in any groups yet.</P>}
       {groups.map((g) => <GroupRow key={g.id} g={g} onPress={() => router.push(`/group/${g.id}`)} />)}
+
+      {([['hidden', 'HIDDEN FROM MY LIST', hidden], ['archived', 'ARCHIVED (ONLY OWNERS SEE THEM)', archived]] as const).map(([key, label, list]) =>
+        list.length > 0 && (
+          <View key={key} style={{ gap: 8 }}>
+            <Text onPress={() => setOpen(open === key ? null : key)} accessibilityRole="button" accessibilityState={{ expanded: open === key }}
+              style={{ fontSize: 12, fontWeight: '700', color: C.muted, marginTop: 8 }}>
+              {label} ({list.length}) {open === key ? '▾' : '▸'}
+            </Text>
+            {open === key && list.map((g) => (
+              <GroupRow key={g.id} g={g} onPress={() => router.push(`/group/${g.id}`)}
+                action={key === 'hidden'
+                  ? <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => hideGroup(g.id, false).then(load).catch((e) => Alert.alert('Not allowed', e.message))}>Show</Text>
+                  : <Text style={{ color: C.muted, fontSize: 12 }}>Restore or delete in its settings</Text>} />
+            ))}
+          </View>
+        ))}
 
       {discover.length > 0 && (
         <>
