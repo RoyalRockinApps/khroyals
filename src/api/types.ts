@@ -464,7 +464,7 @@ export type AdminSection = { id: string; name: string; leadId: string | null; le
 export type SectionStudent = { id: string; firstName: string; lastName: string; grade: number | null; hasLogin: boolean };
 
 /** The Student app: a student you can see (yourself, or one of your children), oldest first. */
-export type RecordStudent = { id: string; firstName: string; lastName: string; grade: number | null; gradeLabel: string | null; photo: string; birthday: string | null };
+export type RecordStudent = { id: string; firstName: string; lastName: string; grade: number | null; gradeLabel: string | null; photo: string; photoPath: string | null; birthday: string | null };
 /** Letters for averages: the lowest percent for each, highest first. */
 export type GradeScale = { letter: string; min: number }[];
 export type SchoolTerm = { name: string; startsOn: string; endsOn: string };

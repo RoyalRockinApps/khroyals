@@ -164,7 +164,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   record) and `student_course` (a class with every grade). Averages, the graph's line and letters are worked out in
   `src/student/grades.ts` the way a gradebook does (missing counts as zero; excused and not graded yet don't count);
   the class's own average and letter come from the school's system, the overall letter from the `grade_scale` setting.
-  Sample records come with `scripts/presentation_data.mjs` (`--only student`).
+  The banner's photo is the profile photo: a parent changes their child's (`set_child_photo`, as under My children), a
+  student their own (`set_my_avatar`). Sample records come with `scripts/presentation_data.mjs` (`--only student`).
 - **My calendar** (`personal_events`; `app/my-calendar`, one list with the students' events mixed in): staff only
   (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
   cancellation live), so never copy schedule details into it. **My students** (`student_events`) shows a

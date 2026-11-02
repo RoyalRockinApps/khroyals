@@ -1,16 +1,21 @@
 /**
  * Student app: a dashboard of a student's record from the school's student information system (FACTS, Blackbaud…),
  * for parents (pick a child at the top; the oldest first) and for a student themselves: general information,
- * attendance this school year, and grades (the overall average and each class's), where a class opens its graph and
- * every grade. Parents also read each child's messages with teachers. Until the school's system is connected, grades
- * and report cards stay in the FACTS Family Portal.
+ * attendance this school year (tap absences, times late or left early for those days), and grades (the overall average
+ * and each class's), where a class opens its graph and every grade. Tap the photo in the banner to take, choose or
+ * remove the student's photo (a parent's child's, or a student's own). Parents also read each child's messages with
+ * teachers. Until the school's system is connected, grades and report cards stay in the FACTS Family Portal.
  */
 import { useCallback, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { errorText, isFamily, live, session, studentRecord, type AttendanceEntry, type Person, type StudentDashboard, type StudentRecord } from '../../src/api/connect';
+import {
+  errorText, isFamily, live, removeChildPhoto, removeMyAvatar, session, studentRecord, uploadChildPhoto, uploadMyAvatar,
+  type AttendanceEntry, type Person, type RecordStudent, type StudentDashboard, type StudentRecord,
+} from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
+import { pickSquarePhoto } from '../../src/photos';
 import { attendanceSummary, letterFor, overallAverage, percent, termFor } from '../../src/student/grades';
 import { AMBER, GOOD, LetterBadge, StudentPicker, SubjectIcon, letterColor } from '../../src/student/parts';
 import { Avatar, Button, C, Card, H, Loading, P, s, useBottomInset } from '../../src/ui';
@@ -80,7 +85,7 @@ export default function Student() {
         <Card><P muted>No students are linked to your account yet. Add them under My children, or ask the school office.</P></Card>
       )}
       {data && data.students.length > 0 && (data.record
-        ? <Dashboard data={data} record={data.record} />
+        ? <Dashboard data={data} record={data.record} me={person} onChange={load} />
         : <NotYet name={data.students.find((x) => x.id === pick)?.firstName ?? 'your student'} />)}
 
       {parent && pick && (
@@ -112,12 +117,12 @@ function NotYet({ name }: { name: string }) {
   );
 }
 
-function Dashboard({ data, record }: { data: StudentDashboard; record: StudentRecord }) {
+function Dashboard({ data, record, me, onChange }: { data: StudentDashboard; record: StudentRecord; me: Person | null; onChange: () => Promise<void> }) {
   const student = data.students.find((x) => x.id === data.studentId) ?? data.students[0];
   const today = schoolToday();
   return (
     <>
-      <Info record={record} name={`${student.firstName} ${student.lastName}`} photo={student.photo} gradeLabel={student.gradeLabel} today={today} />
+      <Info record={record} student={student} self={student.id === me?.id} gradeLabel={student.gradeLabel} today={today} onChange={onChange} />
       <Attendance record={record} />
       <Grades data={data} record={record} today={today} />
     </>
@@ -137,8 +142,26 @@ function Section({ icon, title, sub, children }: { icon: React.ComponentProps<ty
   );
 }
 
-function Info({ record, name, photo, gradeLabel, today }: { record: StudentRecord; name: string; photo: string; gradeLabel: string | null; today: string }) {
-  const [first, ...rest] = name.split(' ');
+function Info({ record, student, self, gradeLabel, today, onChange }: {
+  record: StudentRecord; student: RecordStudent; self: boolean; gradeLabel: string | null; today: string; onChange: () => Promise<void>;
+}) {
+  const [sheet, setSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const name = `${student.firstName} ${student.lastName}`;
+  // A parent sets their child's photo (as under My children); a student, their own.
+  const photo = async (how: 'camera' | 'library' | 'remove') => {
+    setSheet(false);
+    setBusy(true);
+    try {
+      if (how === 'remove') await (self ? removeMyAvatar() : removeChildPhoto(student.id, student.photoPath));
+      else {
+        const b64 = await pickSquarePhoto(how === 'camera');
+        if (!b64) return;
+        await (self ? uploadMyAvatar(b64) : uploadChildPhoto(student.id, b64, student.photoPath));
+      }
+      await onChange();
+    } catch (e) { Alert.alert('Photo', errorText(e)); } finally { setBusy(false); }
+  };
   const rows: [string, string][] = [
     ...(record.homeroom ? [['Homeroom', record.homeroom] as [string, string]] : []),
     ...(record.advisor ? [['Advisor', record.advisor] as [string, string]] : []),
@@ -150,14 +173,26 @@ function Info({ record, name, photo, gradeLabel, today }: { record: StudentRecor
   return (
     <View style={[s.card, { padding: 0, overflow: 'hidden', gap: 0 }]}>
       <View style={{ backgroundColor: C.primary, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <View style={{ borderWidth: 3, borderColor: '#ffffff55', borderRadius: 40, backgroundColor: '#fff' }}>
-          <Avatar person={{ firstName: first, lastName: rest.join(' '), avatar: photo }} size={68} />
-        </View>
+        <Pressable onPress={() => setSheet(true)} disabled={busy} accessibilityRole="button"
+          accessibilityLabel={student.photo ? `Change ${student.firstName}'s photo` : `Add a photo of ${student.firstName}`}
+          style={({ pressed }) => [{ borderWidth: 3, borderColor: '#ffffff55', borderRadius: 40, backgroundColor: '#fff' }, pressed && { opacity: 0.85 }]}>
+          <Avatar person={{ firstName: student.firstName, lastName: student.lastName, avatar: student.photo }} size={68} />
+          {busy && (
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 34, backgroundColor: '#0006', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#fff" />
+            </View>
+          )}
+          <View style={{ position: 'absolute', right: -4, bottom: -4, width: 26, height: 26, borderRadius: 13, backgroundColor: '#fff',
+            borderWidth: 2, borderColor: C.primary, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="camera" size={14} color={C.primary} />
+          </View>
+        </Pressable>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900' }} numberOfLines={2}>{name}</Text>
           <Text style={{ color: '#ffffffd9', fontWeight: '700' }}>{[gradeLabel, `Student ID ${record.sisId}`].filter(Boolean).join(' · ')}</Text>
         </View>
       </View>
+      <PhotoSheet open={sheet} name={student.firstName} hasPhoto={!!student.photoPath} onPick={photo} onClose={() => setSheet(false)} />
       <View style={{ padding: 16, gap: 10 }}>
         <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 1, color: C.muted }}>GENERAL INFORMATION</Text>
         {rows.map(([label, value]) => (
@@ -174,6 +209,36 @@ function Info({ record, name, photo, gradeLabel, today }: { record: StudentRecor
   );
 }
 
+/** Take, choose or remove the student's photo. */
+function PhotoSheet({ open, name, hasPhoto, onPick, onClose }: {
+  open: boolean; name: string; hasPhoto: boolean; onPick: (how: 'camera' | 'library' | 'remove') => void; onClose: () => void;
+}) {
+  const choices: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; how: 'camera' | 'library' | 'remove'; color: string }[] = [];
+  if (Platform.OS !== 'web') choices.push({ icon: 'camera-outline', label: 'Take a photo', how: 'camera', color: C.ink });
+  choices.push({ icon: 'images-outline', label: hasPhoto ? 'Choose a different photo' : 'Choose a photo', how: 'library', color: C.ink });
+  if (hasPhoto) choices.push({ icon: 'trash-outline', label: 'Remove the photo', how: 'remove', color: C.danger });
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'flex-end' }} onPress={onClose} accessibilityLabel="Close">
+        <Pressable style={[s.sheet, { backgroundColor: C.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, paddingBottom: 36, gap: 4 }]}>
+          <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 1, color: C.muted, marginBottom: 6 }}>{`${name.toUpperCase()}'S PHOTO`}</Text>
+          {choices.map(({ icon, label, how, color }) => (
+            <Pressable key={how} onPress={() => onPick(how)} accessibilityRole="button"
+              style={({ pressed }) => [s.row, { paddingVertical: 12, paddingHorizontal: 8, borderRadius: 12 }, pressed && { backgroundColor: C.bg }]}>
+              <Ionicons name={icon} size={22} color={color} />
+              <Text style={{ fontSize: 16, fontWeight: '700', color }}>{label}</Text>
+            </Pressable>
+          ))}
+          <Pressable onPress={onClose} accessibilityRole="button" style={({ pressed }) => [s.row, { paddingVertical: 12, paddingHorizontal: 8 }, pressed && { opacity: 0.7 }]}>
+            <Ionicons name="close" size={22} color={C.muted} />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: C.muted }}>Cancel</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 const KINDS: Record<AttendanceEntry['kind'], { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
   absent: { label: 'Absent', icon: 'close-circle' },
   half_day: { label: 'Half day', icon: 'contrast' },
@@ -181,10 +246,21 @@ const KINDS: Record<AttendanceEntry['kind'], { label: string; icon: React.Compon
   left_early: { label: 'Left early', icon: 'exit' },
 };
 
+/** The days behind each number: absences (half days too), times late, and times left early. */
+type Filter = 'absences' | 'late' | 'early';
+const FILTERS: Record<Filter, { kinds: AttendanceEntry['kind'][]; one: string; many: string }> = {
+  absences: { kinds: ['absent', 'half_day'], one: 'day absent', many: 'days absent' },
+  late: { kinds: ['tardy'], one: 'day late', many: 'days late' },
+  early: { kinds: ['left_early'], one: 'day left early', many: 'days left early' },
+};
+
 function Attendance({ record }: { record: StudentRecord }) {
   const [all, setAll] = useState(false);
+  const [filter, setFilter] = useState<Filter | null>(null);
   const a = attendanceSummary(record.attendance, record.schoolDays);
-  const list = all ? record.attendance : record.attendance.slice(0, 4);
+  const days = (f: Filter) => record.attendance.filter((m) => FILTERS[f].kinds.includes(m.kind));
+  const list = filter ? days(filter) : all ? record.attendance : record.attendance.slice(0, 4);
+  const toggle = (f: Filter) => () => setFilter(filter === f ? null : f);
   const num = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
   const rateColor = a.rate === null ? C.muted : a.rate >= 95 ? GOOD : a.rate >= 90 ? AMBER : C.danger;
   return (
@@ -201,10 +277,19 @@ function Attendance({ record }: { record: StudentRecord }) {
         </View>
       </View>
       <View style={[s.row, { alignItems: 'stretch', gap: 10 }]}>
-        <Stat value={num(a.absences)} label={a.absences === 1 ? 'absence' : 'absences'} sub={a.absences ? `${num(a.excused)} excused` : undefined} />
-        <Stat value={String(a.tardies)} label={a.tardies === 1 ? 'time late' : 'times late'} />
-        <Stat value={String(a.leftEarly)} label="left early" />
+        <Stat value={num(a.absences)} label={a.absences === 1 ? 'absence' : 'absences'} sub={a.absences ? `${num(a.excused)} excused` : undefined}
+          selected={filter === 'absences'} onPress={a.absences ? toggle('absences') : undefined} />
+        <Stat value={String(a.tardies)} label={a.tardies === 1 ? 'time late' : 'times late'} selected={filter === 'late'} onPress={a.tardies ? toggle('late') : undefined} />
+        <Stat value={String(a.leftEarly)} label="left early" selected={filter === 'early'} onPress={a.leftEarly ? toggle('early') : undefined} />
       </View>
+      {filter ? (
+        <View style={s.row}>
+          <Text style={{ flex: 1, fontWeight: '800', color: C.ink }}>
+            {`${list.length} ${list.length === 1 ? FILTERS[filter].one : FILTERS[filter].many} this year`}
+          </Text>
+          <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="button" onPress={() => setFilter(null)}>Show every day</Text>
+        </View>
+      ) : record.attendance.length > 0 && <Text style={{ color: C.muted, fontSize: 12 }}>Tap a number to see those days.</Text>}
       {record.attendance.length === 0 ? (
         <View style={s.row}><Ionicons name="star" size={18} color={GOOD} /><Text style={{ color: C.ink, fontWeight: '600' }}>Perfect attendance so far this year.</Text></View>
       ) : (
@@ -219,7 +304,7 @@ function Attendance({ record }: { record: StudentRecord }) {
               <Text style={{ fontSize: 12, fontWeight: '800', color: m.excused ? C.muted : AMBER }}>{m.excused ? 'Excused' : 'Unexcused'}</Text>
             </View>
           ))}
-          {record.attendance.length > 4 && (
+          {!filter && record.attendance.length > 4 && (
             <Text style={{ color: C.primary, fontWeight: '700', paddingTop: 6 }} accessibilityRole="button" onPress={() => setAll(!all)}>
               {all ? 'Show fewer' : `Show all ${record.attendance.length}`}
             </Text>
@@ -230,13 +315,20 @@ function Attendance({ record }: { record: StudentRecord }) {
   );
 }
 
-function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
+/** A number with what it counts; with onPress (when it isn't zero), tapping lists those days below. */
+function Stat({ value, label, sub, selected, onPress }: { value: string; label: string; sub?: string; selected?: boolean; onPress?: () => void }) {
   return (
-    <View style={{ flex: 1, borderRadius: 12, padding: 12, backgroundColor: C.bg, gap: 2 }}>
-      <Text style={{ fontSize: 24, fontWeight: '900', color: C.ink }}>{value}</Text>
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityState={{ selected: !!selected }}
+      accessibilityLabel={`${value} ${label}${sub ? `, ${sub}` : ''}${onPress ? (selected ? '. Showing those days' : '. Show those days') : ''}`}
+      style={({ pressed }) => [{ flex: 1, borderRadius: 12, padding: 12, gap: 2, borderWidth: 2, backgroundColor: selected ? C.primary + '12' : C.bg,
+        borderColor: selected ? C.primary : 'transparent' }, pressed && { opacity: 0.8 }]}>
+      <View style={[s.row, { justifyContent: 'space-between' }]}>
+        <Text style={{ fontSize: 24, fontWeight: '900', color: C.ink }}>{value}</Text>
+        {!!onPress && <Ionicons name={selected ? 'chevron-up' : 'chevron-down'} size={16} color={selected ? C.primary : C.muted} />}
+      </View>
       <Text style={{ color: C.muted, fontWeight: '700', fontSize: 13 }}>{label}</Text>
       {!!sub && <Text style={{ color: C.muted, fontSize: 12 }}>{sub}</Text>}
-    </View>
+    </Pressable>
   );
 }
 

@@ -18,7 +18,8 @@ export async function studentRecord(studentId?: string | null): Promise<StudentD
   const r = (await rpc('student_record', studentId ? { p_student: studentId } : {})) as Row;
   await signAvatars((r.students as Row[]).map((s) => s.photoPath)).catch(() => {});
   const students: RecordStudent[] = (r.students as Row[]).map((s) => ({
-    id: s.id, firstName: s.firstName, lastName: s.lastName, grade: num(s.grade), gradeLabel: s.gradeLabel ?? null, photo: avatarUrl(s.photoPath), birthday: s.birthday ?? null,
+    id: s.id, firstName: s.firstName, lastName: s.lastName, grade: num(s.grade), gradeLabel: s.gradeLabel ?? null,
+    photo: avatarUrl(s.photoPath), photoPath: s.photoPath ?? null, birthday: s.birthday ?? null,
   }));
   const rec = r.record as Row | null;
   return {
