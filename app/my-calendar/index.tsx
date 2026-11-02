@@ -1,10 +1,10 @@
 /**
- * My calendar, for teachers and staff. Two tabs:
- * - My calendar: their own events (meetings, duties) and the activity schedule items they
- *   plan to go to, which follow the schedule (moved or cancelled games update here).
- * - My students: games, performances and meets that students in their classes are signed up
- *   for, with who's in them. "I'll be there" puts one on My calendar and can tell those
- *   students and their parents.
+ * My calendar, for teachers and staff: one list, day by day, of their own events (meetings,
+ * duties), the games they're going to (which follow the schedule: moved or cancelled games update
+ * here), and, shown lighter with a dashed edge, the games, performances and meets students in
+ * their classes are signed up for, with who's in them. "I'll be there" stars one (and can tell
+ * those students and their parents). Filters: All, Mine, My students'. Every event can be added to
+ * Google, Outlook, Yahoo or Apple, and the whole calendar subscribed to (names stay in the app).
  * Like every calendar in the app, past items stay behind "Show past" and look greyed out.
  */
 import { useCallback, useState } from 'react';
@@ -20,13 +20,30 @@ import { PAST_STYLE, PastToggle, usePastToggle } from '../../src/calendar/PastTo
 import { clock } from '../../src/carline/time';
 import { byDay, itemTime, longDay } from '../../src/myCalendar/when';
 import { dayOf, addDays } from '../../src/info/today';
+import { AddToCalendar } from '../../src/calendar/AddToCalendar';
+import { chicagoIso, type CalEvent } from '../../src/calendar/addTo';
+import { SubscribeCard } from '../../src/calendar/SubscribeCard';
 import { Button, C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
 
-type Tab = 'mine' | 'students';
+type Filter = 'all' | 'mine' | 'students';
 type Data = { me: Person | null; mine: MyCalendarItem[]; students: StudentEvent[] };
+type Entry = { key: string; date: string; at: string; past: boolean } & (
+  | { kind: 'mine'; item: MyCalendarItem; students: { id: string; name: string }[] }
+  | { kind: 'student'; ev: StudentEvent });
+
+/** "16:30" on the school's clock, for ordering within a day. */
+const clock24 = (iso: string) =>
+  new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false });
+
+/** A My calendar item as calendar apps take it (school-time date and times → exact moments). */
+function toCal(i: MyCalendarItem): CalEvent {
+  if (!i.startTime) return { title: i.title, date: i.date, location: i.location, details: i.notes || null };
+  const at = (t: string) => chicagoIso(i.date, t);
+  return { title: i.title, startsAt: at(i.startTime), endsAt: i.endTime ? at(i.endTime) : null, location: i.location, details: i.notes || null };
+}
 
 export default function MyCalendar() {
-  const [tab, setTab] = useState<Tab>('mine');
+  const [filter, setFilter] = useState<Filter>('all');
   const [data, setData] = useState<Data | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const past = usePastToggle();
@@ -73,99 +90,100 @@ export default function MyCalendar() {
     ? i.sportId && router.push(`/activities/${i.sportId}`)
     : router.push({ pathname: '/my-calendar/edit', params: { id: i.id, date: i.date } }));
 
-  const pills = (
+  const filters = (
     <View style={{ flexDirection: 'row', gap: 8 }}>
-      {([['mine', 'My calendar'], ['students', 'My students']] as [Tab, string][]).map(([k, label]) => (
-        <Pressable key={k} onPress={() => { setTab(k); past.hide(); }} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
-          style={{ flex: 1, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: C.line, alignItems: 'center',
-            backgroundColor: tab === k ? C.primary : '#fff' }}>
-          <Text style={{ fontWeight: '700', color: tab === k ? '#fff' : C.ink }}>{label}</Text>
+      {([['all', 'All'], ['mine', 'Mine'], ['students', 'My students’']] as [Filter, string][]).map(([k, label]) => (
+        <Pressable key={k} onPress={() => setFilter(k)} accessibilityRole="button" accessibilityState={{ selected: filter === k }}
+          style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: C.line,
+            backgroundColor: filter === k ? C.primary : '#fff' }}>
+          <Text style={{ fontWeight: '700', color: filter === k ? '#fff' : C.ink }}>{label}</Text>
         </Pressable>
       ))}
     </View>
   );
 
-  if (tab === 'mine') {
-    const split = splitPast(data.mine, (i) => isPastDay(i.date));
-    const shown = [...(past.shown ? split.past : []), ...split.upcoming];
-    return (
-      <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 10 }]}>
-        {header}
-        {pills}
-        <Button label="+ Add to my calendar" onPress={() => router.push('/my-calendar/edit')} />
-        <PastToggle count={split.past.length} shown={past.shown} onToggle={past.toggle} />
-        {!split.upcoming.length && (
-          <Card><P muted>Nothing coming up. Add meetings and duties, or pick your students’ games and performances from My students.</P></Card>
-        )}
-        {byDay(shown, (i) => i.date).map((g) => (
-          <View key={g.day} style={[{ gap: 8 }, isPastDay(g.day) && PAST_STYLE]}>
-            <Text style={{ fontWeight: '800', color: C.muted, marginTop: 6 }}>{longDay(g.day).toUpperCase()}</Text>
-            {g.items.map((i) => (
-              <Card key={i.id} onPress={() => open(i)} style={{ flexDirection: 'row', gap: 12 }}>
-                <Text style={{ width: 92, fontWeight: '800', color: i.cancelled ? C.muted : C.primary }}>{itemTime(i.startTime, i.endTime)}</Text>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={{ fontWeight: '700', color: C.ink, textDecorationLine: i.cancelled ? 'line-through' : 'none' }}>{i.title}</Text>
-                  {!!i.location && <P muted>{i.location}</P>}
-                  {!!i.notes && <P muted>{i.notes}</P>}
-                  {(i.sportEventId || i.cancelled) && (
-                    <View style={[s.row, { alignItems: 'center' }]}>
-                      {i.sportEventId && <Chip label="Activity" color="#0D9488" />}
-                      {i.cancelled && <Chip label="Cancelled" color={C.danger} />}
-                      {i.sportEventId && !isPastDay(i.date) && (
-                        <Text onPress={() => takeOff(i)} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>Take off</Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              </Card>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
-    );
-  }
-
-  const split = splitPast(data.students, (e) => isPastTime(e.startsAt, e.endsAt));
+  // One list: the teacher's own events and planned games, and their students' other games, by day.
+  const byEvent = new Map(data.students.map((e) => [e.id, e]));
+  const entries: Entry[] = [
+    ...data.mine.map((i): Entry => ({ kind: 'mine', key: `m-${i.id}`, date: i.date, at: i.startTime ?? '', past: isPastDay(i.date), item: i,
+      students: i.sportEventId ? byEvent.get(i.sportEventId)?.students ?? [] : [] })),
+    ...data.students.filter((e) => !e.planned).map((e): Entry => ({ kind: 'student', key: `s-${e.id}`, date: dayOf(e.startsAt),
+      at: clock24(e.startsAt), past: isPastTime(e.startsAt, e.endsAt), ev: e })),
+  ].filter((x) => filter === 'all' || (filter === 'mine' ? x.kind === 'mine' : x.kind === 'student' || x.students.length > 0))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at));
+  const split = splitPast(entries, (x) => x.past);
   const shown = [...(past.shown ? split.past : []), ...split.upcoming];
+
+  const who = (list: { name: string }[]) => list.length > 0 && (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+      <Ionicons name="people-outline" size={16} color={C.muted} style={{ marginTop: 2 }} />
+      <Text style={{ flex: 1, color: C.ink }}>{list.map((x) => x.name).join(', ')}</Text>
+    </View>
+  );
+
+  const mineCard = (x: Extract<Entry, { kind: 'mine' }>) => {
+    const i = x.item;
+    return (
+      <Card key={x.key} onPress={() => open(i)} style={{ gap: 6, ...(x.past ? PAST_STYLE : null) }}>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Text style={{ width: 92, fontWeight: '800', color: i.cancelled ? C.muted : C.primary }}>{itemTime(i.startTime, i.endTime)}</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ fontWeight: '700', color: C.ink, textDecorationLine: i.cancelled ? 'line-through' : 'none' }}>{i.title}</Text>
+            {!!i.location && <P muted>{i.location}</P>}
+            {!!i.notes && <P muted>{i.notes}</P>}
+          </View>
+        </View>
+        {who(x.students)}
+        <View style={[s.row, { alignItems: 'center', flexWrap: 'wrap' }]}>
+          {i.sportEventId && <Chip label="★ Going" color="#0D9488" />}
+          {i.cancelled && <Chip label="Cancelled" color={C.danger} />}
+          {i.sportEventId && !x.past && (
+            <Text onPress={() => takeOff(i)} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>Not going</Text>
+          )}
+          {!x.past && <AddToCalendar event={toCal(i)} uid={i.sportEventId ? `activity-${i.sportEventId}` : undefined} />}
+        </View>
+      </Card>
+    );
+  };
+  const studentCard = (x: Extract<Entry, { kind: 'student' }>) => {
+    const e = x.ev;
+    return (
+      <Card key={x.key} style={{ gap: 6, borderStyle: 'dashed', backgroundColor: '#FBFCFE', ...(x.past ? PAST_STYLE : null) }}>
+        <Pressable onPress={() => router.push(`/activities/${e.sportId}`)} style={{ flexDirection: 'row', gap: 12 }}>
+          <Text style={{ width: 92, fontWeight: '800', color: C.muted }}>{clock(e.startsAt)}</Text>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ color: C.muted, fontWeight: '700' }}>{e.sportIcon} {e.sportName}</Text>
+            <Text style={{ fontWeight: '700', color: C.ink, textDecorationLine: e.cancelled ? 'line-through' : 'none' }}>{e.title}</Text>
+            {!!e.location && <P muted>{e.location}</P>}
+          </View>
+        </Pressable>
+        {who(e.students)}
+        {e.cancelled ? <View style={s.row}><Chip label="Cancelled" color={C.danger} /></View> : !x.past && (
+          <View style={[s.row, { alignItems: 'center', flexWrap: 'wrap', gap: 14 }]}>
+            <Text onPress={() => busy !== e.id && tellAndPlan(e)} accessibilityRole="button" style={{ color: C.primary, fontWeight: '800' }}>☆ I’ll be there</Text>
+            <Text onPress={() => busy !== e.id && plan(e, true)} accessibilityRole="button" style={{ color: C.muted, fontWeight: '700' }}>Add without telling</Text>
+          </View>
+        )}
+      </Card>
+    );
+  };
+
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 10 }]}>
       {header}
-      {pills}
-      <P muted>Games, performances and meets that students in your classes are signed up for.</P>
+      <Button label="+ Add to my calendar" onPress={() => router.push('/my-calendar/edit')} />
+      {filters}
       <PastToggle count={split.past.length} shown={past.shown} onToggle={past.toggle} />
       {!split.upcoming.length && (
-        <Card><P muted>Nothing coming up. When students in your classes sign up for an activity, its schedule shows here.</P></Card>
+        <Card><P muted>Nothing coming up. Add meetings and duties here; your students’ games and performances show up on their own.</P></Card>
       )}
-      {byDay(shown, (e) => dayOf(e.startsAt)).map((g) => (
+      {byDay(shown, (x) => x.date).map((g) => (
         <View key={g.day} style={{ gap: 8 }}>
           <Text style={[{ fontWeight: '800', color: C.muted, marginTop: 6 }, isPastDay(g.day) && PAST_STYLE]}>{longDay(g.day).toUpperCase()}</Text>
-          {g.items.map((e) => {
-            const over = isPastTime(e.startsAt, e.endsAt);
-            return (
-              <Card key={e.id} style={{ gap: 6, ...(over ? PAST_STYLE : null) }}>
-                <Pressable onPress={() => router.push(`/activities/${e.sportId}`)} style={{ gap: 4 }}>
-                  <Text style={{ color: C.muted, fontWeight: '700' }}>{e.sportIcon} {e.sportName}</Text>
-                  <Text style={{ fontWeight: '800', fontSize: 16, color: C.ink, textDecorationLine: e.cancelled ? 'line-through' : 'none' }}>{e.title}</Text>
-                  <P muted>{[clock(e.startsAt), e.location].filter(Boolean).join(' · ')}</P>
-                </Pressable>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                  <Ionicons name="people-outline" size={16} color={C.muted} style={{ marginTop: 2 }} />
-                  <Text style={{ flex: 1, color: C.ink }}>{e.students.map((x) => x.name).join(', ')}</Text>
-                </View>
-                {e.cancelled ? <View style={s.row}><Chip label="Cancelled" color={C.danger} /></View>
-                  : over ? null
-                  : e.planned ? <Button kind="ghost" label="✓ On my calendar · take it off" disabled={busy === e.id} onPress={() => plan(e, false)} />
-                  : (
-                    <View style={{ gap: 6 }}>
-                      <Button label="I'll be there" disabled={busy === e.id} onPress={() => tellAndPlan(e)} />
-                      <Button kind="ghost" label="Just add it to my calendar" disabled={busy === e.id} onPress={() => plan(e, true)} />
-                    </View>
-                  )}
-              </Card>
-            );
-          })}
+          {g.items.map((x) => (x.kind === 'mine' ? mineCard(x) : studentCard(x)))}
         </View>
       ))}
+      <SubscribeCard staff />
     </ScrollView>
   );
 }

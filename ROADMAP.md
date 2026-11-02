@@ -215,7 +215,8 @@ Working in the app and on the server today.
 | Student | Student app | Lists your children; links to the FACTS Family Portal for grades; parents read each child's messages with teachers |
 | Student | Ask the Teacher | Students message the teachers of their classes; teachers reply or start a conversation; parents and admins with Student messages can read |
 | Student | Assignments | Teachers assign work to a class; students add their own, sorted overdue / today / coming up, and check them off privately |
-| Staff | My calendar | Teachers' and staff's own events beside the activity items they'll go to (moved or cancelled games follow); My students shows their class students' games and performances, and "I'll be there" tells the students and their parents |
+| Staff | My calendar | One list: teachers' and staff's own events, the games they're going to (moved or cancelled games follow), and their class students' games and performances to star ("I'll be there" tells the students and parents) |
+| Calendar | Subscribe and Add to calendar | Everyone subscribes once in Google, Outlook, Yahoo or Apple Calendar to a private, self-updating link (school calendar, own events, children's activities); single events add with one tap. No student names leave the app |
 | Everyone | Feedback | Anyone approved reports a problem or suggests an idea (where in the app, details, phone and app version) and sees the status and the team's reply; the IT role triages (status, priority, reply) and groups reports into student workshops |
 | Admin portal | Classes | Class sections with their teacher and students, for Ask the Teacher and Assignments |
 | Notifications | Bell page | Inbox of everything sent to you, swipe to delete, clear all |

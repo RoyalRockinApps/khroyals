@@ -5,7 +5,7 @@ export { Abilities, GroupView, Person, GroupEvent, NewEvent, DressDay, Member, P
 export { session, me, getUser, listUsers, signOut, hasSignIn, onAuthChange, setMockUser } from './session';
 export { marketPhotoUrls } from './storage';
 export { listMyGroups, listDiscoverableGroups, listHiddenGroups, listArchivedGroups, hideGroup, archiveGroup, deleteGroup, getGroup, getComments, createPost, addComment, moderatePost, toggleReaction, votePoll, updateGroupSettings, createGroup, joinGroup, leaveGroup, listMembers, setMembership, subscribeGroup } from './groups';
-export { listEvents, createEvent, deleteEvent, editableCalendars, listDressDays, saveDressDay, deleteDressDay, schoolBreaks } from './calendar';
+export { listEvents, createEvent, deleteEvent, editableCalendars, calendarSubscription, eventFile, listDressDays, saveDressDay, deleteDressDay, schoolBreaks } from './calendar';
 export { listAlbums, listCategories, getAlbum, saveAlbum, saveCategory, deleteCategory, addGalleryPhotos, deleteGalleryPhoto, deleteAlbum, leaveAlbum, albumPeople, setAlbumMember, makeEventAlbum, eventAlbumId, type AlbumPerson, type GalleryAlbum, type GalleryCategory, type AlbumVisibility, type GalleryPhoto, type NewGalleryPhoto } from './gallery';
 export { issueDate, listNewsletters, getNewsletter, importNewsletter, deleteNewsletter, type NewsletterSummary, type NewsletterIssue, type NewsBlock, type Span } from './news';
 export { onCarlineDuty, canManageSport, canBuyTickets, canVolunteer, isFamily, isSchoolStaff, isSubstitute, isVolunteerLead } from './policy';

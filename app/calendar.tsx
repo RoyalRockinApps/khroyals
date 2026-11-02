@@ -3,7 +3,10 @@ import { Alert, Linking, SectionList, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { getCalendar } from '../src/api/mockApi';
 import { deleteEvent, editableCalendars, isSchoolStaff, listEvents, live, myAccess, session, type GroupEvent } from '../src/api/connect';
+import { AddToCalendar } from '../src/calendar/AddToCalendar';
+import { chicagoIso, type CalEvent } from '../src/calendar/addTo';
 import { isPastDay, splitPast } from '../src/calendar/past';
+import { SubscribeCard } from '../src/calendar/SubscribeCard';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../src/calendar/PastToggle';
 import { dateRange } from '../src/site/calendar';
 import { Button, C, Card, Chip, Loading, P, s } from '../src/ui';
@@ -19,6 +22,11 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 const PDF = SCHOOL.calendarPdf;
 
+/** A calendar event as Google, Outlook, Yahoo and Apple take it. */
+const calEvent = (e: GroupEvent): CalEvent => (e.startTime
+  ? { title: e.title, startsAt: chicagoIso(e.date, e.startTime), endsAt: e.endTime ? chicagoIso(e.endDate ?? e.date, e.endTime) : null, location: e.location }
+  : { title: e.title, date: e.date, endDate: e.endDate, location: e.location });
+
 /**
  * School calendar, plus (when signed in) the calendars of your groups.
  * Like every calendar in the app, it shows what's coming; past events stay out of view
@@ -30,12 +38,15 @@ export default function Calendar() {
   const [canAdd, setCanAdd] = useState(false);
   const [dressUp, setDressUp] = useState(false);
   const [staff, setStaff] = useState(false);
+  const [approved, setApproved] = useState(false);
   const past = usePastToggle();
 
   const load = useCallback(async () => {
     try {
       if (live) {
-        setStaff(isSchoolStaff(await session()));
+        const p = await session();
+        setStaff(isSchoolStaff(p));
+        setApproved(!!p && !p.pending);
         const [evs, cals, access] = await Promise.all([listEvents(), editableCalendars(), myAccess().catch(() => null)]);
         setEvents(evs);
         setDressUp(!!access?.permissions.includes('calendar.school'));
@@ -89,6 +100,7 @@ export default function Calendar() {
           {dressUp && <Button kind="ghost" label="👕 Dress-up days (Spirit Week)" onPress={() => router.push('/dress-days')} />}
           <PastToggle count={split.past.length} shown={past.shown} onToggle={past.toggle} />
         </View>}
+      ListFooterComponent={approved ? <View style={{ marginTop: 12 }}><SubscribeCard staff={staff} /></View> : null}
       renderSectionHeader={({ section }) => (
         <Text style={[{ fontWeight: '800', color: C.muted, marginTop: 8 }, section.isPast && PAST_STYLE]}>
           {section.title.toUpperCase()}{section.isPast ? ' · PAST' : ''}
@@ -106,10 +118,11 @@ export default function Calendar() {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={{ fontWeight: '700', color: C.ink }}>{e.title}</Text>
             {!!e.location && <P muted>{e.location}</P>}
-            <View style={s.row}>
+            <View style={[s.row, { alignItems: 'center' }]}>
               {e.groupName
                 ? <Chip label={`${e.groupIcon ?? ''} ${e.groupName}`.trim()} color="#0D9488" />
                 : <Chip label={e.category} color={CATEGORY_COLOR[e.category] ?? C.primary} />}
+              {!section.isPast && <AddToCalendar compact event={calEvent(e)} uid={live && !e.groupId ? `school-${e.id}` : undefined} />}
             </View>
           </View>
         </Card>

@@ -4,6 +4,9 @@ import { live, rpc, run, sb } from './client';
 import { toEvent } from './mappers';
 import { current } from './session';
 import { listMyGroups } from './groups';
+import { supabaseUrl } from './supabase';
+import { eventFileUrl, subscribeLinks } from '../calendar/addTo';
+import { SCHOOL } from '../school';
 
 /** School calendar plus the calendars of every group the person can see. */
 export async function listEvents(): Promise<GroupEvent[]> {
@@ -59,3 +62,16 @@ export async function saveDressDay(d: Omit<DressDay, 'id'> & { id?: string | nul
 }
 
 export async function deleteDressDay(id: string) { await rpc('dress_day_delete', { p_id: id }); }
+
+/**
+ * The signed-in person's calendar subscription links (Google, Outlook, Yahoo, Apple), made the
+ * first time; `fresh` makes a new link and turns the old one off. Null without the school server.
+ */
+export async function calendarSubscription(fresh = false): Promise<ReturnType<typeof subscribeLinks> | null> {
+  if (!live || !current || !supabaseUrl) return null;
+  const token = (await rpc('calendar_feed_token', { p_new: fresh })) as string;
+  return subscribeLinks(supabaseUrl, token, SCHOOL.appName);
+}
+
+/** "Add to calendar" for a school or activity event on an iPhone or Mac: its calendar file. */
+export const eventFile = (uid: string) => (supabaseUrl ? eventFileUrl(supabaseUrl, uid) : null);

@@ -3688,6 +3688,58 @@ test('Connect groups: members hide a group from their list; owners archive, rest
     { action: 'group.deleted', name: 'Book club', posts: '1' });
 });
 
+test('calendar subscriptions: one private link each, the right events, never a student\'s name', async () => {
+  const at = (days: number, h = 16) => `((app.school_today() + ${days})::timestamp + interval '${h} hours') at time zone 'America/Chicago'`;
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;
+  // An activity with Ava (Rosa's daughter, in Jennifer's class) registered, and a game.
+  await as('u-admin', true);
+  const club = await one(`select * from sport_save(null, 'Chess Club', '♟️', '', 'clubs')`);
+  await one(`select sport_set_coach('${club.id}', ${id('u-vbcoach')}, true)`);
+  await as('u-vbcoach');
+  const season = await one(`select * from season_save(null, '${club.id}', 'Fall', app.school_today() - 1, app.school_today() + 40, app.school_today() - 1, app.school_today() + 5)`);
+  await as('u-p01');
+  const reg = await one(`select * from sport_register('${season.id}', '${ava}')`);
+  await as('u-vbcoach');
+  await one(`select * from sport_decide('${reg.id}', true)`);
+  const match = await one(`select * from sport_event_save(null, '${season.id}', 'competition', 'Regional match', ${at(3)}, null, 'Library', null, '', '100 Main St')`);
+
+  // Links: one each, the same until a new one is made; nothing without an approved account.
+  await as('u-p01');
+  const rosa = (await one(`select calendar_feed_token() t`)).t as string;
+  assert.match(rosa, /^[0-9a-f]{64}$/);
+  assert.equal((await one(`select calendar_feed_token() t`)).t, rosa);
+  await as('u-eng');
+  const jen = (await one(`select calendar_feed_token() t`)).t as string;
+  await one(`select * from personal_event_save(null, 'Faculty meeting', app.school_today() + 1, '07:30', '08:15', 'Library')`);
+  await one(`select student_event_plan('${match.id}', true)`);
+
+  // Calendar apps can't sign in: the key is the only way in.
+  await asSuper();
+  await db.exec('set role anon');
+  const feed = async (t: string) => rows(`select * from calendar_feed_events('${t}')`);
+  const rosaFeed = await feed(rosa);
+  const jenFeed = await feed(jen);
+  assert.ok(rosaFeed.some((e) => e.uid === `activity-${match.id}` && e.title === '♟️ Chess Club · Regional match' && e.location === 'Library, 100 Main St'));
+  assert.ok(rosaFeed.some((e) => e.uid.startsWith('school-') && e.start_date), 'the school calendar, as all-day dates');
+  assert.ok(!rosaFeed.some((e) => e.uid.startsWith('mine-')), "not Jennifer's events");
+  assert.ok(jenFeed.some((e) => e.title === 'Faculty meeting' && e.location === 'Library' && e.starts_at && !e.start_date));
+  assert.ok(jenFeed.some((e) => e.uid === `activity-${match.id}`), 'the game she plans to go to');
+  const names = (await rows(`select first_name || ' ' || last_name n from profiles where school_role = 'student'`)).map((r) => r.n);
+  for (const e of [...rosaFeed, ...jenFeed]) for (const n of names) assert.ok(!`${e.title} ${e.details ?? ''}`.includes(n), `${n} in ${e.title}`);
+  assert.equal((await feed('0'.repeat(64))).length, 0);
+  assert.equal((await rows(`select * from calendar_event('activity-${match.id}')`)).length, 1, 'one public event, for Add to calendar');
+  await rejects(`select calendar_feed_token()`, /permission denied/);
+
+  // A new link turns the old one off.
+  await as('u-p01');
+  const fresh = (await one(`select calendar_feed_token(true) t`)).t as string;
+  assert.notEqual(fresh, rosa);
+  await asSuper();
+  assert.equal((await rows(`select * from calendar_feed_events('${rosa}')`)).length, 0);
+  assert.ok((await rows(`select * from calendar_feed_events('${fresh}')`)).length > 0);
+  await db.exec(`delete from sports where id = '${club.id}'; delete from personal_events where owner_id = ${id('u-eng')}`);
+});
+
 test('the bell counts new notifications until the bell page opens them', async () => {
   await as('u-p04');
   await one('select clear_my_notifications()');

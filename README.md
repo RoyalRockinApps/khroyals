@@ -419,16 +419,23 @@ pg_cron). Activities live in the `sports` tables (named before theater was added
 `sports.category` says which kind) and the `app/activities` screens. Without the school
 server the app shows sample activities (`src/sports/sample.ts`).
 
-**My calendar** (teachers, staff and admins: Apps → My Calendar in the Staff view, or
-Calendar → *My calendar*). Two tabs. **My calendar** holds their own events (meetings,
-duties, grades due; `personal_events`, private to them, `personal_event_save` /
-`personal_event_delete`) and the activity schedule items they plan to go to, which follow
-the schedule: a moved or cancelled game moves or shows *Cancelled* there too (`my_calendar`).
-**My students** lists the games, performances and meets that students in the class sections
-they lead are registered for, with which of their students take part (`student_events`;
-never "Are you going?" answers). *I'll be there* puts one on My calendar and tells those
-students (with a login) and their parents that the teacher is coming, once; *Just add it*
-doesn't tell anyone (`student_event_plan`). The Planner tab shows the day's My calendar items.
+**My calendar** (teachers, staff and admins: Apps → My Calendar, or Calendar → *My calendar*). One
+list, day by day: their own events (meetings, duties, grades due; `personal_events`, private to them,
+`personal_event_save` / `personal_event_delete`), the activity items they're going to (★ Going; they follow
+the schedule, so a moved or cancelled game moves or shows *Cancelled* too, `my_calendar`), and, lighter with a
+dashed edge, the games, performances and meets students in the sections they lead are registered for, with
+which of their students take part (`student_events`; never "Are you going?" answers). *I'll be there* stars
+one and tells those students (with a login) and their parents, once; *Add without telling* doesn't
+(`student_event_plan`). Filters: All, Mine, My students'. The Planner tab shows the day's items.
+
+**Calendars outside the app.** Everyone signed in subscribes once (Calendar → *In your Google, Outlook,
+Yahoo or iPhone calendar*; also at the bottom of My calendar) with a private link that keeps itself up to
+date: the school calendar, their own events and the games they're going to (staff), their children's or
+their own activities (families, students). It's served by the `calendar-feed` Edge Function from
+`calendar_feed_events` (`calendar_feed_token` makes the link; a new one turns the old off), in the standard
+calendar format (`supabase/functions/calendar-feed/ics.ts`). **Students' names never leave the app.** Each
+event in Calendar and My calendar also has *Add to calendar* (Google, Outlook, Yahoo, and Apple for school
+and activity events, `calendar_event`), a one-time copy (`src/calendar/addTo.ts`).
 
 **Feedback** (Apps → Feedback, or My profile → *Send feedback*). Anyone with an approved
 account reports a problem or suggests an idea: what it is, where in the app, a title and

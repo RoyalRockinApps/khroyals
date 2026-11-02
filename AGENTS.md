@@ -154,12 +154,16 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`child_assignments`, for the Planner tab), never the student's own entries or check-offs; Family
   accounts see none. Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them).
-- **My calendar** (`personal_events`; `app/my-calendar`): staff only (`app.is_staff()`), and private to its
-  owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
+- **My calendar** (`personal_events`; `app/my-calendar`, one list with the students' events mixed in): staff only
+  (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
   cancellation live), so never copy schedule details into it. **My students** (`student_events`) shows a
   teacher the activity items students in the sections they lead are registered for (`app.class_students_in`):
   names only, never RSVPs. `student_event_plan` with tell notifies those students (with a login) and their
   parents once, when the item is first added.
+- **Calendar subscriptions** (`calendar_feeds`, `calendar_feed_token`, `calendar_feed_events`, `calendar_event`; the
+  `calendar-feed` Edge Function, no JWT: the link's key is the only way in, `calendar_feed_events` is open to anon).
+  **No student names in a feed or an "Add to calendar" link**, ever (PII stays in the app; `tests/db.test.ts` checks):
+  titles, times and places only. A new link (`calendar_feed_token(true)`) turns the old one off.
 - **Feedback** (`feedback`, `feedback_workshops`; the Feedback app, My profile → Send feedback): any approved
   account sends (`feedback_send`, 20 a day) and sees only its own (`feedback_list`), with the status and the
   team's reply. `feedback.triage` (the **IT** role, directors, administrators; an admin power, so `aal2`) sees

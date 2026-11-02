@@ -3198,6 +3198,7 @@ export type Database = {
       }
       assignment_delete: { Args: { p_assignment: string }; Returns: undefined }
       attendance_overview: { Args: { p_day?: string }; Returns: Json }
+      calendar_feed_token: { Args: { p_new?: boolean }; Returns: string }
       cancel_family_request: { Args: { p_request: string }; Returns: undefined }
       car_carline_check_in: {
         Args: {
@@ -3341,6 +3342,7 @@ export type Database = {
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       my_hidden_groups: { Args: never; Returns: Database["public"]["Tables"]["groups"]["Row"][] }
       my_tickets: { Args: never; Returns: Json }
+      school_app_name: { Args: never; Returns: string }
       school_check: { Args: { p_kind: string; p_note?: string; p_person?: string | null; p_reason?: string; p_student: string }; Returns: string }
       school_check_undo: { Args: { p_id: string }; Returns: undefined }
       carline_set_config: {

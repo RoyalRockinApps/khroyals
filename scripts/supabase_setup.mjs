@@ -130,6 +130,8 @@ async function deployPush() {
   await deployFunction('student-login', { verifyJwt: true });
   // Event tickets: Stripe checkout and its webhook, Wallet passes (each route checks for itself; see the function).
   await deployFunction('tickets', { verifyJwt: false });
+  // Calendar subscriptions and "Add to calendar" (calendar apps can't sign in; the link's key is checked inside).
+  await deployFunction('calendar-feed', { verifyJwt: false });
   await sql(`create extension if not exists pg_net with schema extensions;
              update app.settings set value = '${URL}/functions/v1' where key = 'functions_url';`);
 }
