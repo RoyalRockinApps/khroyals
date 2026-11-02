@@ -2,7 +2,8 @@
  * scripts/presentation_data.mjs: the sample data loads into the real schema (every
  * migration, in PGlite), shows up for the test parent, their children, the class they
  * teach and the student login, gives the volunteer analytics two school years of high,
- * normal and low volunteers, loads again over itself, and comes out completely.
+ * normal and low volunteers and the Student app records from the school's system, loads
+ * again over itself, and comes out completely.
  */
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,6 +11,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { buildSql, schoolDay } from '../scripts/presentation_data.mjs';
+import { average } from '../src/student/grades';
 
 const ROOT = join(__dirname, '..');
 const db = new PGlite();
@@ -91,6 +93,8 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   const library = (await one(`select id from volunteer_opportunities where title = 'Library book shelving'`)).id;
   await db.exec(`insert into volunteer_signups (opportunity_id, user_id) values ('${library}', '${STUDENT}')`);
   await load(false, 'volunteer');
+  await load(false, 'student');
+  assert.equal(await count(`select 1 from sis_students where source = 'sample'`), 3, 'the two children and the student login');
   assert.equal(await count(`select 1 from volunteer_signups where opportunity_id = '${library}' and user_id = '${STUDENT}'`), 1);
   assert.equal(await count(`select 1 from volunteer_opportunities`), 28, 'and 20 past ones, 12 last school year and 8 this one');
   assert.equal(await count(`select 1 from gallery_albums where volunteer_event_id is not null`), 1, "Harvest Fest's album, still linked");
@@ -131,8 +135,24 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   assert.equal((await one(`select sent_forms() as f`)).f.length, 1, 'their own form (all of them only with Send forms)');
   assert.ok((await count(`select * from teacher_conversations()`)) >= 1, 'a question from the student');
 
-  // The student: two teachers, assignments (one of their own), a reply waiting.
+  // The Student app: both children, the older first and showing; their classes' averages are the ones the app works
+  // out from the grades; and the student login sees only their own.
+  const dash = (await one(`select student_record() as r`)).r;
+  assert.deepEqual(dash.students.map((x: any) => x.id), [OLDER, YOUNGER]);
+  assert.equal(dash.studentId, OLDER);
+  assert.deepEqual(dash.record.courses.map((c: any) => c.name), ['Bible 6', 'English 6', 'Math 6', 'Science 6', 'History 6', 'Spanish I']);
+  assert.ok(dash.record.attendance.length > 0 && dash.record.schoolDays > 0);
+  assert.equal(dash.record.courses.reduce((n: number, c: any) => n + c.missing, 0), 1, 'one missing assignment');
+  const term = dash.record.terms[0];
+  for (const c of dash.record.courses) {
+    const detail = (await one(`select student_course('${c.id}') as c`)).c;
+    assert.equal(Math.round((average(detail.assignments, detail.categories, term.startsOn, term.endsOn) as number) * 100) / 100, Number(c.average), c.name);
+  }
+  assert.equal((await one(`select student_record('${YOUNGER}') as r`)).r.record.courses.length, 5);
+
+  // The student: two teachers, assignments (one of their own), a reply waiting; and their own record.
   await as(STUDENT);
+  assert.deepEqual((await one(`select student_record() as r`)).r.students.map((x: any) => x.id), [STUDENT]);
   assert.equal(await count(`select * from my_teachers()`), 2);
   assert.ok((await count(`select 1 from assignments`)) >= 8);
   assert.equal(await count(`select 1 from assignments where roster_id is null`), 1);
@@ -141,7 +161,8 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   await db.exec('reset role');
   await load(true);
   assert.equal(await count(`select 1 from profiles where managed and id not in ('${OLDER}', '${YOUNGER}')`), 0);
-  for (const t of ['forms', 'market_listings', 'volunteer_opportunities', 'volunteer_events', 'assignments', 'rosters', 'teacher_threads', 'sport_events', 'sport_registrations']) {
+  for (const t of ['forms', 'market_listings', 'volunteer_opportunities', 'volunteer_events', 'assignments', 'rosters', 'teacher_threads', 'sport_events', 'sport_registrations',
+    'sis_students', 'sis_courses', 'sis_assignments', 'sis_attendance', 'sis_terms']) {
     assert.equal(await count(`select 1 from ${t}`), 0, t);
   }
   assert.equal(await count(`select 1 from sports`), 3, 'the real activities stay');

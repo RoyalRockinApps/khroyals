@@ -154,6 +154,17 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`child_assignments`, for the Planner tab), never the student's own entries or check-offs; Family
   accounts see none. Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them).
+- **Student records** (the Student app, `app/student`; `sis_students`, `sis_terms`, `sis_attendance`, `sis_courses`,
+  `sis_assignments`): a read-only copy of the school's student information system (FACTS, Blackbaud…). Only `sis_import`
+  (service role) writes it, from one shape whatever the system: it matches students by the link made before, a profile
+  id, or a unique name and birthday (`app.sis_match`; never guessed: the rest come back in `unmatched`) and replaces each
+  one's attendance, classes and grades for the school year. A connector for a school's system maps into that shape and
+  keeps its keys as function secrets. Only the student and their parents read a record (`app.reads_student_record`:
+  never Family accounts, substitutes or other staff); screens read `student_record` (the students, oldest first, and one
+  record) and `student_course` (a class with every grade). Averages, the graph's line and letters are worked out in
+  `src/student/grades.ts` the way a gradebook does (missing counts as zero; excused and not graded yet don't count);
+  the class's own average and letter come from the school's system, the overall letter from the `grade_scale` setting.
+  Sample records come with `scripts/presentation_data.mjs` (`--only student`).
 - **My calendar** (`personal_events`; `app/my-calendar`, one list with the students' events mixed in): staff only
   (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
   cancellation live), so never copy schedule details into it. **My students** (`student_events`) shows a

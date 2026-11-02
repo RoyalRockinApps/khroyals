@@ -5,18 +5,21 @@
  * assignments, forms (signed, paid and still to do), marketplace listings, activities and
  * volunteering (Harvest Fest, an event with its ways to help inside and its photo album, a few
  * opportunities on their own, and two school years of past shifts with who came, for the volunteer
- * analytics: steady helpers, ordinary ones and ones who often don't show). The grade albums are the school's own (made each year), not sample data. It centers on one real test account: their children are in the
+ * analytics: steady helpers, ordinary ones and ones who often don't show), and the Student app's records for the
+ * test children and the student login (what the school's system will send: information, attendance, and grades for
+ * each class this school year). The grade albums are the school's own (made each year), not sample data. It centers on one real test account: their children are in the
  * classes and get the forms, they teach one class themselves (the Staff view), and a second
  * login can become a 6th grader in two of the classes (the student view). The school's real
  * activities stay as they are; the younger child (and two made-up classmates) join Royals
  * Cheer and the parent follows Basketball, if those exist.
  *
  *   SUPABASE_ACCESS_TOKEN=… node scripts/presentation_data.mjs --parent <email> [--student <email>]
- *     [--day 2026-10-27] [--only volunteer] [--remove] [--print]
+ *     [--day 2026-10-27] [--only volunteer|student] [--remove] [--print]
  *
  * --day is the day it'll be shown (dates are around it; default: the next school day). The past
  * volunteer shifts go by the school's real today, so the analytics' last 30 days are right.
- * --only volunteer refreshes just the volunteering (the rest of the sample data must be there).
+ * --only volunteer refreshes just the volunteering (the rest of the sample data must be there);
+ * --only student just the Student app's records, through sis_import like the school's system.
  * Nothing is sent: rows are written directly, so nobody gets a notification, and forms and
  * classes only reach the parent's children and the made-up families. Every row has a fixed
  * id, so running it again replaces it, and --remove takes all of it out (the student login
@@ -189,6 +192,136 @@ function shiftOutcome(o, k, day) {
   const inAt = minutesOf(o.start) - Math.floor(how * 12);                                  // up to 12 minutes early
   const outAt = minutesOf(o.end) + Math.round((chance(`out:${o.id}:${k}:${day}`) - 0.5) * 20);   // give or take 10 minutes
   return { status, in: hhmm(inAt), out: hhmm(outAt), minutes: outAt - inAt };
+}
+
+// ----------------------------------------------------------------------------
+// Student records (the Student app), in the shape the school's system sends to sis_import
+
+const MIDDLE = [{ name: 'Tests', weight: 40 }, { name: 'Quizzes', weight: 30 }, { name: 'Homework', weight: 20 }, { name: 'Participation', weight: 10 }];
+const LOWER = [{ name: 'Classwork', weight: 40 }, { name: 'Tests', weight: 40 }, { name: 'Homework', weight: 20 }];
+/** Each class: where its average starts and ends the semester (so the graph has a story), and its teacher. */
+const CLASSES = {
+  older: [
+    { key: 'bible', name: 'Bible', subject: 'bible', teacher: 'Mr. Davis', from: 96, to: 97 },
+    { key: 'english', name: 'English', subject: 'english', teacher: 'Mrs. Taylor', from: 86, to: 91 },
+    { key: 'math', name: 'Math', subject: 'math', teacher: 'Mr. Davis', from: 94, to: 90 },
+    { key: 'science', name: 'Science', subject: 'science', teacher: 'Mrs. Price', from: 93, to: 95 },
+    { key: 'history', name: 'History', subject: 'history', teacher: 'Mrs. Taylor', from: 86, to: 78 },
+    { key: 'spanish', name: 'Spanish I', subject: 'spanish', teacher: 'Sra. Ruiz', from: 70, to: 84 },
+  ],
+  younger: [
+    { key: 'reading', name: 'Reading', subject: 'reading', teacher: 'Mrs. Brooks', from: 94, to: 96 },
+    { key: 'math', name: 'Math', subject: 'math', teacher: 'Mrs. Brooks', from: 85, to: 91 },
+    { key: 'spelling', name: 'Spelling', subject: 'spelling', teacher: 'Mrs. Brooks', from: 97, to: 98 },
+    { key: 'science', name: 'Science', subject: 'science', teacher: 'Mrs. Brooks', from: 92, to: 90 },
+    { key: 'bible', name: 'Bible', subject: 'bible', teacher: 'Mrs. Brooks', from: 98, to: 98 },
+  ],
+};
+const COMMENTS = ['Great improvement!', 'Watch the units on each answer.', 'Nice work.', 'Show your work next time.', 'Excellent effort.', 'Review chapter 4.'];
+
+/** A class's average the way the app works it out (src/student/grades.ts): weighted category points, missing as zero. */
+function sampleAverage(grades, categories, from, to) {
+  const inside = grades.filter((g) => g.maxScore && (g.status === 'missing' || (g.status === 'graded' && g.score !== null)) && g.dueOn >= from && g.dueOn <= to);
+  if (!inside.length) return null;
+  const pts = (list) => list.reduce((n, g) => n + (g.status === 'missing' ? 0 : g.score), 0) / list.reduce((n, g) => n + g.maxScore, 0);
+  let sum = 0, total = 0;
+  for (const c of categories) {
+    const mine = inside.filter((g) => g.category === c.name);
+    if (mine.length) { sum += c.weight * pts(mine); total += c.weight; }
+  }
+  return 100 * (total ? sum / total : pts(inside));
+}
+
+/**
+ * The Student app's records for the test children (older first) and the student login, this school year up to
+ * `today` (and a week of work still to be graded): information, attendance and every class's grades.
+ * @param {{ id: string, grade: number }[]} children @param {string | null} student @param {string} today
+ */
+export function studentRecords(children, student, today) {
+  const [y, m] = today.split('-').map(Number);
+  const year = m >= 7 ? y : y - 1;
+  const first = weekday(inSchoolYear(year, '08-05'));
+  const terms = [{ name: 'Semester 1', startsOn: first, endsOn: inSchoolYear(year, '12-18') }, { name: 'Semester 2', startsOn: weekday(inSchoolYear(year, '01-06')), endsOn: inSchoolYear(year, '05-21') }];
+  const term = terms.find((t) => t.startsOn <= today && today <= t.endsOn) ?? [...terms].reverse().find((t) => t.startsOn <= today) ?? terms[0];
+  const schoolDays = (() => { let n = 0; for (let d = first; d < today; d = addDays(d, 1)) if (!weekend(d)) n += 1; return Math.max(0, n - 3); })();   // less Labor Day and fall break
+  const scale = (pct) => (pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F');
+  const until = addDays(today, 7);
+
+  const record = (who, level, kind, extra) => {
+    const middle = level === 'older';
+    const categories = middle ? MIDDLE : LOWER;
+    const courses = CLASSES[level].map((c, ci) => {
+      const due = [];
+      for (let d = first; d <= until; d = addDays(d, 1)) {
+        if (weekend(d)) continue;
+        const dow = new Date(`${d}T12:00:00Z`).getUTCDay();
+        const week = Math.floor((Date.parse(d) - Date.parse(first)) / (7 * 86_400_000));
+        if (middle) {
+          if ((dow === 2 || dow === 4) && (c.key !== 'bible' || dow === 2)) due.push([d, 'Homework', 10, `Homework ${due.filter((x) => x[1] === 'Homework').length + 1}`]);
+          if (dow === 5 && week % 2 === 1) due.push([d, 'Quizzes', 20, `Quiz ${due.filter((x) => x[1] === 'Quizzes').length + 1}`]);
+          if (dow === 3 && week % 4 === 3) due.push([d, 'Tests', 100, `Unit ${due.filter((x) => x[1] === 'Tests').length + 1} test`]);
+          if (dow === 5 && Number(d.slice(8)) >= 25 && !due.some((x) => x[1] === 'Participation' && x[0].slice(0, 7) === d.slice(0, 7))) due.push([d, 'Participation', 10, 'Participation']);
+        } else {
+          if (dow === 1 || dow === 3) due.push([d, 'Classwork', 10, `Classwork ${due.filter((x) => x[1] === 'Classwork').length + 1}`]);
+          if (dow === 4) due.push([d, 'Homework', 10, `Homework ${due.filter((x) => x[1] === 'Homework').length + 1}`]);
+          if (dow === 5 && week % 3 === 2) due.push([d, 'Tests', 50, `Test ${due.filter((x) => x[1] === 'Tests').length + 1}`]);
+        }
+      }
+      const span = Math.max(1, Date.parse(today) - Date.parse(first));
+      const grades = due.map(([d, category, max, title], i) => {
+        const sisId = `${c.key}-${d}-${category}`;
+        if (d >= today) return { sisId, title, category, dueOn: d, maxScore: max, status: 'pending' };
+        const along = (Date.parse(d) - Date.parse(first)) / span;
+        const spread = category === 'Tests' ? 12 : category === 'Quizzes' ? 14 : 16;
+        const pct = Math.min(100, Math.max(45, c.from + (c.to - c.from) * along + (chance(`grade:${who}:${sisId}`) - 0.5) * spread));
+        const score = Math.round((max * pct) / 100 * 2) / 2;
+        // One missing piece of history homework a couple of weeks back, and an excused quiz on a sick day.
+        if (c.key === 'history' && category === 'Homework' && d >= addDays(today, -16) && !extra.missingDone) {
+          extra.missingDone = true;
+          return { sisId, title, category, dueOn: d, maxScore: max, status: 'missing', comment: 'Not turned in yet. Half credit if it comes in by Friday.' };
+        }
+        if (d === extra.sickDay && category !== 'Participation') return { sisId, title, category, dueOn: d, maxScore: max, status: 'excused', comment: 'Absent' };
+        const comment = category === 'Tests' && chance(`comment:${who}:${sisId}`) < 0.5 ? COMMENTS[Math.floor(chance(`which:${who}:${sisId}`) * COMMENTS.length)] : null;
+        return { sisId, title, category, dueOn: d, score, maxScore: max, status: 'graded', ...(comment ? { comment } : {}) };
+      });
+      const average = sampleAverage(grades, categories, term.startsOn, term.endsOn);
+      const rounded = average === null ? null : Math.round(average * 100) / 100;
+      return { sisId: `${kind}-${c.key}`, name: middle && c.key !== 'spanish' ? `${c.name} ${extra.gradeName}` : c.name,
+        subject: c.subject, teacher: c.teacher, average: rounded, letter: rounded === null ? null : scale(rounded), categories, grades, position: ci };
+    });
+    return { profileId: who, sisId: `S${parseInt(createHash('md5').update(`sis:${who}`).digest('hex').slice(0, 6), 16) % 90000 + 10000}`,
+      homeroom: extra.homeroom, advisor: extra.advisor, enrolledOn: extra.enrolledOn, schoolDays, details: extra.details,
+      attendance: extra.attendance.filter((a) => a.day < today), courses };
+  };
+
+  const [older, younger] = children;
+  const out = [];
+  const sick = weekday(inSchoolYear(year, '09-15'));   // a homework day, so that day's work is excused
+  const olderExtra = (id) => ({
+    gradeName: String(older.grade), homeroom: 'Mrs. Taylor · Room 204', advisor: 'Mr. Davis', enrolledOn: weekday(inSchoolYear(year - 4, '08-08')), sickDay: sick,
+    details: [{ label: 'Locker', value: String(200 + Math.floor(chance(`locker:${id}`) * 60)) }, { label: 'Lunch balance', value: '$23.40' }, { label: 'Dismissal', value: 'Car line' }],
+    attendance: [
+      { day: sick, kind: 'absent', excused: true, note: 'Sick' },
+      { day: weekday(inSchoolYear(year, '10-02')), kind: 'tardy', excused: false },
+      { day: weekday(inSchoolYear(year, '10-08')), kind: 'left_early', excused: true, note: 'Orthodontist' },
+      { day: weekday(inSchoolYear(year, '10-21')), kind: 'tardy', excused: true, note: 'Doctor appointment' },
+    ],
+  });
+  if (older) out.push(record(older.id, 'older', 'MS', olderExtra(older.id)));
+  if (student && older) out.push(record(student, 'older', 'MS', { ...olderExtra(student), sickDay: null, attendance: [{ day: weekday(inSchoolYear(year, '10-13')), kind: 'tardy', excused: false }] }));
+  if (younger) {
+    const fever = weekday(inSchoolYear(year, '09-23'));
+    out.push(record(younger.id, 'younger', 'LS', {
+      homeroom: 'Mrs. Brooks · Room 108', advisor: null, enrolledOn: weekday(inSchoolYear(year - 2, '08-07')), sickDay: fever,
+      details: [{ label: 'Lunch balance', value: '$18.75' }, { label: 'Dismissal', value: 'Car line' }],
+      attendance: [
+        { day: fever, kind: 'absent', excused: true, note: 'Fever' },
+        { day: addDays(fever, 1), kind: 'absent', excused: true, note: 'Fever' },
+        { day: weekday(inSchoolYear(year, '10-13')), kind: 'tardy', excused: false },
+      ],
+    }));
+  }
+  return { source: 'sample', schoolYear: year + 1, terms, students: out };
 }
 
 // ----------------------------------------------------------------------------
@@ -428,6 +561,10 @@ export function buildSql({ day, today = day, me, children, student = null, volle
   ids.listings = listings.map(([k]) => uid(`listing:${k}`));
   const who = (k) => (k === 'me' ? me : parent(k));
   if (only === 'volunteer') return ['begin;', ...volunteerDrop(!remove), ...(remove ? [] : volunteerAdd()), 'commit;'].filter(Boolean).join('\n');
+  // The Student app's records, through sis_import like the school's system (only the sample ones are taken out).
+  const recordsDrop = () => ["delete from public.sis_students where source = 'sample';", "delete from public.sis_terms where source = 'sample';"];
+  const recordsAdd = () => [`select public.sis_import(${lit({ json: studentRecords(children, student, today) })});`];
+  if (only === 'student') return ['begin;', ...recordsDrop(), ...(remove ? [] : recordsAdd()), 'commit;'].join('\n');
 
   // ----------------------------------------------------------------------------
   // Remove (the order keeps foreign keys happy), then add.
@@ -442,6 +579,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
   out.push(`delete from public.sport_registrations where id in ${inList(registrations.map(([s, st]) => regId(s, st)))};`);
   if (basketball) out.push(`delete from public.sport_follows where sport_id = ${lit(basketball)} and user_id = ${lit(me)};`);
   out.push(...volunteerDrop(!remove));
+  out.push(...recordsDrop());
   out.push(`delete from public.market_listings where id in ${inList(ids.listings)};`);
   out.push(`delete from public.profiles where id in ${inList(ids.people)};`);
   if (remove) { out.push('commit;'); return out.join('\n'); }
@@ -492,6 +630,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
     events.map((e) => [e.id, e.season, e.kind, e.title, e.start, e.end, e.location, e.home, null])));
 
   out.push(...volunteerAdd());
+  out.push(...recordsAdd());
 
   out.push(insert('market_listings', ['id', 'seller_id', 'title', 'description', 'price_cents', 'quantity', 'condition', 'created_at'],
     listings.map(([k, s, title, desc, cents, qty, cond], i) => [uid(`listing:${k}`), who(s), title, desc, cents, qty, cond, at(addDays(day, -1 - (i % 5)), `${8 + i}:15`)])));
@@ -512,7 +651,7 @@ async function main() {
   const args = process.argv.slice(2);
   const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
   const parentEmail = flag('--parent');
-  if (!parentEmail) { console.error('Usage: node scripts/presentation_data.mjs --parent <email> [--student <email>] [--day YYYY-MM-DD] [--only volunteer] [--remove] [--print]'); process.exit(1); }
+  if (!parentEmail) { console.error('Usage: node scripts/presentation_data.mjs --parent <email> [--student <email>] [--day YYYY-MM-DD] [--only volunteer|student] [--remove] [--print]'); process.exit(1); }
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   if (!token) { console.error('Set SUPABASE_ACCESS_TOKEN (a Supabase personal access token).'); process.exit(1); }
   // Kingdom Heights' presentation data, so always its project.
@@ -548,6 +687,14 @@ async function main() {
   if (args.includes('--print')) { console.log(sql); return; }
   await q(sql);
   if (args.includes('--remove')) { console.log('Removed the presentation data.'); return; }
+  if (flag('--only') === 'student') {
+    const [r] = await q(`select (select count(*) from public.sis_students where source = 'sample') as students,
+      (select count(*) from public.sis_courses c join public.sis_students t on t.student_id = c.student_id where t.source = 'sample') as classes,
+      (select count(*) from public.sis_assignments a join public.sis_courses c on c.id = a.course_id join public.sis_students t on t.student_id = c.student_id
+        where t.source = 'sample') as grades`);
+    console.log(`Student records loaded: ${JSON.stringify(r)}`);
+    return;
+  }
   if (flag('--only') === 'volunteer') {
     const [v] = await q(`select (select count(*) from public.volunteer_events where status = 'open') as events,
       (select count(*) from public.volunteer_opportunities where status = 'open') as opportunities, (select count(*) from public.volunteer_signups) as signups,

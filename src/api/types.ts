@@ -462,3 +462,28 @@ export type NewForm = {
 export type AdminSection = { id: string; name: string; leadId: string | null; leadName: string | null; students: number };
 
 export type SectionStudent = { id: string; firstName: string; lastName: string; grade: number | null; hasLogin: boolean };
+
+/** The Student app: a student you can see (yourself, or one of your children), oldest first. */
+export type RecordStudent = { id: string; firstName: string; lastName: string; grade: number | null; gradeLabel: string | null; photo: string; birthday: string | null };
+/** Letters for averages: the lowest percent for each, highest first. */
+export type GradeScale = { letter: string; min: number }[];
+export type SchoolTerm = { name: string; startsOn: string; endsOn: string };
+export type AttendanceKind = 'absent' | 'half_day' | 'tardy' | 'left_early';
+export type AttendanceEntry = { day: string; kind: AttendanceKind; excused: boolean; note: string | null };
+export type CourseSummary = { id: string; name: string; subject: string | null; teacher: string | null; average: number | null; letter: string | null; missing: number };
+/** A student's record from the school's student information system (FACTS, Blackbaud…), as last synced. */
+export type StudentRecord = {
+  sisId: string; source: string; schoolYear: number; homeroom: string | null; advisor: string | null; enrolledOn: string | null;
+  schoolDays: number | null; details: { label: string; value: string }[]; syncedAt: string; birthday: string | null;
+  terms: SchoolTerm[]; attendance: AttendanceEntry[]; courses: CourseSummary[];
+};
+export type StudentDashboard = { students: RecordStudent[]; studentId: string | null; scale: GradeScale; record: StudentRecord | null };
+export type CourseCategory = { name: string; weight: number };
+export type AssignmentStatus = 'graded' | 'missing' | 'excused' | 'pending';
+export type CourseAssignment = {
+  id: string; title: string; category: string | null; dueOn: string; score: number | null; maxScore: number | null; status: AssignmentStatus; comment: string | null;
+};
+export type CourseDetail = {
+  id: string; studentId: string; name: string; subject: string | null; teacher: string | null; average: number | null; letter: string | null;
+  categories: CourseCategory[]; schoolYear: number; scale: GradeScale; terms: SchoolTerm[]; assignments: CourseAssignment[];
+};

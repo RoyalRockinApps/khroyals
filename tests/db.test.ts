@@ -3918,6 +3918,107 @@ test('lunch visits: the office opens lunch times, families book after reading th
   await db.exec(`delete from lunch_visits; update student_details set allergies = '' where student_id = '${ava}'`);
 });
 
+test("student records: the school's system fills them in, and only the student and their parents read them", async () => {
+  await asSuper();
+  const actAs = async (uuid: string) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${uuid}', false),
+      set_config('request.jwt.claims', json_build_object('sub', '${uuid}', 'aal', 'aal1')::text, false); set role authenticated;`);
+  };
+  // A parent with two children (the older one has a login), another parent, and a Family account picking up the older one.
+  const mom = (await one(`insert into profiles (first_name, last_name, school_role) values ('Ngozi', 'Okafor', 'parent') returning id`)).id;
+  const kid = async (first: string, grade: number, birthday: string) => {
+    const k = (await one(`insert into profiles (first_name, last_name, school_role, grade, managed) values ('${first}', 'Okafor', 'student', ${grade}, true) returning id`)).id;
+    await db.exec(`insert into student_details (student_id, birthday) values ('${k}', '${birthday}'); insert into guardians (guardian_id, student_id) values ('${mom}', '${k}')`);
+    return k;
+  };
+  const young = await kid('Zoe', 3, '2017-04-02');
+  const old = await kid('Ada', 9, '2011-01-15');
+  const grandma = (await one(`insert into profiles (first_name, last_name, school_role) values ('Grace', 'Okafor', 'family') returning id`)).id;
+  await db.exec(`insert into family_pickups (family_id, student_id) values ('${grandma}', '${old}')`);
+
+  const year = (await one(`select app.school_year_end() as y`)).y;
+  const course = (sisId: string, name: string, average: number, letter: string, grades: object[]) =>
+    ({ sisId, name, subject: name.split(' ')[0].toLowerCase(), teacher: 'Mr. Davis', average, letter, categories: [{ name: 'Tests', weight: 60 }, { name: 'Homework', weight: 40 }], grades });
+  const payload = (oldCourses: object[]) => ({
+    source: 'facts', schoolYear: year,
+    scale: [{ letter: 'A', min: 93 }, { letter: 'B', min: 85 }, { letter: 'C', min: 77 }, { letter: 'D', min: 70 }, { letter: 'F', min: 0 }],
+    terms: [{ name: 'Semester 1', startsOn: `${year - 1}-08-05`, endsOn: `${year - 1}-12-18` }, { name: 'Semester 2', startsOn: `${year}-01-06`, endsOn: `${year}-05-22` }],
+    students: [
+      { sisId: 'F-1001', profileId: old, firstName: 'Ada', lastName: 'Okafor', homeroom: 'Mrs. Taylor', advisor: 'Mr. Davis', enrolledOn: '2021-08-09',
+        schoolDays: 60, details: [{ label: 'Locker', value: '214' }],
+        attendance: [{ day: `${year - 1}-09-14`, kind: 'absent', excused: true, note: 'Sick' }, { day: `${year - 1}-10-02`, kind: 'tardy' }],
+        courses: oldCourses },
+      // Matched by name and birthday (accents and case don't matter).
+      { sisId: 'F-1002', firstName: 'ZOË', lastName: 'okafor', birthday: '2017-04-02', homeroom: 'Mrs. Brooks', courses: [course('R3', 'Reading 3', 97, 'A', [])] },
+      { sisId: 'F-9999', firstName: 'Nobody', lastName: 'Here', birthday: '2012-02-02' },
+    ],
+  });
+  const math = course('M9', 'Math 9', 88.5, 'B', [
+    { sisId: 'a1', title: 'Quiz 1', category: 'Tests', dueOn: `${year - 1}-08-20`, score: 18, maxScore: 20 },
+    { sisId: 'a2', title: 'Worksheet 1', category: 'Homework', dueOn: `${year - 1}-08-22`, status: 'missing', maxScore: 10 },
+    { sisId: 'a3', title: 'Project', category: 'Homework', dueOn: `${year - 1}-12-15`, status: 'pending', maxScore: 50, comment: 'Due Friday' },
+  ]);
+  const bible = course('B9', 'Bible 9', 95, 'A', []);
+
+  // Only the service role imports.
+  await as('u-admin', true);
+  await rejects(`select sis_import('${JSON.stringify(payload([math]))}'::jsonb)`, /permission denied/);
+  await asSuper();
+  await rejects(`select sis_import('{"students": []}'::jsonb)`, /which system/);
+  const result = (await one(`select sis_import('${JSON.stringify(payload([math, bible]))}'::jsonb) as r`)).r;
+  assert.deepEqual(result, { students: 2, unmatched: [{ sisId: 'F-9999', name: 'Nobody Here' }] });
+  // Again, with Bible gone and Math changed: replaced, not added to.
+  await one(`select sis_import('${JSON.stringify(payload([{ ...math, average: 90.1, letter: 'B', grades: math.grades.slice(0, 1) }]))}'::jsonb)`);
+  assert.equal((await one(`select count(*)::int as n from sis_courses where student_id = '${old}'`)).n, 1);
+  assert.equal((await one(`select count(*)::int as n from sis_assignments a join sis_courses c on c.id = a.course_id where c.student_id = '${old}'`)).n, 1);
+  assert.equal((await one(`select sis_id from sis_students where student_id = '${young}'`)).sis_id, 'F-1002');
+  await one(`select sis_import('${JSON.stringify(payload([math, bible]))}'::jsonb)`);
+
+  // The parent: both children, oldest first, and the oldest's record unless they pick one.
+  await actAs(mom);
+  let r = (await one(`select student_record() as r`)).r;
+  assert.deepEqual(r.students.map((s: any) => s.firstName), ['Ada', 'Zoe']);
+  assert.equal(r.studentId, old);
+  assert.equal(r.record.sisId, 'F-1001');
+  assert.deepEqual(r.record.details, [{ label: 'Locker', value: '214' }]);
+  assert.deepEqual(r.record.attendance.map((a: any) => [a.kind, a.excused]), [['tardy', false], ['absent', true]]);
+  assert.deepEqual(r.record.terms.map((t: any) => t.name), ['Semester 1', 'Semester 2']);
+  assert.deepEqual(r.record.courses.map((c: any) => [c.name, Number(c.average), c.letter, c.missing]), [['Math 9', 88.5, 'B', 1], ['Bible 9', 95, 'A', 0]]);
+  assert.equal(r.scale[0].min, 93, "the school's scale");
+  const one9 = (await one(`select student_course('${r.record.courses[0].id}') as c`)).c;
+  assert.deepEqual(one9.assignments.map((a: any) => [a.title, a.status]), [['Quiz 1', 'graded'], ['Worksheet 1', 'missing'], ['Project', 'pending']]);
+  assert.deepEqual(one9.categories, [{ name: 'Tests', weight: 60 }, { name: 'Homework', weight: 40 }]);
+  r = (await one(`select student_record('${young}') as r`)).r;
+  assert.deepEqual([r.studentId, r.record.homeroom, r.record.courses.length], [young, 'Mrs. Brooks', 1]);
+
+  // The student with a login: only their own.
+  await actAs(old);
+  r = (await one(`select student_record() as r`)).r;
+  assert.deepEqual(r.students.map((s: any) => s.id), [old]);
+  assert.equal(r.record.courses.length, 2);
+  await rejects(`select student_record('${young}')`, /your own or your children/);
+
+  // Nobody else: another parent, a teacher, the office, the Family account; and the tables show them nothing.
+  for (const who of ['u-p02', 'u-eng']) {
+    await as(who, true);
+    await rejects(`select student_record('${old}')`, /your own or your children/);
+    await rejects(`select student_course('${r.record.courses[0].id}')`, /isn't on your/);
+    assert.equal((await rows(`select * from sis_courses`)).length, 0);
+    assert.equal((await rows(`select * from sis_assignments`)).length, 0);
+    assert.equal((await rows(`select * from sis_attendance`)).length, 0);
+  }
+  await as('u-admin', true);
+  await rejects(`select student_record('${old}')`, /your own or your children/);
+  await actAs(grandma);
+  assert.deepEqual((await one(`select student_record() as r`)).r.students, []);
+  await rejects(`select student_record('${old}')`, /your own or your children/);
+
+  await asSuper();
+  await db.exec(`delete from profiles where id in ('${old}', '${young}', '${grandma}', '${mom}'); delete from sis_terms;
+    update app.settings set value = '[{"letter":"A","min":90},{"letter":"B","min":80},{"letter":"C","min":70},{"letter":"D","min":60},{"letter":"F","min":0}]' where key = 'grade_scale'`);
+});
+
 test('the bell counts new notifications until the bell page opens them', async () => {
   await as('u-p04');
   await one('select clear_my_notifications()');
