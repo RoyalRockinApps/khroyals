@@ -448,7 +448,7 @@ and the reply (`feedback_triage`); and keeps **Workshops** (`feedback_workshops`
 with a date and what students will do, that group reports for students to learn on by fixing
 real bugs and building requested features. New reports notify the triage team.
 
-**Absences** (Apps → Absences). A parent reports that their child is absent (one day or several),
+**Excused Absence** (Forms → Forms to Send to Office). A parent reports that their child is absent (one day or several),
 arriving late or leaving early, with a reason (sick, appointment, family, travel, other) and a note.
 The office and the child's teachers are told right away and see it, a day at a time, in Attendance →
 Absences reported by parents and on the class roll; the office marks each one seen, and the parents

@@ -1,7 +1,8 @@
 /**
- * Forms: permission slips, releases and acknowledgments. Parents see the forms that went
- * to their children, the ones still to sign first. In the Main Page's Staff view,
- * faculty and staff see the forms they've sent, with how many have signed, and send new ones.
+ * Forms: permission slips, releases and acknowledgments. Parents see the Forms to Send to Office (Excused Absence),
+ * then the forms that went to their children, the ones still to sign first. In the Main Page's Staff view, faculty and
+ * staff see what parents sent the office (their students' absences, or everyone's for the office) and the forms
+ * they've sent, with how many have signed, and send new ones.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -10,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { errorText, isSchoolStaff, myForms, sentForms, type MyForm, type Person, type SentForm } from '../../src/api/connect';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
+import { OFFICE_FORMS, type OfficeForm } from '../../src/schoolForms/office';
 import { GREEN, Progress, dueText } from '../../src/schoolForms/parts';
 import { useStaffView } from '../../src/staffView';
 import { SectionTitle } from '../../src/volunteer/parts';
@@ -44,6 +46,9 @@ function List({ me }: { me: Person }) {
   if (staffView) {
     return (
       <ScrollView style={s.screen} contentContainerStyle={s.pad}>
+        <SectionTitle icon="mail-outline" title="Sent to the office" />
+        {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.staff} />)}
+        <SectionTitle icon="document-text-outline" title="Forms you send" />
         <Button label="+ New form" onPress={() => router.push('/forms/new')} />
         {data.sent.length === 0 && <Card><P muted>Forms you send to a class, an activity or the school show up here, with who has signed.</P></Card>}
         {data.sent.map((f) => {
@@ -67,7 +72,9 @@ function List({ me }: { me: Person }) {
   const done = data.mine.filter(finished);
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
-      {todo.length > 0 && <SectionTitle icon="create-outline" title={`To sign (${todo.length})`} />}
+      <SectionTitle icon="mail-outline" title="Forms to Send to Office" />
+      {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.parents} />)}
+      <SectionTitle icon="create-outline" title={todo.length ? `To sign (${todo.length})` : 'From the school'} />
       {todo.map((f) => <FormRow key={f.id} f={f} />)}
       {todo.length === 0 && (
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -82,6 +89,23 @@ function List({ me }: { me: Person }) {
       {showDone.shown && done.map((f) => <FormRow key={f.id} f={f} />)}
       {isSchoolStaff(me) && <P muted>To send a form, switch the Main Page to Staff.</P>}
     </ScrollView>
+  );
+}
+
+/** A form families send the office (Excused Absence), which opens its own screen. */
+function OfficeRow({ f, sub }: { f: OfficeForm; sub: string }) {
+  return (
+    <Pressable onPress={() => router.push(f.href)} accessibilityRole="button"
+      style={({ pressed }) => [s.card, s.row, { gap: 12 }, pressed && { opacity: 0.85 }]}>
+      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.primary + '14', alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={f.icon as React.ComponentProps<typeof Ionicons>['name']} size={22} color={C.primary} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{f.title}</Text>
+        <Text style={{ color: C.muted }}>{sub}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={C.muted} />
+    </Pressable>
   );
 }
 

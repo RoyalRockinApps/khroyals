@@ -190,7 +190,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   activity's coaches and directors, `checkout_list_for_event`) or a teacher's own list from the sections they lead
   (`checkout_list_save`); `app.manages_checkout` decides who runs one. Parents are notified of every check-in and
   release (`app.notify_parents`). Reasons are in both `src/checkin/labels.ts` and the database check.
-- **Absences** (`absence_reports`; `app/absences.tsx`, Apps → Absences, and Attendance → Absences reported by parents): only a
+- **Excused Absence** (`absence_reports`; `app/forms/excused-absence.tsx`, Forms → Forms to Send to Office, listed in
+  `src/schoolForms/office.ts`; Attendance → Absences reported by parents; old `/absences` links redirect there): only a
   child's parents (`app.is_guardian_of`, never Family accounts) report absent (one or several days), arriving late or leaving
   early, with a reason (`absence_report`, today to 90 days ahead) or call it off (`absence_cancel`). The office
   (`checkin.manage`, `app.office_team`) and the teachers of the child's sections are told and read them

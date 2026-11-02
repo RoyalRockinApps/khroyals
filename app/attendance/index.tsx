@@ -48,7 +48,7 @@ export default function Attendance() {
           <Ionicons name="chevron-forward" size={20} color="#fff" />
         </Pressable>
       )}
-      <Pressable onPress={() => router.push('/absences')} accessibilityRole="button"
+      <Pressable onPress={() => router.push('/forms/excused-absence')} accessibilityRole="button"
         style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: '#fff',
           borderWidth: 1, borderColor: C.line }, pressed && { opacity: 0.85 }]}>
         <Ionicons name="bed-outline" size={24} color={C.primary} />
