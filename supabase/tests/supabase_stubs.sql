@@ -32,3 +32,7 @@ create function storage.foldername(name text) returns text[] language sql immuta
 $$;
 
 create publication supabase_realtime;
+
+-- Like Supabase: new functions and tables in public are granted to the API roles, so a migration
+-- that forgets to revoke shows up in the tests exactly as it would on the live project.
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;

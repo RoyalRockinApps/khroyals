@@ -32,6 +32,21 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
+  # Opens every screen of each school's web app in a browser, on demo data (scripts/web_smoke.mjs).
+  screens:
+    name: Every screen opens
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:web
+
   # Every school in the repo, so a new school is built without touching this file.
   schools:
     name: List the schools
@@ -46,7 +61,7 @@ jobs:
   # One APK per school, each its own app with its own data.
   build-apk:
     name: Build APK (${{ matrix.school }})
-    needs: [test, schools]
+    needs: [test, screens, schools]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

@@ -16,8 +16,10 @@ import { retryingFetch } from './retryFetch';
 import appJson from '@school/app.json';
 
 const extra = appJson.expo.extra;
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL || extra.supabaseUrl;
-const key = process.env.EXPO_PUBLIC_SUPABASE_KEY || extra.supabaseKey;
+// EXPO_PUBLIC_DEMO=1 builds on the bundled demo data, with no server (the screen-by-screen web test).
+const demo = process.env.EXPO_PUBLIC_DEMO === '1';
+const url = demo ? null : process.env.EXPO_PUBLIC_SUPABASE_URL || extra.supabaseUrl;
+const key = demo ? null : process.env.EXPO_PUBLIC_SUPABASE_KEY || extra.supabaseKey;
 /** For native code that calls the database itself (the Android Auto car line screen). */
 export const supabaseUrl = url ?? null;
 export const supabaseKey = key ?? null;

@@ -36,6 +36,8 @@ cd khroyals
 npm ci              # use ci, not install, so the lockfile is respected
 npm run typecheck
 npm test            # app permission tests + database tests (Postgres in PGlite, no server needed)
+npm run test:web    # every screen of each school's web app, opened in a browser on demo data
+                    # (the first time: npx playwright install chromium)
 ```
 
 No secrets are needed to run the app: each school's Supabase URL and publishable key are

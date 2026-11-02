@@ -14,7 +14,8 @@ rules and traps.
   isn't covered by `npm test`.
 - Before every push: `npm run typecheck && npm test` must pass (CI runs both and
   blocks the APK otherwise).
-- For UI changes, also check the web build renders: `npx expo export --platform web`.
+- For UI changes, also run `npm run test:web`: it builds each school's web app on demo data
+  (`EXPO_PUBLIC_DEMO=1`) and opens every screen in a browser (CI runs it before the APKs).
 - Keep commits focused; describe the user-visible change in the message.
 - Open work and its owners are in [ROADMAP.md](ROADMAP.md). When a change finishes
   an item, delete its row in the same commit (and add a line to its "Already built"

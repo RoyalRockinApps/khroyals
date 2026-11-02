@@ -17,7 +17,8 @@
     "test": "tsx --test tests/*.test.ts",
     "import-site": "python3 scripts/import_site.py schools/khroyals/content/site",
     "regen-comms": "python3 scripts/gen_comms.py mock-db/comms",
-    "import-site-wca": "python3 scripts/import_wordpress.py"
+    "import-site-wca": "python3 scripts/import_wordpress.py",
+    "test:web": "node scripts/web_smoke.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/jost": "^0.4.2",
@@ -62,6 +63,7 @@
     "@types/react-test-renderer": "^19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
+    "playwright": "1.63.0",
     "react-test-renderer": "^19.2.3",
     "tsx": "^4.23.15",
     "typescript": "~5.9"

@@ -16,8 +16,12 @@ export default function GroupSettingsScreen() {
   const [v, setV] = useState<GroupSettings | null>(null);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
-  const load = () => getGroup(id).then((d) => { setGroup(d.group); setV(d.group.settings); });
+  const [gone, setGone] = useState(false);
+  const load = () => getGroup(id)
+    .then((d) => { if (!d.group) { setGone(true); return; } setGroup(d.group); setV(d.group.settings); })
+    .catch(() => setGone(true));
   useEffect(() => { load(); }, [id]);  // eslint-disable-line react-hooks/exhaustive-deps
+  if (gone) return <ScrollView style={s.screen} contentContainerStyle={s.pad}><P muted>This group is gone, or you can't change it.</P></ScrollView>;
   if (!v || !group) return <Loading />;
 
   const fail = (e: unknown) => Alert.alert('Not allowed', errorText(e));

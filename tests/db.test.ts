@@ -1939,6 +1939,49 @@ test('every public table grants its access explicitly (Supabase stops auto-grant
   assert.deepEqual(missing, [], 'add "grant select on public.<table> to authenticated" (and service_role) in the migration that creates it');
 });
 
+test('security: nothing is open to signed-out visitors, writable by clients or runnable without its safeguards by accident', async () => {
+  await asSuper();
+  // Functions anyone can run signed out (the stubs grant new functions to anon like Supabase does, so a
+  // migration that forgets "revoke ... from public, anon" shows up here). Each is safe on purpose.
+  const ANON = [
+    'calendar_event',         // one school-calendar or activity event, already public
+    'calendar_feed_events',   // a calendar app's subscription: the link's key is the only way in
+    'car_carline_check_in',   // Android Auto / CarPlay: the car pass is the key
+    'car_carline_status',
+    'revoke_car_pass',
+    'school_app_name',        // the app's name
+  ];
+  const anon = (await rows(`select distinct p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                            where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') order by 1`))
+    .map((r) => r.proname as string);
+  assert.deepEqual(anon, ANON, 'revoke the new function from public, anon (or add it here if signed-out visitors must run it)');
+
+  // Every function that runs with the owner's rights pins its search_path, so nobody can plant a look-alike table or function.
+  assert.deepEqual(await rows(`select n.nspname || '.' || p.proname as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'app') and p.prosecdef
+      and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')`), [],
+    'add "set search_path = public" to these security definer functions');
+
+  // Row-level security on every table, and clients write only through functions (except group calendar events).
+  assert.deepEqual(await rows(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity`), [], 'enable row level security');
+  assert.deepEqual(await rows(`select distinct table_name, grantee from information_schema.role_table_grants
+    where table_schema = 'public' and grantee in ('anon', 'authenticated') and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+    order by 1, 2`), [{ table_name: 'events', grantee: 'authenticated' }], 'writes go through security definer functions');
+
+  // Functions that hand out limited places lock the row they count from, so two people at the same moment can't both take the last one.
+  const LOCKED = ['lunch_visit_book', 'volunteer_say_yes', 'volunteer_pledge', 'ticket_order_start'];
+  const src = await rows(`select proname, prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                          where n.nspname = 'public' and proname = any ('{${LOCKED.join(',')}}')`);
+  assert.deepEqual(src.map((r) => r.proname).sort(), [...LOCKED].sort());
+  for (const r of src) assert.match(r.prosrc, /for update/, `${r.proname} must lock with "for update" before counting places`);
+
+  // No views in public: a view skips the row-level security of the tables under it.
+  assert.deepEqual(await rows(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('v', 'm')
+      and not coalesce('security_invoker=true' = any(c.reloptions), false)`), [], 'make the view security_invoker, or use a function');
+});
+
 test('critical alert answers carry the location of staff who agreed, placed on the Wi-Fi map for the senders', async () => {
   const [eng, sci] = [(await one(`select ${id('u-eng')} as u`)).u as string, (await one(`select ${id('u-sci')} as u`)).u as string];
   // The map: alerts.map holders (directors here) keep it; nobody else can.
