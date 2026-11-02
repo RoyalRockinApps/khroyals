@@ -48,6 +48,16 @@ export default function Attendance() {
           <Ionicons name="chevron-forward" size={20} color="#fff" />
         </Pressable>
       )}
+      <Pressable onPress={() => router.push('/absences')} accessibilityRole="button"
+        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: '#fff',
+          borderWidth: 1, borderColor: C.line }, pressed && { opacity: 0.85 }]}>
+        <Ionicons name="bed-outline" size={24} color={C.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: C.ink, fontSize: 16, fontWeight: '800' }}>Absences reported by parents</Text>
+          <Text style={{ color: C.muted }}>{office ? 'Every student’s, a day at a time; mark each seen' : 'Your students’, a day at a time'}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={C.muted} />
+      </Pressable>
       {office && (
         <Pressable onPress={() => router.push('/checkin')} accessibilityRole="button"
           style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, backgroundColor: '#fff',

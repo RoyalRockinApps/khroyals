@@ -1,6 +1,7 @@
 /** Royal News (the emailed newsletter) archive: internal API implementation. Screens import the connect facade. */
 import type { NewsBlock } from '../../supabase/functions/import-newsletter/smore';
 import { live, rpc, run, sb } from './client';
+import type { Json } from './database.types';
 
 export type { NewsBlock, Span } from '../../supabase/functions/import-newsletter/smore';
 /** "Friday, October 23, 2026". */
@@ -35,3 +36,11 @@ export async function importNewsletter(url: string): Promise<{ id: string; title
 }
 
 export async function deleteNewsletter(id: string) { await rpc('newsletter_delete', { p_id: id }); }
+
+/** Written in the app (not imported from Smore): it can be changed here, and has no original page. */
+export const isWritten = (n: { sourceUrl: string }) => n.sourceUrl.startsWith('app:');
+
+/** push.send: add an issue written in the app (no id), or change one. Returns its id. */
+export async function writeNewsletter(n: { id?: string | null; title: string; sentOn: string; blocks: NewsBlock[] }): Promise<string> {
+  return (await rpc('newsletter_write', { p_id: n.id ?? null, p_title: n.title, p_sent_on: n.sentOn, p_blocks: n.blocks as unknown as Json })) as string;
+}

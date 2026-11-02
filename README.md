@@ -448,6 +448,20 @@ and the reply (`feedback_triage`); and keeps **Workshops** (`feedback_workshops`
 with a date and what students will do, that group reports for students to learn on by fixing
 real bugs and building requested features. New reports notify the triage team.
 
+**Absences** (Apps → Absences). A parent reports that their child is absent (one day or several),
+arriving late or leaving early, with a reason (sick, appointment, family, travel, other) and a note.
+The office and the child's teachers are told right away and see it, a day at a time, in Attendance →
+Absences reported by parents and on the class roll; the office marks each one seen, and the parents
+hear back. Parents call a report off if plans change.
+
+**Lunch visits** (Apps → Lunch Visits). Parents, and grandparents or other family the office linked,
+book a time to come eat lunch with their child. The office (*Lunch visits* permission) sets the lunch
+times open to visits (weekdays, time, grades and how many visitors a day, guests included), closes
+days (no-school days on the calendar are closed already) and writes the rules. Before booking, the
+visitor sees the allergy notes for that lunch, their child's own and the allergies among the students
+at it (never with names), and the rules, and confirms they've read them. The child's teachers are told,
+and teachers and staff see who's coming each day with each child's allergies.
+
 **Ask the School** (Apps → Ask the School). Anyone with an approved account sends
 the school a question (topic, subject, message); it stays in *My questions* with the
 whole conversation, so they can come back for the answer and follow up. Routers (the

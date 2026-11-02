@@ -249,6 +249,8 @@ export type ClassRollSummary = {
 export type RollCheck = { kind: 'in' | 'out'; at: string; reason: string; person: string | null };
 export type RollStudent = {
   id: string; name: string; grade: number | null; mark: AttendanceMark | null; markedBy: string | null; state: AttendanceMark | null; left: boolean; checks: RollCheck[];
+  /** What a parent reported for the day (Absences). */
+  reported?: { kind: 'absent' | 'late' | 'early'; reason: string; at: string | null; note: string; by: string } | null;
 };
 /** `otherDays`: false for a sub, who sees and takes today's roll only. */
 export type ClassRoll = { id: string; name: string; teacher: string | null; day: string; canMark: boolean; otherDays?: boolean; students: RollStudent[] };

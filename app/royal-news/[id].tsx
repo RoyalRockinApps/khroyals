@@ -1,8 +1,8 @@
 /** One Royal News issue: its sections, items (with bold text and links) and pictures. */
 import { useEffect, useState } from 'react';
 import { Image, Linking, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { getNewsletter, issueDate, type NewsBlock, type Span } from '../../src/api/connect';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { getNewsletter, isWritten, issueDate, live, myAccess, type NewsBlock, type Span } from '../../src/api/connect';
 import { ReadingScroll } from '../../src/Reading';
 import { C, Card, Loading, P, s, useLoad } from '../../src/ui';
 import { SCHOOL } from '../../src/school';
@@ -10,6 +10,8 @@ import { SCHOOL } from '../../src/school';
 export default function Issue() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error } = useLoad(async () => ({ issue: await getNewsletter(id) }), [id]);
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => { if (live) myAccess().then((a) => setCanEdit(!!a?.permissions.includes('push.send'))).catch(() => {}); }, []);
   const header = <Stack.Screen options={{ title: SCHOOL.newsName }} />;
   if (error) return <View style={[s.screen, s.pad]}>{header}<P>{SCHOOL.newsName} didn't load: {error}</P></View>;
   if (!data) return <>{header}<Loading /></>;
@@ -24,8 +26,14 @@ export default function Issue() {
         <Text style={{ color: C.muted, fontWeight: '600' }}>{issueDate(issue.sentOn)}</Text>
       </View>
       {issue.blocks.map((b, i) => <Block key={i} b={b} />)}
-      <Text style={{ color: C.primary, fontWeight: '700', textAlign: 'center', marginTop: 8 }} accessibilityRole="link"
-        onPress={() => Linking.openURL(issue.sourceUrl)}>Open the original newsletter ›</Text>
+      {!isWritten(issue) && (
+        <Text style={{ color: C.primary, fontWeight: '700', textAlign: 'center', marginTop: 8 }} accessibilityRole="link"
+          onPress={() => Linking.openURL(issue.sourceUrl)}>Open the original newsletter ›</Text>
+      )}
+      {isWritten(issue) && canEdit && (
+        <Text style={{ color: C.primary, fontWeight: '700', textAlign: 'center', marginTop: 8 }} accessibilityRole="button"
+          onPress={() => router.push({ pathname: '/royal-news/write', params: { id: issue.id } })}>Change this issue</Text>
+      )}
     </ReadingScroll>
   );
 }

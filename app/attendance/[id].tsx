@@ -12,6 +12,7 @@ import { classRoll, errorText, markAttendance, type AttendanceMark, type ClassRo
 import { MARKS, checkLine, markColor, rollLine } from '../../src/attendance/labels';
 import { DayStepper } from '../../src/attendance/parts';
 import { schoolToday } from '../../src/calendar/past';
+import { clock, kindLabel, reasonLabel } from '../../src/absences/labels';
 import { Button, C, Card, Loading, P, s } from '../../src/ui';
 
 export default function ClassAttendance() {
@@ -86,6 +87,12 @@ function StudentRow({ st, canMark, onMark }: { st: RollStudent; canMark: boolean
           </View>
         ))}
         {st.left && <Text style={{ fontSize: 12, fontWeight: '800', color: C.primary }}>GONE HOME</Text>}
+        {!!st.reported && (
+          <Text style={{ fontSize: 13, color: '#B45309' }}>
+            📝 {st.reported.by}: {kindLabel(st.reported.kind)}{st.reported.at ? ` at ${clock(st.reported.at)}` : ''} · {reasonLabel(st.reported.reason)}
+            {st.reported.note ? ` · “${st.reported.note}”` : ''}
+          </Text>
+        )}
       </View>
       {MARKS.map((m) => {
         const on = st.state === m.key;

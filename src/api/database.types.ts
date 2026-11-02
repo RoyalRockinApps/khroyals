@@ -681,6 +681,105 @@ export type Database = {
           },
         ]
       }
+      lunch_closed_days: {
+        Row: {
+          day: string
+          reason: string
+        }
+        Insert: {
+          day: string
+          reason?: string
+        }
+        Update: {
+          day?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      lunch_visits: {
+        Row: {
+          allergy_ack_at: string
+          cancel_reason: string
+          cancelled_by: string | null
+          created_at: string
+          day: string
+          guests: number
+          id: string
+          note: string
+          status: string
+          student_id: string
+          visitor_id: string
+          window_id: string
+        }
+        Insert: {
+          allergy_ack_at: string
+          cancel_reason?: string
+          cancelled_by?: string | null
+          created_at?: string
+          day: string
+          guests?: number
+          id?: string
+          note?: string
+          status?: string
+          student_id: string
+          visitor_id: string
+          window_id: string
+        }
+        Update: {
+          allergy_ack_at?: string
+          cancel_reason?: string
+          cancelled_by?: string | null
+          created_at?: string
+          day?: string
+          guests?: number
+          id?: string
+          note?: string
+          status?: string
+          student_id?: string
+          visitor_id?: string
+          window_id?: string
+        }
+        Relationships: []
+      }
+      lunch_windows: {
+        Row: {
+          active: boolean
+          capacity: number
+          created_at: string
+          end_time: string
+          grade_from: number
+          grade_to: number
+          id: string
+          name: string
+          start_time: string
+          weekdays: number[]
+        }
+        Insert: {
+          active?: boolean
+          capacity: number
+          created_at?: string
+          end_time: string
+          grade_from: number
+          grade_to: number
+          id?: string
+          name: string
+          start_time: string
+          weekdays: number[]
+        }
+        Update: {
+          active?: boolean
+          capacity?: number
+          created_at?: string
+          end_time?: string
+          grade_from?: number
+          grade_to?: number
+          id?: string
+          name?: string
+          start_time?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       newsletters: {
         Row: {
           blocks: Json
@@ -2936,6 +3035,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      absence_cancel: { Args: { p_id: string }; Returns: undefined }
+      absence_list: {
+        Args: { p_days?: number; p_from?: string }
+        Returns: {
+          at_time: string
+          classes: string
+          created_at: string
+          ends_on: string
+          grade: number
+          id: string
+          kind: string
+          note: string
+          reason: string
+          reported_by: string
+          seen_at: string
+          seen_by: string
+          starts_on: string
+          status: string
+          student: string
+          student_id: string
+        }[]
+      }
+      absence_report: {
+        Args: { p_at?: string; p_ends_on?: string; p_kind: string; p_note?: string; p_reason?: string; p_starts_on: string; p_student: string }
+        Returns: Json
+      }
+      absence_seen: { Args: { p_id: string }; Returns: undefined }
       add_comment: {
         Args: { p_body: string; p_parent?: string; p_post: string }
         Returns: {
@@ -3340,8 +3466,39 @@ export type Database = {
       group_archive: { Args: { p_archived: boolean; p_group: string }; Returns: Database["public"]["Tables"]["groups"]["Row"] }
       group_delete: { Args: { p_group: string; p_name: string }; Returns: undefined }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
+      lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
+      lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }
+      lunch_my_kids: { Args: never; Returns: { first_name: string; grade: number; id: string; last_name: string }[] }
+      lunch_rules: { Args: never; Returns: string }
+      lunch_set_rules: { Args: { p_rules: string }; Returns: undefined }
+      lunch_slots: {
+        Args: { p_days?: number; p_from?: string; p_student: string }
+        Returns: { day: string; end_time: string; my_visit: string; name: string; spots_left: number; start_time: string; window_id: string }[]
+      }
+      lunch_visit_book: {
+        Args: { p_day: string; p_guests?: number; p_note?: string; p_read_allergies?: boolean; p_student: string; p_window: string }
+        Returns: Database["public"]["Tables"]["lunch_visits"]["Row"]
+      }
+      lunch_visit_cancel: { Args: { p_id: string; p_reason?: string }; Returns: undefined }
+      lunch_visitors: {
+        Args: { p_day?: string }
+        Returns: { allergies: string; booked_at: string; cancel_reason: string; classes: string; end_time: string; grade: number; guests: number; id: string; note: string; relation: string; start_time: string; status: string; student: string; visitor: string; window_name: string }[]
+      }
+      lunch_window_delete: { Args: { p_id: string }; Returns: undefined }
+      lunch_window_save: {
+        Args: { p_active?: boolean; p_capacity: number; p_end: string; p_grade_from: number; p_grade_to: number; p_id: string; p_name: string; p_start: string; p_weekdays: number[] }
+        Returns: Database["public"]["Tables"]["lunch_windows"]["Row"]
+      }
       my_hidden_groups: { Args: never; Returns: Database["public"]["Tables"]["groups"]["Row"][] }
+      my_lunch_visits: {
+        Args: never
+        Returns: { cancel_reason: string; day: string; end_time: string; guests: number; id: string; mine: boolean; note: string; start_time: string; status: string; student: string; visitor: string; window_name: string }[]
+      }
       my_tickets: { Args: never; Returns: Json }
+      newsletter_write: {
+        Args: { p_blocks: Json; p_id: string; p_sent_on: string; p_title: string }
+        Returns: string
+      }
       school_app_name: { Args: never; Returns: string }
       school_check: { Args: { p_kind: string; p_note?: string; p_person?: string | null; p_reason?: string; p_student: string }; Returns: string }
       school_check_undo: { Args: { p_id: string }; Returns: undefined }

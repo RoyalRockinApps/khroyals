@@ -1,6 +1,7 @@
 /**
  * Royal News: every issue of the school's emailed newsletter, newest first, by month. Staff who
- * send notifications (push.send) add an issue by pasting its Smore link, or remove one.
+ * send notifications (push.send) write or paste an issue (app/royal-news/write.tsx), add one from
+ * its Smore link, or remove one; anyone with the power who hasn't verified is told to.
  */
 import { useCallback, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, View } from 'react-native';
@@ -21,13 +22,20 @@ const confirm = (title: string, msg: string, onYes: () => void) => {
 export default function RoyalNews() {
   const [issues, setIssues] = useState<NewsletterSummary[] | null>(null);
   const [canAdd, setCanAdd] = useState(false);
+  // Holds Send notifications but hasn't verified with the authenticator app in this session.
+  const [needsCode, setNeedsCode] = useState(false);
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setIssues(await listNewsletters());
-      if (live && await session()) setCanAdd(!!(await myAccess().catch(() => null))?.permissions.includes('push.send'));
+      if (live && await session()) {
+        const a = await myAccess().catch(() => null);
+        const can = !!a?.permissions.includes('push.send');
+        setCanAdd(can);
+        setNeedsCode(!can && !!a && (a.tier !== null || a.granted.includes('push.send')) && a.mfaRequired && !a.mfaVerified);
+      }
     } catch (e) {
       Alert.alert(`${SCHOOL.newsName} didn't load`, errorText(e));
       setIssues([]);
@@ -59,9 +67,15 @@ export default function RoyalNews() {
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 12 }]} keyboardShouldPersistTaps="handled">
       {header}
       <P muted>The school's newsletter, emailed to families. Every issue stays here to look back on.</P>
+      {needsCode && (
+        <Card onPress={() => router.push('/admin')}>
+          <P muted>To add an issue, verify with your authenticator app in the Admin portal first, then come back. ›</P>
+        </Card>
+      )}
+      {canAdd && <Button label="✏️ Write or paste an issue" onPress={() => router.push('/royal-news/write')} />}
       {canAdd && (
         <Card style={{ gap: 8 }}>
-          <H>Add an issue</H>
+          <H>Or add it from Smore</H>
           <Field label="Smore link" placeholder="https://app.smore.com/n/…" autoCapitalize="none" autoCorrect={false}
             keyboardType="url" value={link} onChangeText={setLink} />
           <Button label={busy ? 'Adding…' : `Add to ${SCHOOL.newsName}`} onPress={add} disabled={busy || !link.trim()} />

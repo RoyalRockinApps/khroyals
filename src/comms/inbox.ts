@@ -62,6 +62,8 @@ export function notificationHref(data: Record<string, unknown> | null | undefine
   if (data.albumId) return `/photos/${data.albumId}`;
   if (data.photos) return '/photos';
   if (data.feedbackId) return `/feedback/${data.feedbackId}`;
+  if (data.absenceId) return '/absences';
+  if (data.lunchVisitId) return '/lunch';
   if (data.sportId) return `/activities/${data.sportId}`;
   if (data.groupId) return `/group/${data.groupId}`;
   return null;

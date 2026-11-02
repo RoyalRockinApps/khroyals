@@ -3740,6 +3740,163 @@ test('calendar subscriptions: one private link each, the right events, never a s
   await db.exec(`delete from sports where id = '${club.id}'; delete from personal_events where owner_id = ${id('u-eng')}`);
 });
 
+test('newsletter issues written in the app; each school\'s own data files apply to its project', async () => {
+  const blocks = `'[{"kind":"text","title":"Book Fair","paragraphs":[[{"text":"Monday."}]]}]'::jsonb`;
+  await as('u-eng');
+  await rejects(`select newsletter_write(null, 'Royals News', app.school_today(), ${blocks})`, /permission/);
+  await as('u-admin', true);
+  await rejects(`select newsletter_write(null, '  ', app.school_today(), ${blocks})`, /title/);
+  await rejects(`select newsletter_write(null, 'Royals News', app.school_today(), '[]'::jsonb)`, /Write something/);
+  await rejects(`select newsletter_write(null, 'Royals News', app.school_today(), '[{"kind":"video"}]'::jsonb)`, /can't show/);
+  const nid = (await one(`select newsletter_write(null, 'Royals News', app.school_today(), ${blocks}) id`)).id as string;
+  assert.equal((await one(`select source_url from newsletters where id = '${nid}'`)).source_url, `app:${nid}`);
+  await one(`select newsletter_write('${nid}', 'Royals News (fixed)', app.school_today(), ${blocks})`);
+  assert.equal((await one(`select title from newsletters where id = '${nid}'`)).title, 'Royals News (fixed)');
+  const smore = (await one(`select id from newsletters where source_url like 'https://app.smore.com/%' limit 1`)).id;
+  await rejects(`select newsletter_write('${smore}', 'x', app.school_today(), ${blocks})`, /Only issues written in the app/);
+  await as('u-p01');
+  assert.equal((await one(`select title from newsletters where id = '${nid}'`)).title, 'Royals News (fixed)', 'everyone reads it');
+
+  // Kingdom Heights' own files (its Oct 30 issue) apply cleanly, inside a rolled-back transaction.
+  await asSuper();
+  await db.exec('begin');
+  try {
+    for (const f of readdirSync(join(ROOT, 'supabase/schools/khroyals')).filter((x) => x.endsWith('.sql')).sort()) await db.exec(sql(join('supabase/schools/khroyals', f)));
+    const oct30 = await one(`select title, jsonb_array_length(blocks) n from newsletters where sent_on = '2026-10-30'`);
+    assert.deepEqual(oct30, { title: 'Royals News', n: 9 });
+  } finally {
+    await db.exec('rollback');
+  }
+  await db.exec(`delete from newsletters where id = '${nid}'`);
+});
+
+test('report an absence: parents tell the office and the teachers, who see it on the roll; the office marks it seen', async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;   // in Jennifer's English 10 – Period 3; Rosa's daughter
+  const told = async (who: string, key = 'absenceId') => { await as(who); return (await rows(`select title, body, data from my_notifications() where data ? '${key}'`)); };
+
+  // Only her parents report, from today on, with a time for late or early.
+  await as('u-p02');
+  await rejects(`select * from absence_report('${ava}', 'absent', app.school_today())`, /Only a child's parents/);
+  await as('u-eng');
+  await rejects(`select * from absence_report('${ava}', 'absent', app.school_today())`, /Only a child's parents/);
+  await as('u-p01');
+  await rejects(`select * from absence_report('${ava}', 'absent', app.school_today() - 1)`, /today or a day ahead/);
+  await rejects(`select * from absence_report('${ava}', 'late', app.school_today())`, /What time/);
+  await rejects(`select * from absence_report('${ava}', 'absent', app.school_today(), app.school_today() + 40)`, /30 days/);
+  await rejects(`select * from absence_report('${ava}', 'gone', app.school_today())`, /absent, late or leaving early/);
+  const sick = await one(`select * from absence_report('${ava}', 'absent', app.school_today(), app.school_today() + 1, null, 'sick', 'Fever since last night')`);
+  const late = await one(`select * from absence_report('${ava}', 'late', app.school_today() + 3, null, '10:30', 'appointment')`);
+  assert.equal(String(late.ends_on), String(late.starts_on));
+
+  // Her teacher and the office are told and see it; another family doesn't.
+  const jen = await told('u-eng');
+  assert.ok(jen.some((n) => /^📝 Ava · absent today–|^📝 Ava · absent /.test(n.title) && n.body === 'Fever since last night'), JSON.stringify(jen.map((n) => n.title)));
+  assert.equal((await rows(`select * from absence_list(app.school_today(), 7)`)).length, 2);
+  const roll = (await one(`select class_attendance_roll('eng10-p3') r`)).r;
+  const rosa = (await one(`select app.checkin_name(${id('u-p01')}) n`)).n;   // an earlier test may have renamed her
+  assert.deepEqual(roll.students.find((x: any) => x.id === ava).reported, { kind: 'absent', reason: 'sick', at: null, note: 'Fever since last night', by: rosa });
+  await rejects(`select absence_seen('${sick.id}')`, /permission/);
+  await as('u-p02');
+  assert.equal((await rows(`select * from absence_list(app.school_today(), 7)`)).length, 0);
+  assert.equal((await rows(`select 1 from absence_reports`)).length, 0);
+
+  // The office marks it seen; Rosa hears back.
+  await as('u-ap', true);
+  assert.ok((await told('u-ap')).length >= 2);
+  await as('u-ap', true);
+  const office = await rows(`select * from absence_list(app.school_today(), 7)`);
+  assert.deepEqual(office.map((r) => [r.kind, r.reason, r.at_time, r.classes]), [['absent', 'sick', null, 'English 10 – Period 3'], ['late', 'appointment', '10:30', 'English 10 – Period 3']]);
+  await one(`select absence_seen('${sick.id}')`);
+  assert.ok((await told('u-p01')).some((n) => n.title === '✅ The office got it'));
+
+  // Rosa calls the late arrival off; it's gone from the roll's day and everyone's told.
+  await as('u-p02');
+  await rejects(`select absence_cancel('${late.id}')`, /isn't yours/);
+  await as('u-p01');
+  await one(`select absence_cancel('${late.id}')`);
+  assert.ok((await told('u-eng')).some((n) => n.title.startsWith('↩️ Called off: Ava · arriving late')));
+  await as('u-p01');
+  assert.deepEqual((await rows(`select status from absence_list(app.school_today() + 3)`)).map((r) => r.status), ['cancelled']);
+  await asSuper();
+  await db.exec(`delete from absence_reports`);
+});
+
+test('lunch visits: the office opens lunch times, families book after reading the allergy notes, staff see who is coming', async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;   // 10th grade; Rosa's daughter; in Jennifer's class
+  // A school day next week that the calendar doesn't close.
+  await asSuper();
+  const day = (await one(`select d::date as d from generate_series(app.school_today() + 1, app.school_today() + 20, interval '1 day') d
+    where extract(isodow from d) between 1 and 5 and not app.lunch_closed(d::date) limit 1`)).d;
+  const dow = (await one(`select extract(isodow from '${String(day.toISOString?.() ?? day).slice(0, 10)}'::date)::int n`)).n;
+  const ymd = String(day.toISOString?.() ?? day).slice(0, 10);
+  await db.exec(`insert into student_details (student_id, allergies) values ('${ava}', 'Peanuts (severe)')
+                 on conflict (student_id) do update set allergies = excluded.allergies`);
+
+  // Only lunch.manage sets the lunch times; it's an admin power.
+  await as('u-eng');
+  await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '11:30', '12:00', 9, 12, 3)`, /permission/);
+  await as('u-ap', true);
+  await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[6], '11:30', '12:00', 9, 12, 3)`, /weekdays/);
+  await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '12:00', '11:30', 9, 12, 3)`, /ends after/);
+  const w = await one(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '11:30', '12:00', 9, 12, 3)`);
+  const little = await one(`select * from lunch_window_save(null, 'K–2nd lunch', array[1,2,3,4,5], '10:45', '11:15', 0, 2, 10)`);
+
+  // Rosa sees Ava's open lunches (not the K–2nd one), reads the allergy notes, and books with one guest.
+  await as('u-p01');
+  const slots = await rows(`select * from lunch_slots('${ava}', '${ymd}', 1)`);
+  assert.deepEqual(slots.map((x) => [x.name, x.spots_left]), [['Upper school lunch', 3]]);
+  const notes = await one(`select * from lunch_allergy_notes('${w.id}', '${ava}')`);
+  assert.equal(notes.own, 'Peanuts (severe)');
+  assert.ok(notes.others.includes('Peanuts (severe)'), 'allergies in those grades, without names');
+  assert.ok(!JSON.stringify(notes.others).includes('Ava'));
+  await rejects(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 1, '', false)`, /allergy notes/);
+  await rejects(`select * from lunch_visit_book('${little.id}', '${ymd}', '${ava}', 0, '', true)`, /isn't for this child's grade/);
+  await rejects(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 4, '', true)`, /up to 3 guests/);
+  const visit = await one(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 1, 'Bringing grandma', true)`);
+  await rejects(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 0, '', true)`, /already coming/);
+  assert.equal((await one(`select spots_left from lunch_slots('${ava}', '${ymd}', 1)`)).spots_left, 1);
+
+  // Not anyone's child: another parent can't book or see it; it fills up.
+  await as('u-p02');
+  await rejects(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 0, '', true)`, /Only a child's parents/);
+  assert.equal((await rows(`select 1 from lunch_visits`)).length, 0);
+  assert.equal((await rows(`select * from lunch_slots('${ava}', '${ymd}', 1)`)).length, 0);
+
+  // Her teacher is told; staff see the day's visitors with the child's allergies.
+  await as('u-eng');
+  assert.ok((await rows(`select title from my_notifications() where data ? 'lunchVisitId'`)).some((n) => /🍎 Ros\w+ R\. is coming to lunch with Ava/.test(n.title)));
+  const list = await rows(`select * from lunch_visitors('${ymd}')`);
+  assert.deepEqual(list.map((x) => [x.visitor, x.student, x.guests, x.allergies, x.note]),
+    [[(await one(`select app.checkin_name(${id('u-p01')}) n`)).n, 'Ava Reyes', 1, 'Peanuts (severe)', 'Bringing grandma']]);
+  assert.ok(['parent', 'mother'].includes(list[0].relation));
+  await as('u-p02');
+  assert.equal((await rows(`select * from lunch_visitors('${ymd}')`)).length, 0, 'families don\'t see the list');
+
+  // A closed day cancels its visits and tells the visitor; the visitor can also call one off.
+  await as('u-ap', true);
+  await one(`select lunch_close_day('${ymd}', true, 'Field day')`);
+  await as('u-p01');
+  assert.equal((await one(`select status from lunch_visits where id = '${visit.id}'`)).status, 'cancelled');
+  assert.ok((await rows(`select body from my_notifications() where data->>'lunchVisitId' = '${visit.id}'`)).some((n) => /Field day/.test(n.body)));
+  assert.equal((await rows(`select * from lunch_slots('${ava}', '${ymd}', 1)`)).length, 0, 'closed');
+  await as('u-ap', true);
+  await one(`select lunch_close_day('${ymd}', false)`);
+  await as('u-p01');
+  const again = await one(`select * from lunch_visit_book('${w.id}', '${ymd}', '${ava}', 0, '', true)`);
+  await as('u-p02');
+  await rejects(`select lunch_visit_cancel('${again.id}')`, /permission/);
+  await as('u-p01');
+  await one(`select lunch_visit_cancel('${again.id}')`);
+  await as('u-eng');
+  assert.ok((await rows(`select title from my_notifications() where data->>'lunchVisitId' = '${again.id}'`)).some((n) => n.title === '🍎 Lunch visit called off'));
+
+  await as('u-ap', true);
+  await one(`select lunch_window_delete('${w.id}')`);
+  await one(`select lunch_window_delete('${little.id}')`);
+  await asSuper();
+  await db.exec(`delete from lunch_visits; update student_details set allergies = '' where student_id = '${ava}'`);
+});
+
 test('the bell counts new notifications until the bell page opens them', async () => {
   await as('u-p04');
   await one('select clear_my_notifications()');

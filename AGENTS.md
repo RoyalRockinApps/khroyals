@@ -178,6 +178,21 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   activity's coaches and directors, `checkout_list_for_event`) or a teacher's own list from the sections they lead
   (`checkout_list_save`); `app.manages_checkout` decides who runs one. Parents are notified of every check-in and
   release (`app.notify_parents`). Reasons are in both `src/checkin/labels.ts` and the database check.
+- **Absences** (`absence_reports`; `app/absences.tsx`, Apps → Absences, and Attendance → Absences reported by parents): only a
+  child's parents (`app.is_guardian_of`, never Family accounts) report absent (one or several days), arriving late or leaving
+  early, with a reason (`absence_report`, today to 90 days ahead) or call it off (`absence_cancel`). The office
+  (`checkin.manage`, `app.office_team`) and the teachers of the child's sections are told and read them
+  (`app.reads_absences`, `absence_list`); the office marks one seen and the parents hear back (`absence_seen`). The class
+  roll shows the day's report (`class_attendance_roll` → `reported`). Kinds and reasons are in both
+  `src/absences/labels.ts` and the database checks (`tests/absences.test.ts`).
+- **Lunch visits** (`lunch_windows`, `lunch_closed_days`, `lunch_visits`; `app/lunch`, Apps → Lunch Visits): open to Family
+  accounts on purpose (grandparents visit). Parents and the family the office linked (`app.lunch_kids`) book a lunch time for
+  their child's grade on an open day (`lunch_slots`, `lunch_visit_book`: weekday, not `app.lunch_closed`, within the window's
+  daily `capacity` counting guests) only after confirming they read the allergy notes and rules (`p_read_allergies`;
+  `lunch_allergy_notes`: the child's own for parents and staff, and the allergies in those grades **without names**). The
+  child's teachers are told. Staff see the day's visitors with each child's allergies (`lunch_visitors`). `lunch.manage`
+  (directors, administrators, office; an admin power) sets lunch times, closed days and rules (`lunch_window_save`,
+  `lunch_close_day`, `lunch_set_rules`) and cancels visits (`lunch_visit_cancel`; the visitor is told).
 - **Class attendance** (`class_attendance`; the Attendance app, which also holds the event check-out lists): a
   section's lead teacher marks each student present, late or absent (`class_attendance_mark`, today or the last two
   weeks); `checkin.manage` holders take any section's and see every one (`attendance_overview`). `app.takes_roll`
@@ -246,7 +261,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   wear" card shows the day's themes for the person's grade or children above the usual uniform
   (`dressFor` in `src/info/today.ts`).
 - **Royal News** (`newsletters`; the newsletter made in Smore): everyone reads the archive (signed out
-  too); `push.send` holders add an issue by pasting its Smore link (the `import-newsletter` Edge
+  too); `push.send` holders **write or paste** an issue in the app (`app/royal-news/write.tsx`; `src/news/compose.ts`
+  shapes the text into blocks; `newsletter_write`, `source_url` = `app:<id>`, changeable later) or add one by pasting its Smore link (the `import-newsletter` Edge
   Function fetches only `app.smore.com/n/…` pages, parses them with `smore.ts` and saves through
   `newsletter_save` as the caller) or delete one. The parser drops Smore's tracking links (they can
   carry the reader's email); keep it that way.

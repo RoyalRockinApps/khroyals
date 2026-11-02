@@ -185,6 +185,9 @@ Working in the app and on the server today.
 | School site | Handbook | Page-by-page reader with search and highlighting, works signed out |
 | Royals Connect | Groups | Chat, Discussion Board, Announcements and Q&A styles, each action's "who can" set separately |
 | Royals Connect | Moderation | Lock, approval queues, slow mode, quiet hours, mutes, pinning, audit log |
+| Attendance | Absences | Parents report absent, late or leaving early with a reason; the office and teachers are told, see it on the roll, and the office marks it seen |
+| Families | Lunch visits | Parents and linked family book a lunch time with their child after reading the allergy notes and rules; the office sets times, capacity and closed days; staff see who's coming |
+| Royal News | Write or paste an issue | Staff with Send notifications write an issue in the app or paste the newsletter's text, besides adding it from its Smore link |
 | Royals Connect | Hide, archive, delete | Members hide a group from their own list; owners archive a group (gone for everyone else, restorable) and delete an archived one for good |
 | Royals Connect | Auto-membership | Rules add people by role, grade, section, team or club, plus their guardians |
 | Royals Connect | Post stats and following | Who saw each post, opens, reactions; follow a post for reply notifications |

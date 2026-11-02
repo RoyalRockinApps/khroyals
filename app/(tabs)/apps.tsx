@@ -33,6 +33,8 @@ const ALL_APPS: App[] = [
   { label: 'Student', image: TILES.student, icon: 'school', color: SCHOOL.theme.dark, href: '/student', family: false, inStaffView: false },
   { label: 'Calendar', image: TILES.calendar, icon: 'calendar', color: SCHOOL.theme.dark, href: '/calendar', sub: true },
   { label: 'My Calendar', icon: 'calendar-number', color: SCHOOL.theme.dark, href: '/my-calendar', staffOnly: true },
+  { label: 'Absences', icon: 'bed', color: SCHOOL.theme.dark, href: '/absences', family: false, student: false },
+  { label: 'Lunch Visits', icon: 'restaurant', color: SCHOOL.theme.dark, href: '/lunch', student: false },
   { label: 'Attendance', icon: 'clipboard', color: SCHOOL.theme.dark, href: '/attendance', staffOnly: true },
   { label: 'News', image: TILES.news, icon: 'newspaper', color: SCHOOL.theme.dark, href: '/news', sub: true, inStaffView: false },
   { label: 'Photos', icon: 'images', color: SCHOOL.theme.dark, href: '/photos' },
