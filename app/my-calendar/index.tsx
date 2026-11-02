@@ -2,7 +2,8 @@
  * My calendar, for teachers and staff: one list, day by day, of their own events (meetings,
  * duties), the games they're going to (which follow the schedule: moved or cancelled games update
  * here), and, shown lighter with a dashed edge, the games, performances and meets students in
- * their classes are signed up for, with who's in them. "I'll be there" stars one (and can tell
+ * their classes are signed up for, with who's in them as a row of their photos under the time
+ * (names only for screen readers and in "I'll be there"). "I'll be there" stars one (and can tell
  * those students and their parents). Filters: All, Mine, My students'. Every event can be added to
  * Google, Outlook, Yahoo or Apple, and the whole calendar subscribed to (names stay in the app).
  * Like every calendar in the app, past items stay behind "Show past" and look greyed out.
@@ -10,9 +11,8 @@
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import {
-  errorText, isSchoolStaff, live, myCalendar, planStudentEvent, session, studentEvents,
+  errorText, getUser, isSchoolStaff, live, myCalendar, planStudentEvent, session, studentEvents,
   type MyCalendarItem, type Person, type StudentEvent,
 } from '../../src/api/connect';
 import { isPastDay, isPastTime, schoolToday, splitPast } from '../../src/calendar/past';
@@ -23,7 +23,7 @@ import { dayOf, addDays } from '../../src/info/today';
 import { AddToCalendar } from '../../src/calendar/AddToCalendar';
 import { chicagoIso, type CalEvent } from '../../src/calendar/addTo';
 import { SubscribeCard } from '../../src/calendar/SubscribeCard';
-import { Button, C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
+import { Avatar, Button, C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
 
 type Filter = 'all' | 'mine' | 'students';
 type Data = { me: Person | null; mine: MyCalendarItem[]; students: StudentEvent[] };
@@ -114,26 +114,21 @@ export default function MyCalendar() {
   const split = splitPast(entries, (x) => x.past);
   const shown = [...(past.shown ? split.past : []), ...split.upcoming];
 
-  const who = (list: { name: string }[]) => list.length > 0 && (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-      <Ionicons name="people-outline" size={16} color={C.muted} style={{ marginTop: 2 }} />
-      <Text style={{ flex: 1, color: C.ink }}>{list.map((x) => x.name).join(', ')}</Text>
-    </View>
-  );
-
   const mineCard = (x: Extract<Entry, { kind: 'mine' }>) => {
     const i = x.item;
     return (
       <Card key={x.key} onPress={() => open(i)} style={{ gap: 6, ...(x.past ? PAST_STYLE : null) }}>
         <View style={{ flexDirection: 'row', gap: 12 }}>
-          <Text style={{ width: 92, fontWeight: '800', color: i.cancelled ? C.muted : C.primary }}>{itemTime(i.startTime, i.endTime)}</Text>
+          <View style={{ width: TIME_WIDTH, gap: 8 }}>
+            <Text style={{ fontWeight: '800', color: i.cancelled ? C.muted : C.primary }}>{itemTime(i.startTime, i.endTime)}</Text>
+            <Faces students={x.students} />
+          </View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={{ fontWeight: '700', color: C.ink, textDecorationLine: i.cancelled ? 'line-through' : 'none' }}>{i.title}</Text>
             {!!i.location && <P muted>{i.location}</P>}
             {!!i.notes && <P muted>{i.notes}</P>}
           </View>
         </View>
-        {who(x.students)}
         <View style={[s.row, { alignItems: 'center', flexWrap: 'wrap' }]}>
           {i.sportEventId && <Chip label="★ Going" color="#0D9488" />}
           {i.cancelled && <Chip label="Cancelled" color={C.danger} />}
@@ -150,14 +145,16 @@ export default function MyCalendar() {
     return (
       <Card key={x.key} style={{ gap: 6, borderStyle: 'dashed', backgroundColor: '#FBFCFE', ...(x.past ? PAST_STYLE : null) }}>
         <Pressable onPress={() => router.push(`/activities/${e.sportId}`)} style={{ flexDirection: 'row', gap: 12 }}>
-          <Text style={{ width: 92, fontWeight: '800', color: C.muted }}>{clock(e.startsAt)}</Text>
+          <View style={{ width: TIME_WIDTH, gap: 8 }}>
+            <Text style={{ fontWeight: '800', color: C.muted }}>{clock(e.startsAt)}</Text>
+            <Faces students={e.students} />
+          </View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={{ color: C.muted, fontWeight: '700' }}>{e.sportIcon} {e.sportName}</Text>
             <Text style={{ fontWeight: '700', color: C.ink, textDecorationLine: e.cancelled ? 'line-through' : 'none' }}>{e.title}</Text>
             {!!e.location && <P muted>{e.location}</P>}
           </View>
         </Pressable>
-        {who(e.students)}
         {e.cancelled ? <View style={s.row}><Chip label="Cancelled" color={C.danger} /></View> : !x.past && (
           <View style={[s.row, { alignItems: 'center', flexWrap: 'wrap', gap: 14 }]}>
             <Text onPress={() => busy !== e.id && tellAndPlan(e)} accessibilityRole="button" style={{ color: C.primary, fontWeight: '800' }}>☆ I’ll be there</Text>
@@ -185,6 +182,40 @@ export default function MyCalendar() {
       ))}
       <SubscribeCard staff />
     </ScrollView>
+  );
+}
+
+const TIME_WIDTH = 92;
+const FACE = 30;      // each photo, with its white ring
+const STEP = 20;      // how far along the next one starts (they overlap by a third)
+
+/**
+ * Who's in it, as overlapping photos (initials when there's no photo) in the space under the time: up to four, or
+ * three and "+N". The names are there for screen readers.
+ */
+function Faces({ students }: { students: { id: string; name: string }[] }) {
+  if (!students.length) return null;
+  const max = Math.floor((TIME_WIDTH - FACE) / STEP) + 1;
+  const shown = students.length > max ? students.slice(0, max - 1) : students;
+  const more = students.length - shown.length;
+  const ring = { position: 'absolute' as const, top: 0, width: FACE, height: FACE, borderRadius: FACE / 2, borderWidth: 2, borderColor: '#fff', overflow: 'hidden' as const };
+  return (
+    <View accessible accessibilityLabel={`${students.length === 1 ? 'Student' : 'Students'} in it: ${students.map((x) => x.name).join(', ')}`}
+      style={{ height: FACE, width: FACE + STEP * (shown.length + (more ? 1 : 0) - 1) }}>
+      {shown.map((x, i) => {
+        const [first, ...rest] = x.name.split(' ');
+        return (
+          <View key={x.id} style={[ring, { left: i * STEP, zIndex: shown.length - i, backgroundColor: '#fff' }]}>
+            <Avatar person={{ firstName: first, lastName: rest.join(' '), avatar: getUser(x.id)?.avatar }} size={FACE - 4} />
+          </View>
+        );
+      })}
+      {more > 0 && (
+        <View style={[ring, { left: shown.length * STEP, zIndex: 0, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 11 }}>+{more}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 

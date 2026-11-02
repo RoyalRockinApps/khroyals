@@ -170,7 +170,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
   cancellation live), so never copy schedule details into it. **My students** (`student_events`) shows a
   teacher the activity items students in the sections they lead are registered for (`app.class_students_in`):
-  names only, never RSVPs. `student_event_plan` with tell notifies those students (with a login) and their
+  names only (the cards show them as the students' photos under the time), never RSVPs. `student_event_plan` with tell notifies those students (with a login) and their
   parents once, when the item is first added.
 - **Calendar subscriptions** (`calendar_feeds`, `calendar_feed_token`, `calendar_feed_events`, `calendar_event`; the
   `calendar-feed` Edge Function, no JWT: the link's key is the only way in, `calendar_feed_events` is open to anon).

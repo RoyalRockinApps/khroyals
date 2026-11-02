@@ -424,7 +424,8 @@ list, day by day: their own events (meetings, duties, grades due; `personal_even
 `personal_event_save` / `personal_event_delete`), the activity items they're going to (★ Going; they follow
 the schedule, so a moved or cancelled game moves or shows *Cancelled* too, `my_calendar`), and, lighter with a
 dashed edge, the games, performances and meets students in the sections they lead are registered for, with
-which of their students take part (`student_events`; never "Are you going?" answers). *I'll be there* stars
+which of their students take part, as a row of their photos under the time (`student_events`; never "Are you
+going?" answers). *I'll be there* stars
 one and tells those students (with a login) and their parents, once; *Add without telling* doesn't
 (`student_event_plan`). Filters: All, Mine, My students'. The Planner tab shows the day's items.
 
