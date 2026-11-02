@@ -3223,7 +3223,7 @@ test("volunteer events: the event's leader puts its opportunities in order", asy
     delete from volunteer_opportunities where id in ('${water}', '${setup}', '${booths}'); delete from volunteer_events`);
 });
 
-test('volunteer check-in: volunteers scan the QR code to check in and out, leaders mark who came, and leaders and the office see the hours', async () => {
+test('volunteer check-in: volunteers scan the QR code to check in and out, leaders mark who came, and Volunteer Leaders and directors see the hours', async () => {
   await asSuper();
   await db.exec(`delete from volunteer_opportunities; delete from volunteer_events`);
   const [jen, rosa, wei, dana, sun, mark8, priya] = ['u-eng', 'u-p01', 'u-p02', 'u-p03', 'u-p04', 'u-p08', 'u-p07'];
@@ -3355,14 +3355,30 @@ test('volunteer check-in: volunteers scan the QR code to check in and out, leade
   assert.deepEqual(await rows(`select title, body from my_notifications() where data->>'opportunityId' = '${bake}'`),
     [{ title: '📍 Check in: Bake sale', body: 'It starts at 10:00 AM at Gym. Scan the check-in QR code when you get there.' }]);
 
-  // Everyone sees their own history; only Volunteer Leaders and the office see anyone else's, and the analytics.
+  // Everyone sees their own history; only Volunteer Leaders and directors see anyone else's, and the analytics.
   assert.deepEqual(await rows(`select title, status, minutes from volunteer_history(${id(rosa)}) order by day, title`), [
     { title: 'Car wash', status: 'done', minutes: 150 },
     { title: 'Library shelving', status: 'done', minutes: 0 },
     { title: 'Bake sale', status: 'coming', minutes: null },
   ]);
-  await rejects(`select * from volunteer_history(${id(wei)})`, /for Volunteer Leaders and the office/);
-  await rejects(`select * from volunteer_stats()`, /for Volunteer Leaders and the office/);
+  await rejects(`select * from volunteer_history(${id(wei)})`, /for Volunteer Leaders and directors/);
+  await rejects(`select * from volunteer_stats()`, /for Volunteer Leaders and directors/);
+  // Not the rest of the office (groups.manage runs check-in, but doesn't see the analytics); a director only once verified.
+  await asSuper();
+  const tier = async (k: string) => (await one(`select admin_tier from profiles where id = ${id(k)}`)).admin_tier;
+  const director = (await tier('u-admin')) === 'director' ? 'u-admin' : 'u-ap';
+  const administrator = director === 'u-admin' ? 'u-ap' : 'u-admin';
+  assert.equal(await tier(director), 'director');
+  assert.notEqual(await tier(administrator), 'director');
+  assert.equal((await one(`select app.has_permission('groups.manage', ${id(administrator)}) as ok`)).ok, true);
+  await as(administrator, true);
+  await rejects(`select * from volunteer_stats()`, /for Volunteer Leaders and directors/);
+  await rejects(`select * from volunteer_history(${id(rosa)})`, /for Volunteer Leaders and directors/);
+  await as(director);
+  await rejects(`select * from volunteer_stats()`, /for Volunteer Leaders and directors/);
+  await as(director, true);
+  assert.ok((await rows(`select * from volunteer_stats()`)).length > 0);
+  assert.equal((await rows(`select * from volunteer_history(${id(rosa)})`)).length, 3);
   await as(jen);
   assert.deepEqual((await rows(`select status from volunteer_history(${id(mark8)})`)).map((r) => r.status), ['missed']);
   const stats = async (args = '') => Object.fromEntries((await rows(`select * from volunteer_stats(${args})`)).map((r) => [r.user_id, r]));
@@ -3385,10 +3401,15 @@ test('volunteer check-in: volunteers scan the QR code to check in and out, leade
   assert.equal(s[u[rosa]].shifts, 1);
   assert.equal(s[u[mark8]], undefined);
 
-  // The office sets how much is a lot; then the busiest are flagged.
+  // A director sets how much is a lot (not a Volunteer Leader or the rest of the office); then the busiest are flagged.
   assert.equal((await one(`select volunteer_busy_limits() as l`)).l.canEdit, false);
-  await rejects(`select volunteer_set_busy_limits(2, 3)`, /don't have permission/);
-  await as('u-admin', true);
+  await rejects(`select volunteer_set_busy_limits(2, 3)`, /Only a director/);
+  await as(administrator, true);
+  assert.equal((await one(`select volunteer_busy_limits() as l`)).l.canEdit, false);
+  await rejects(`select volunteer_set_busy_limits(2, 3)`, /Only a director/);
+  await as(director);
+  await rejects(`select volunteer_set_busy_limits(2, 3)`, /MFA_REQUIRED/);
+  await as(director, true);
   assert.deepEqual((await one(`select volunteer_busy_limits() as l`)).l, { hours: 12, shifts: 6, canEdit: true });
   await rejects(`select volunteer_set_busy_limits(0, 3)`, /from 1 to 200/);
   await one(`select volunteer_set_busy_limits(2, 3)`);

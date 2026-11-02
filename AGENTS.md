@@ -242,10 +242,12 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`app.runs_volunteer`) mark anyone here (today), done (its scheduled time unless they correct it) or a no-show, or
   clear the mark (`volunteer_mark`). Anyone still checked in overnight is checked out at the end time
   (`app.close_volunteer_days`). **Analytics** (`volunteer_stats`; Volunteer → Volunteer analytics) are for Volunteer
-  Leaders and `groups.manage` (`app.sees_volunteer_stats`): shifts, hours, no-shows, past shifts nobody marked and days
-  led, and `busy` when someone is over `volunteer_busy_limits` (hours or shifts in the last 30 days, leading included, or
-  shifts signed up for in the next 30). `groups.manage` sets the limits. Everyone reads their own `volunteer_history`
-  (My sign-ups → My volunteer hours).
+  Leaders and directors only (`app.sees_volunteer_stats`; `app.is_director` counts only in an `aal2` session, so the
+  screen asks directors for their authenticator code), never the rest of the office: shifts, hours, no-shows, past
+  shifts nobody marked and days led, and `busy` when someone is over `volunteer_busy_limits` (hours or shifts in the last
+  30 days, leading included, or shifts signed up for in the next 30). Directors set the limits. Everyone reads their own
+  `volunteer_history` (My sign-ups → My volunteer hours); leaders and directors read anyone's. Sample history for two
+  school years (high, normal and low volunteers) comes with `scripts/presentation_data.mjs`.
 - **Event tickets** (`ticketed_events`, `ticket_types`, `ticket_orders`, `tickets`; all inside Activities: My Tickets
   from its header, *Sell tickets* on an event): an activity's leaders (`app.runs_tickets`: coaches, directors, `sports.manage`) set kinds, prices, limits and
   sales (`ticket_event_save`) and check tickets at the door (`ticket_admit`: the QR code `KHT-<code>` or the short code, once

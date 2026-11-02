@@ -3,8 +3,9 @@
  * Sample data for showing the app to the school: made-up teachers, a coach, a director,
  * front office staff and ten families (parents and students without logins), with classes,
  * assignments, forms (signed, paid and still to do), marketplace listings, activities and
- * volunteering (Harvest Fest, an event with its ways to help inside and its photo album, and a few
- * opportunities on their own). The grade albums are the school's own (made each year), not sample data. It centers on one real test account: their children are in the
+ * volunteering (Harvest Fest, an event with its ways to help inside and its photo album, a few
+ * opportunities on their own, and two school years of past shifts with who came, for the volunteer
+ * analytics: steady helpers, ordinary ones and ones who often don't show). The grade albums are the school's own (made each year), not sample data. It centers on one real test account: their children are in the
  * classes and get the forms, they teach one class themselves (the Staff view), and a second
  * login can become a 6th grader in two of the classes (the student view). The school's real
  * activities stay as they are; the younger child (and two made-up classmates) join Royals
@@ -13,7 +14,8 @@
  *   SUPABASE_ACCESS_TOKEN=… node scripts/presentation_data.mjs --parent <email> [--student <email>]
  *     [--day 2026-10-27] [--only volunteer] [--remove] [--print]
  *
- * --day is the day it'll be shown (dates are around it; default: the next school day).
+ * --day is the day it'll be shown (dates are around it; default: the next school day). The past
+ * volunteer shifts go by the school's real today, so the analytics' last 30 days are right.
  * --only volunteer refreshes just the volunteering (the rest of the sample data must be there).
  * Nothing is sent: rows are written directly, so nobody gets a notification, and forms and
  * classes only reach the parent's children and the made-up families. Every row has a fixed
@@ -57,6 +59,16 @@ export function schoolDay(day, n) {
 const at = (date, time) => ({ ts: `${date} ${time} America/Chicago` });
 /** The Saturday on or after a day. */
 const saturdayFrom = (iso) => { let d = iso; while (new Date(`${d}T12:00:00Z`).getUTCDay() !== 6) d = addDays(d, 1); return d; };
+/** The day itself, or the Monday after it if it's a weekend. */
+const weekday = (iso) => { let d = iso; while (weekend(d)) d = addDays(d, 1); return d; };
+/** The Monday of a day's week. */
+const mondayOf = (iso) => addDays(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7));
+/** A month and day (MM-DD) in the school year that starts in July of `year`. */
+const inSchoolYear = (year, md) => `${Number(md.slice(0, 2)) >= 7 ? year : year + 1}-${md}`;
+/** A steady number from 0 to 1 for a key, so the made-up shifts come out the same every time. */
+const chance = (key) => parseInt(createHash('md5').update(`khroyals-presentation:${key}`).digest('hex').slice(0, 8), 16) / 2 ** 32;
+const minutesOf = (hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const pretty = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
 const ordinal = (g) => (g === 0 ? 'Kindergarten' : g < 0 ? ['K2', 'K3', 'K4'][g + 3] : `${g}${g === 1 ? 'st' : g === 2 ? 'nd' : g === 3 ? 'rd' : 'th'}`);
 
@@ -87,6 +99,98 @@ const staff = (k) => uid(`staff:${k}`);
 const parent = (k) => uid(`parent:${k}`);
 const kid = (k) => uid(`kid:${k}`);
 
+/**
+ * Past volunteering, for the analytics: who helps how much each school year ('me' is the test parent). High: there
+ * every time. Normal: nearly always. Low: often a no-show, or nobody marked them. Bennett slipped from high to low
+ * this year and Patel rose to high; Rivera, Wright and Patel have done a lot in the last 30 days.
+ */
+const HELPERS = {
+  last: { high: ['rivera', 'wright', 'bennett'], normal: ['patel', 'johnson', 'kim', 'chen', 'taylor', 'me'], low: ['adams', 'moore', 'thompson', 'davis'] },
+  this: { high: ['rivera', 'wright', 'patel'], normal: ['johnson', 'kim', 'chen', 'moore', 'thompson', 'taylor', 'me'], low: ['bennett', 'adams', 'davis'] },
+};
+/** The ways to help that come round every year (days: how many days in a row it runs). */
+const SHIFTS = {
+  supplies: { title: 'Back-to-school supply sort', start: '09:00', end: '12:00', location: 'Front office', spots: 8,
+    description: 'Sort the donated supplies into homeroom bins before the first day.' },
+  picture: { title: 'Picture day helpers', start: '08:00', end: '11:30', location: 'Gym', spots: 6, description: 'Line classes up, fix collars and hand out combs.' },
+  grandparents: { title: "Grandparents' Day greeters", start: '08:00', end: '10:00', location: 'Front entrance', spots: 6,
+    description: 'Welcome grandparents and walk them to classrooms.' },
+  festival: { title: 'Fall Festival booths', start: '10:00', end: '14:00', location: 'Front lawn', spots: 15, description: 'Run a game booth for the afternoon.' },
+  copying: { title: 'Workroom copying help', start: '09:00', end: '11:00', location: 'Teacher workroom', spots: 2, description: 'Copy and staple next week’s packets.' },
+  homecoming: { title: 'Homecoming concessions', start: '17:30', end: '21:00', location: 'Concession stand', spots: 8,
+    description: 'Popcorn, drinks and the cash box at the homecoming game.' },
+  bookfair: { title: 'Book Fair cashiers', start: '11:00', end: '13:00', location: 'Library', spots: 4, days: 4, description: 'Ring up books at lunch, every day of the fair.' },
+  thanksgiving: { title: 'Thanksgiving lunch servers', start: '10:30', end: '13:00', location: 'Cafeteria', spots: 10, description: 'Serve plates at the all-school Thanksgiving lunch.' },
+  christmas: { title: 'Christmas Program ushers', start: '17:00', end: '20:00', location: 'Auditorium', spots: null, description: 'Hand out programs and help families find seats.' },
+  library: { title: 'Library book shelving', start: '09:00', end: '11:00', location: 'Library', spots: 3, description: 'Shelve returns and tidy the reading corner.' },
+  carline: { title: 'Car line helpers', start: '14:45', end: '15:30', location: 'Front circle', spots: 4, days: 5, description: 'Open car doors and walk students to their cars, all week.' },
+  carnival: { title: 'Spring carnival', start: '10:00', end: '15:00', location: 'Front lawn', spots: 20, description: 'Games, the bounce house line and the snack table.' },
+  appreciation: { title: 'Teacher appreciation lunch', start: '11:00', end: '13:30', location: "Teachers' lounge", spots: 6,
+    description: 'Set up, serve and clean up lunch for the faculty.' },
+  fieldday: { title: 'Field Day station leaders', start: '08:30', end: '14:30', location: 'Back field', spots: 12, description: 'Run a Field Day station with a buddy.' },
+  graduation: { title: 'Graduation set-up', start: '15:00', end: '18:00', location: 'Auditorium', spots: 8, description: 'Chairs, flowers and the stage for graduation night.' },
+};
+
+/**
+ * Two school years of past shifts up to (not including) `today`: last school year's, and this one's so far, the
+ * most recent in the last few weeks. Each has who said yes ('me' is the test parent); shiftOutcome says what
+ * happened each day.
+ * @param {string} today
+ */
+export function volunteerHistory(today) {
+  const [y, m] = today.split('-').map(Number);
+  const year = m >= 7 ? y : y - 1;   // this school year starts in July of it
+  const monday = mondayOf(today);
+  const plan = [
+    ['last', 'supplies', weekday(inSchoolYear(year - 1, '08-06')), ['rivera', 'wright', 'bennett', 'patel', 'kim', 'adams']],
+    ['last', 'picture', weekday(inSchoolYear(year - 1, '09-10')), ['rivera', 'bennett', 'johnson', 'chen', 'moore']],
+    ['last', 'festival', saturdayFrom(inSchoolYear(year - 1, '10-13')), ['rivera', 'wright', 'bennett', 'patel', 'johnson', 'kim', 'chen', 'taylor', 'me', 'adams', 'thompson']],
+    ['last', 'bookfair', mondayOf(inSchoolYear(year - 1, '11-12')), ['rivera', 'bennett', 'kim', 'davis']],
+    ['last', 'thanksgiving', weekday(inSchoolYear(year - 1, '11-20')), ['wright', 'bennett', 'patel', 'johnson', 'chen', 'moore', 'davis']],
+    ['last', 'christmas', weekday(inSchoolYear(year - 1, '12-11')), ['rivera', 'wright', 'kim', 'taylor', 'me', 'thompson']],
+    ['last', 'library', weekday(inSchoolYear(year - 1, '01-21')), ['bennett', 'patel', 'adams']],
+    ['last', 'carline', mondayOf(inSchoolYear(year - 1, '02-11')), ['rivera', 'wright', 'chen', 'moore']],
+    ['last', 'carnival', saturdayFrom(inSchoolYear(year - 1, '03-23')), ['rivera', 'wright', 'bennett', 'patel', 'johnson', 'kim', 'chen', 'me', 'adams', 'thompson', 'davis']],
+    ['last', 'appreciation', weekday(inSchoolYear(year - 1, '05-05')), ['bennett', 'patel', 'johnson', 'moore']],
+    ['last', 'fieldday', weekday(inSchoolYear(year - 1, '05-15')), ['rivera', 'wright', 'bennett', 'kim', 'chen', 'me', 'adams', 'moore']],
+    ['last', 'graduation', weekday(inSchoolYear(year - 1, '05-21')), ['rivera', 'wright', 'johnson', 'thompson']],
+    ['this', 'supplies', weekday(inSchoolYear(year, '08-05')), ['rivera', 'wright', 'patel', 'kim', 'thompson', 'bennett']],
+    ['this', 'picture', weekday(inSchoolYear(year, '09-09')), ['rivera', 'patel', 'johnson', 'moore', 'adams']],
+    ['this', 'grandparents', weekday(inSchoolYear(year, '09-18')), ['wright', 'patel', 'chen', 'taylor', 'me', 'davis']],
+    // The last few weeks: a Friday, a Thursday and a Friday, then two whole weeks.
+    ['this', 'copying', addDays(monday, -24), ['patel', 'johnson']],
+    ['this', 'library', addDays(monday, -18), ['patel', 'moore', 'davis']],
+    ['this', 'homecoming', addDays(monday, -17), ['rivera', 'wright', 'kim', 'chen', 'bennett', 'adams']],
+    ['this', 'carline', addDays(monday, -14), ['rivera', 'patel', 'thompson', 'bennett']],
+    ['this', 'bookfair', addDays(monday, -7), ['rivera', 'wright', 'patel', 'me'], 5],
+  ];
+  return plan.map(([when, key, on, who, length]) => {
+    const t = SHIFTS[key];
+    const days = Array.from({ length: length ?? t.days ?? 1 }, (_, i) => addDays(on, i));
+    return { id: uid(`opp:history:${when}:${key}`), when, key, ...t, on, until: days.length > 1 ? days.at(-1) : null, days, who };
+  }).filter((o) => (o.until ?? o.on) < today);
+}
+/** Every history opportunity's id, whatever today is (for taking them out). */
+const historyIds = () => Object.keys(HELPERS).flatMap((when) => Object.keys(SHIFTS).map((key) => uid(`opp:history:${when}:${key}`)));
+
+/**
+ * What happened on one day of a shift for one helper: done (scanned in and out, or marked by the leader with the
+ * scheduled time), a no-show, or nothing (nobody marked it).
+ */
+function shiftOutcome(o, k, day) {
+  const tier = Object.entries(HELPERS[o.when]).find(([, list]) => list.includes(k))?.[0] ?? 'normal';
+  const r = chance(`shift:${o.id}:${k}:${day}`);
+  const status = tier === 'high' ? 'done'
+    : tier === 'normal' ? (r < 0.08 ? 'no_show' : r < 0.12 ? null : 'done')
+    : r < 0.4 ? 'no_show' : r < 0.7 ? null : 'done';
+  if (status !== 'done') return { status };
+  const how = chance(`how:${o.id}:${k}:${day}`);
+  if (how < 0.25) return { status, minutes: minutesOf(o.end) - minutesOf(o.start), byLeader: true };
+  const inAt = minutesOf(o.start) - Math.floor(how * 12);                                  // up to 12 minutes early
+  const outAt = minutesOf(o.end) + Math.round((chance(`out:${o.id}:${k}:${day}`) - 0.5) * 20);   // give or take 10 minutes
+  return { status, in: hhmm(inAt), out: hhmm(outAt), minutes: outAt - inAt };
+}
+
 // ----------------------------------------------------------------------------
 // The data
 
@@ -95,12 +199,13 @@ const kid = (k) => uid(`kid:${k}`);
  * `me` is the test parent's profile id, `children` their children ({ id, grade }, older
  * first), `student` an optional student login's id, `volleyball` an existing season id,
  * `cheer` the real Royals Cheer season's id and `basketball` the real Basketball activity's id.
+ * `today` is the school's real today, for the past volunteer shifts (default: `day`).
  * `only: 'volunteer'` limits it to the volunteering.
- * @param {{ day: string, me: string, children: { id: string, grade: number }[], student?: string | null,
+ * @param {{ day: string, today?: string, me: string, children: { id: string, grade: number }[], student?: string | null,
  *   volleyball?: string | null, cheer?: string | null, basketball?: string | null, remove?: boolean, only?: string | null }} options
  * @returns {string}
  */
-export function buildSql({ day, me, children, student = null, volleyball = null, cheer = null, basketball = null, remove = false, only = null }) {
+export function buildSql({ day, today = day, me, children, student = null, volleyball = null, cheer = null, basketball = null, remove = false, only = null }) {
   const [older, younger] = children;
   const sd = (n) => schoolDay(day, n);
   const ids = { forms: [], threads: [], assignments: [], rosters: [], events: [], sports: [], opps: [], listings: [], people: [] };
@@ -267,8 +372,12 @@ export function buildSql({ day, me, children, student = null, volleyball = null,
     { key: 'food', title: 'Canned food drive', on: sd(8), location: 'Front office', kind: 'items', item: 'canned goods', quantity: 200,
       description: 'For the Huntsville food bank. Soups, vegetables and beans are most needed.', signups: [['wright', 24], ['adams', 12], ['chen', 30]] },
   ];
+  // Past shifts, with who came, for the volunteer analytics.
+  const past = volunteerHistory(today);
+  const helper = (k) => (k === 'me' ? me : STAFF.some((x) => x.key === k) ? staff(k) : parent(k));
+  const shifts = past.flatMap((o) => o.who.flatMap((k) => o.days.map((d) => ({ o, k, d, ...shiftOutcome(o, k, d) }))));
   // Fall Festival booth helpers was on its own before Harvest Fest; taken out with the rest.
-  ids.opps = [...opps.map((o) => uid(`opp:${o.key}`)), uid('opp:festival')];
+  ids.opps = [...opps.map((o) => uid(`opp:${o.key}`)), uid('opp:festival'), ...historyIds()];
   // Sign-ups from real accounts (testers trying the app) survive a refresh; the made-up families' are written again.
   const volunteerDrop = (keep) => [
     keep ? `create temp table kept_signups on commit drop as select s.opportunity_id, s.user_id, s.quantity from public.volunteer_signups s
@@ -291,6 +400,13 @@ export function buildSql({ day, me, children, student = null, volleyball = null,
           o.item ?? null, o.quantity ?? null, o.event ?? null, o.position ?? null, at(sd(-4), '09:00')])),
       insert('volunteer_signups', ['opportunity_id', 'user_id', 'quantity'],
         opps.flatMap((o) => o.signups.map(([k, n]) => [uid(`opp:${o.key}`), who(k), n ?? null]))),
+      insert('volunteer_opportunities', ['id', 'lead_id', 'title', 'description', 'starts_on', 'ends_on', 'start_time', 'end_time', 'location', 'spots', 'kind', 'created_at'],
+        past.map((o) => [o.id, staff('garcia'), o.title, o.description, o.on, o.until, o.start, o.end, o.location, o.spots, 'help', at(addDays(o.on, -21), '09:00')])),
+      insert('volunteer_signups', ['opportunity_id', 'user_id', 'created_at'],
+        past.flatMap((o) => o.who.map((k, i) => [o.id, helper(k), at(addDays(o.on, -14 + (i % 7)), '19:30')]))),
+      insert('volunteer_attendance', ['opportunity_id', 'user_id', 'day', 'status', 'checked_in_at', 'checked_out_at', 'minutes', 'marked_by', 'updated_at'],
+        shifts.filter((x) => x.status).map((x) => [x.o.id, helper(x.k), x.d, x.status, x.in ? at(x.d, x.in) : null, x.out ? at(x.d, x.out) : null,
+          x.minutes ?? null, x.in ? helper(x.k) : staff('garcia'), at(x.d, x.out ?? x.o.end)])),
       `insert into public.volunteer_signups (opportunity_id, user_id, quantity) select k.opportunity_id, k.user_id, k.quantity from kept_signups k
         where exists (select 1 from public.volunteer_opportunities o where o.id = k.opportunity_id) on conflict do nothing;`,
   ];
@@ -427,14 +543,15 @@ async function main() {
     where s.name = 'Royals Cheer' and se.ends_on >= ${lit(day)} order by se.starts_on limit 1`);
   const [basketball] = await q(`select id from public.sports where name = 'Basketball' and id <> ${lit(uid('sport:basketball'))}`);
 
-  const sql = buildSql({ day, me: me.id, children, student: student?.id ?? null, volleyball: vb?.id ?? null,
+  const sql = buildSql({ day, today: today.d, me: me.id, children, student: student?.id ?? null, volleyball: vb?.id ?? null,
     cheer: cheer?.id ?? null, basketball: basketball?.id ?? null, remove: args.includes('--remove'), only: flag('--only') ?? null });
   if (args.includes('--print')) { console.log(sql); return; }
   await q(sql);
   if (args.includes('--remove')) { console.log('Removed the presentation data.'); return; }
   if (flag('--only') === 'volunteer') {
     const [v] = await q(`select (select count(*) from public.volunteer_events where status = 'open') as events,
-      (select count(*) from public.volunteer_opportunities where status = 'open') as opportunities, (select count(*) from public.volunteer_signups) as signups`);
+      (select count(*) from public.volunteer_opportunities where status = 'open') as opportunities, (select count(*) from public.volunteer_signups) as signups,
+      (select count(*) from public.volunteer_attendance) as shifts_marked`);
     console.log(`Volunteering refreshed for ${pretty(day)}: ${JSON.stringify(v)}`);
     return;
   }

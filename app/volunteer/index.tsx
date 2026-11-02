@@ -3,7 +3,7 @@
  * pledged), the ones you said yes to or pledged for, and (for leaders) the ones you lead.
  * Opportunities that are part of an event (Harvest Fest) sit inside its card, which opens
  * the event; the rest follow under "Other opportunities". On a day you're volunteering, its
- * check-in (scan the leader's QR code) is at the top. Leaders and the office open the volunteer analytics from here,
+ * check-in (scan the leader's QR code) is at the top. Volunteer Leaders and directors open the volunteer analytics from here,
  * and everyone sees their own hours from My sign-ups.
  */
 import { useCallback, useEffect, useState } from 'react';
@@ -36,12 +36,12 @@ function Opportunities({ me }: { me: Person }) {
   const [tab, setTab] = useState<Tab>('open');
   const [kind, setKind] = useState<Kind>('all');
   const showPast = usePastToggle();
-  const [office, setOffice] = useState(false);   // groups.manage: sees the analytics too
+  const [director, setDirector] = useState(false);   // sees the analytics too (after verifying with their authenticator app)
   const lead = isVolunteerLead(me);
 
   const load = useCallback(() => listVolunteer().then(setData).catch(() => setData({ opportunities: [], signups: [], events: [], attendance: [] })), []);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
-  useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
+  useEffect(() => { myAccess().then((a) => setDirector(!!a?.isDirector)).catch(() => {}); }, []);
   if (!data) return <Loading />;
 
   const signupsOf = (o: Opportunity) => data.signups.filter((x) => x.opportunityId === o.id);
@@ -87,7 +87,7 @@ function Opportunities({ me }: { me: Person }) {
               <View style={{ flex: 1 }}><Button label="+ Opportunity" onPress={() => router.push('/volunteer/new')} /></View>
             </View>
           )}
-          {(lead || office) && (
+          {(lead || director) && (
             <LinkRow icon="stats-chart" title="Volunteer analytics" sub="Hours, who came, and who's doing a lot" onPress={() => router.push('/volunteer/stats')} />
           )}
           <View style={[s.row, { gap: 6, flexWrap: 'wrap' }]}>

@@ -1,29 +1,35 @@
 /**
- * Volunteer analytics, for Volunteer Leaders and the office: over the last 30 days, this school year or all time, who
- * volunteered and finished, their hours, no-shows and past shifts nobody marked; who's doing a lot (over the school's
- * limits in the last or next 30 days, leading included; the office sets the limits); and everyone, by hours, shifts,
- * no-shows or name. Tap someone for their history.
+ * Volunteer analytics, for Volunteer Leaders and directors (who verify with their authenticator app first, like every
+ * admin tool): over the last 30 days, this or last school year or all time, who volunteered and finished, their hours,
+ * no-shows and past shifts nobody marked; who's doing a lot (over the school's limits in the last or next 30 days,
+ * leading included; directors set the limits); and everyone, by hours, shifts, no-shows or name. Tap someone for their
+ * history.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  ROLE_LABELS, errorText, subscribeVolunteer, volunteerBusyLimits, volunteerSetBusyLimits, volunteerStats,
+  ROLE_LABELS, errorText, isVolunteerLead, subscribeVolunteer, volunteerBusyLimits, volunteerSetBusyLimits, volunteerStats,
   type BusyLimits, type Person, type VolunteerStat,
 } from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
+import { MfaGate } from '../../src/comms/MfaGate';
 import { addDays, busyReason, dayLabel, hours, schoolYearStart } from '../../src/volunteer/attendance';
 import { GREEN, QuantityStepper, Section } from '../../src/volunteer/parts';
 import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
 import { Button, C, Card, Chip, Field, H, Loading, P, s, useBottomInset } from '../../src/ui';
 
-type Range = '30' | 'year' | 'all';
+type Range = '30' | 'year' | 'last' | 'all';
 type Sort = 'hours' | 'shifts' | 'noShows' | 'name';
 const AMBER = '#B45309';
 
 export default function VolunteerStats() {
-  return <VolunteerGate title="Volunteer analytics">{(me) => <Stats me={me} />}</VolunteerGate>;
+  return (
+    <VolunteerGate title="Volunteer analytics">
+      {(me) => (isVolunteerLead(me) ? <Stats me={me} /> : <MfaGate>{() => <Stats me={me} />}</MfaGate>)}
+    </VolunteerGate>
+  );
 }
 
 function Stats({ me }: { me: Person }) {
@@ -37,11 +43,13 @@ function Stats({ me }: { me: Person }) {
   const [saving, setSaving] = useState(false);
   const bottom = useBottomInset();
   const today = schoolToday();
-  const from = range === '30' ? addDays(today, -29) : range === 'year' ? schoolYearStart(today) : null;
+  const yearStart = schoolYearStart(today);
+  const from = range === '30' ? addDays(today, -29) : range === 'year' ? yearStart : range === 'last' ? schoolYearStart(addDays(yearStart, -1)) : null;
+  const to = range === 'last' ? addDays(yearStart, -1) : null;
 
-  const load = useCallback(() => Promise.all([volunteerStats(from), volunteerBusyLimits()])
+  const load = useCallback(() => Promise.all([volunteerStats(from, to), volunteerBusyLimits()])
     .then(([rows, l]) => { setPeople(rows); setLimits(l); setError(null); })
-    .catch((e) => setError(errorText(e))), [from]);
+    .catch((e) => setError(errorText(e))), [from, to]);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
 
   if (error) return <View style={[s.screen, s.pad]}><Card><H>Couldn't load the analytics</H><P muted>{error}</P><Button label="Try again" onPress={load} /></Card></View>;
@@ -72,7 +80,7 @@ function Stats({ me }: { me: Person }) {
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { paddingBottom: 16 + bottom }]} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: 'Volunteer analytics' }} />
-      <Chips value={range} onChange={setRange} options={[['30', 'Last 30 days'], ['year', 'This school year'], ['all', 'All time']]} />
+      <Chips value={range} onChange={setRange} options={[['30', 'Last 30 days'], ['year', 'This school year'], ['last', 'Last school year'], ['all', 'All time']]} />
 
       <View style={[s.row, { flexWrap: 'wrap', gap: 10, alignItems: 'stretch' }]}>
         <Tile value={String(helped)} label={helped === 1 ? 'volunteer finished a shift' : 'volunteers finished a shift'} color={GREEN} />

@@ -1,15 +1,16 @@
 /**
- * Someone's volunteering: shifts and hours this school year and in all, then what's coming and every day they said
- * yes to, were marked on or led, newest first. Your own (My volunteer hours), or anyone's for Volunteer Leaders and
- * the office. Tap a day to open the opportunity.
+ * Someone's volunteering: shifts and hours this school year, last school year and in all, then what's coming and every
+ * day they said yes to, were marked on or led, newest first and by school year. Your own (My volunteer hours), or
+ * anyone's for Volunteer Leaders and directors. Tap a day to open the opportunity.
  */
-import { useCallback, useState } from 'react';
+import { Fragment, useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { errorText, subscribeVolunteer, volunteerHistory, type Person, type VolunteerDay } from '../../../src/api/connect';
 import { schoolToday } from '../../../src/calendar/past';
-import { clock, dayLabel, duration, hours, schoolYearStart } from '../../../src/volunteer/attendance';
+import { schoolYearLabel, schoolYearOf } from '../../../src/gallery/years';
+import { clock, dayLabel, duration, hours } from '../../../src/volunteer/attendance';
 import { nameOf } from '../../../src/volunteer/format';
 import { GREEN, SectionTitle } from '../../../src/volunteer/parts';
 import { VolunteerGate } from '../../../src/volunteer/VolunteerGate';
@@ -34,15 +35,18 @@ function History({ id, me }: { id: string; me: Person }) {
   if (!days) return <>{header}<Loading /></>;
 
   const today = schoolToday();
-  const year = schoolYearStart(today);
+  const year = schoolYearOf(today);
   const coming = days.filter((d) => d.day > today || d.status === 'coming').reverse();
   const past = days.filter((d) => !coming.includes(d));
   const total = (list: VolunteerDay[]) => {
     const done = list.filter((d) => d.status === 'done');
     return { shifts: done.length, minutes: done.reduce((n, d) => n + (d.minutes ?? 0), 0) };
   };
-  const thisYear = total(past.filter((d) => d.day >= year));
+  const thisYear = total(past.filter((d) => schoolYearOf(d.day) === year));
+  const lastYear = total(past.filter((d) => schoolYearOf(d.day) === year - 1));
   const ever = total(past);
+  const years = [...new Set(past.map((d) => schoolYearOf(d.day)))];   // newest first, like the days
+  const yearName = (y: number) => `${y === year ? 'This school year' : y === year - 1 ? 'Last school year' : 'School year'} · ${schoolYearLabel(y)}`;
   const noShows = past.filter((d) => d.status === 'no_show').length;
   const led = past.filter((d) => d.status === 'led').length;
 
@@ -51,6 +55,7 @@ function History({ id, me }: { id: string; me: Person }) {
       {header}
       <View style={[s.row, { flexWrap: 'wrap', gap: 10, alignItems: 'stretch' }]}>
         <Tile value={hours(thisYear.minutes)} label={`this school year, ${thisYear.shifts} ${thisYear.shifts === 1 ? 'shift' : 'shifts'}`} color={GREEN} />
+        {lastYear.shifts > 0 && <Tile value={hours(lastYear.minutes)} label={`last school year, ${lastYear.shifts} ${lastYear.shifts === 1 ? 'shift' : 'shifts'}`} color={GREEN} />}
         <Tile value={hours(ever.minutes)} label={`in all, ${ever.shifts} ${ever.shifts === 1 ? 'shift' : 'shifts'}`} color={C.primary} />
         {noShows > 0 && <Tile value={String(noShows)} label={noShows === 1 ? 'no-show' : 'no-shows'} color={C.danger} />}
         {led > 0 && <Tile value={String(led)} label={led === 1 ? 'day led' : 'days led'} color={C.accent} />}
@@ -63,11 +68,20 @@ function History({ id, me }: { id: string; me: Person }) {
           <View style={s.card}>{coming.map((d, i) => <DayRow key={`${d.opportunityId}${d.day}`} d={d} first={i === 0} />)}</View>
         </>
       )}
-      <SectionTitle icon="time-outline" title="History" tint={GREEN} />
-      <View style={s.card}>
-        {past.length === 0 && <P muted>{self ? "When you volunteer, each shift shows up here." : 'Nothing yet.'}</P>}
-        {past.map((d, i) => <DayRow key={`${d.opportunityId}${d.day}`} d={d} first={i === 0} />)}
-      </View>
+      {past.length === 0 && (
+        <>
+          <SectionTitle icon="time-outline" title="History" tint={GREEN} />
+          <View style={s.card}><P muted>{self ? "When you volunteer, each shift shows up here." : 'Nothing yet.'}</P></View>
+        </>
+      )}
+      {years.map((y) => (
+        <Fragment key={y}>
+          <SectionTitle icon="time-outline" title={yearName(y)} tint={GREEN} />
+          <View style={s.card}>
+            {past.filter((d) => schoolYearOf(d.day) === y).map((d, i) => <DayRow key={`${d.opportunityId}${d.day}`} d={d} first={i === 0} />)}
+          </View>
+        </Fragment>
+      ))}
     </ScrollView>
   );
 }

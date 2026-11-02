@@ -1,7 +1,8 @@
 /**
  * scripts/presentation_data.mjs: the sample data loads into the real schema (every
  * migration, in PGlite), shows up for the test parent, their children, the class they
- * teach and the student login, loads again over itself, and comes out completely.
+ * teach and the student login, gives the volunteer analytics two school years of high,
+ * normal and low volunteers, loads again over itself, and comes out completely.
  */
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,6 +28,9 @@ async function as(who: string) {
 }
 const one = async (q: string) => (await db.query<any>(q)).rows[0];
 const count = async (q: string) => Number((await one(`select count(*) as n from (${q}) x`)).n);
+/** The school's today, pinned to a day (null: the real one again), so the last 30 days don't move. */
+const pinToday = (d: string | null) => db.exec(`reset role; create or replace function app.school_today() returns date language sql stable as $$
+  select ${d ? `'${d}'::date` : `(now() at time zone 'America/Chicago')::date`} $$`);
 const load = (remove = false, only: string | null = null) => db.exec(buildSql({
   day: DAY, me: ME, children: [{ id: OLDER, grade: 6 }, { id: YOUNGER, grade: 2 }], student: STUDENT, volleyball: VB_SEASON,
   cheer: CHEER_SEASON, basketball: BASKETBALL, remove, only,
@@ -74,7 +78,7 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   assert.equal(new Date(`${fest.on}T12:00:00Z`).getUTCDay(), 6, 'a Saturday');
   assert.deepEqual((await db.query<any>(`select title from volunteer_opportunities where event_id = '${fest.id}' order by position`)).rows.map((r) => r.title),
     ['Set up the day of', 'Game booth helpers', 'Bottled water', 'Bake sale treats', 'Clean-up crew']);
-  assert.equal(await count(`select 1 from volunteer_opportunities where event_id is null`), 3);
+  assert.equal(await count(`select 1 from volunteer_opportunities where event_id is null and starts_on >= '${DAY}'`), 3, 'three coming up on their own');
   assert.equal(await count(`select 1 from volunteer_signups s join volunteer_opportunities o on o.id = s.opportunity_id
     where s.user_id = '${ME}' and o.event_id = '${fest.id}'`), 1, 'the parent helps set up');
   // Photos: Harvest Fest's album, and the school's own grade albums, each on its grade's families' accounts.
@@ -88,10 +92,30 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   await db.exec(`insert into volunteer_signups (opportunity_id, user_id) values ('${library}', '${STUDENT}')`);
   await load(false, 'volunteer');
   assert.equal(await count(`select 1 from volunteer_signups where opportunity_id = '${library}' and user_id = '${STUDENT}'`), 1);
-  assert.equal(await count(`select 1 from volunteer_opportunities`), 8);
+  assert.equal(await count(`select 1 from volunteer_opportunities`), 28, 'and 20 past ones, 12 last school year and 8 this one');
   assert.equal(await count(`select 1 from gallery_albums where volunteer_event_id is not null`), 1, "Harvest Fest's album, still linked");
   assert.equal(await count(`select 1 from forms`), 4);
   assert.equal((await one(`select school_role, grade from profiles where id = '${STUDENT}'`)).school_role, 'student');
+
+  // Volunteer history: as its leader on DAY, the steady helpers have the most hours each year (Bennett slipped,
+  // Patel rose), the busiest in the last 30 days are flagged (leading counts), and the ones who often don't come
+  // have no-shows or shifts nobody marked. The test parent has hours of their own both years.
+  await pinToday(DAY);
+  await as((await one(`select id from profiles where first_name = 'Maria' and last_name = 'Garcia'`)).id);
+  const stats = async (from: string, to: string | null) => (await db.query<any>(`select * from volunteer_stats('${from}', ${to ? `'${to}'` : 'null'})`)).rows;
+  const top = (rs: any[]) => rs.filter((r) => r.shifts > 0).sort((a, b) => b.minutes - a.minutes).slice(0, 3).map((r) => r.name).sort();
+  const missed = (rs: any[], names: string[]) => names.filter((n) => !rs.some((r) => r.name === n && r.no_shows + r.unmarked > 0));
+  const lastYear = await stats('2025-07-01', '2026-06-30');
+  const thisYear = await stats('2026-07-01', null);
+  assert.deepEqual(top(lastYear), ['Carmen Rivera', 'Laura Bennett', 'Mike Wright']);
+  assert.deepEqual(top(thisYear), ['Carmen Rivera', 'Mike Wright', 'Priya Patel']);
+  assert.deepEqual(thisYear.filter((r) => r.busy).map((r) => r.name).sort(), ['Carmen Rivera', 'Maria Garcia', 'Mike Wright', 'Priya Patel']);
+  assert.deepEqual(missed(lastYear, ['Beth Adams', 'Tara Moore', 'Erin Thompson', 'Marcus Davis']), []);
+  assert.deepEqual(missed(thisYear, ['Laura Bennett', 'Beth Adams', 'Marcus Davis']), []);
+  await as(ME);
+  const mineDone = (await db.query<any>(`select day::text from volunteer_history('${ME}') where status = 'done'`)).rows.map((r) => r.day);
+  assert.ok(mineDone.some((d) => d < '2026-07-01') && mineDone.some((d) => d >= '2026-07-01'), 'both school years');
+  await pinToday(null);
 
   // The parent: forms for both children (none signed yet), and the children's class assignments.
   await as(ME);
