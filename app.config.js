@@ -15,6 +15,11 @@
 //    Apple grants the Critical Alerts entitlement, build with
 //    CRITICAL_ALERTS_ENTITLEMENT=1 so they ring on silent too (signing fails without it).
 //
+// 3. The version is 1.<build>, where <build> is the pipeline's build number (APP_BUILD_NUMBER, the
+//    Android APK workflow's run number; the web app's workflow gives its own). Android's versionCode
+//    and the iPhone build number are the same number, so every build is newer than the last. Builds
+//    outside the pipeline are 1.0.
+//
 // 2. The web app is served from /khroyals (experiments.baseUrl), but iPhone
 //    release builds must not use that prefix: Xcode's bundling step
 //    (`expo export:embed --platform ios`) would copy images into
@@ -52,17 +57,27 @@ function embeddingPlatform(argv = process.argv) {
   return argv.find((a) => a.startsWith('--platform='))?.split('=')[1] ?? null;
 }
 
+/** The pipeline's build number (APP_BUILD_NUMBER), or null outside it. */
+function buildNumber(env = process.env) {
+  const n = Number(env.APP_BUILD_NUMBER);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 module.exports = ({ config: shared }) => {
   const config = forSchool(shared);
+  const build = buildNumber();
   const { baseUrl, ...experiments } = config.experiments ?? {};
   return {
     ...config,
+    version: `1.${build ?? 0}`,
+    android: { ...config.android, versionCode: build ?? 1 },
+    extra: { ...config.extra, buildNumber: build },
     experiments: embeddingPlatform() === 'ios' ? experiments : config.experiments,
     ios: {
       ...config.ios,
       ...(process.env.IOS_BUNDLE_ID ? { bundleIdentifier: process.env.IOS_BUNDLE_ID } : {}),
       ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
-      ...(process.env.IOS_BUILD_NUMBER ? { buildNumber: process.env.IOS_BUILD_NUMBER } : {}),
+      ...(process.env.IOS_BUILD_NUMBER ? { buildNumber: process.env.IOS_BUILD_NUMBER } : build ? { buildNumber: String(build) } : {}),
       entitlements: {
         ...config.ios?.entitlements,
         'com.apple.developer.usernotifications.time-sensitive': true,

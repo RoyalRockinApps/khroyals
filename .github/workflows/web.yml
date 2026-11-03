@@ -33,10 +33,12 @@ jobs:
         env:
           CI: 1
           SCHOOL: khroyals
+          APP_BUILD_NUMBER: ${{ github.run_number }}
       - run: npx expo export --platform web --output-dir dist/wca
         env:
           CI: 1
           SCHOOL: wca
+          APP_BUILD_NUMBER: ${{ github.run_number }}
       # Deep links (e.g. /khroyals/page/admissions) fall back to the app shell; GitHub Pages
       # has one 404 page, so it sends /khroyals/wca/… to WCA's app and the rest to Kingdom Heights'.
       - run: node scripts/pages_404.mjs dist && touch dist/.nojekyll

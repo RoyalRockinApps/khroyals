@@ -415,7 +415,7 @@ APPLE_TEAM_ID=NH4U6X4G8C scripts/testflight.sh "What to test in this build"
   "Failed to Use Accounts".
 - The script runs a clean prebuild with the real app ID, archives, and uploads. Each
   upload gets a new build number from the date and time (`2026.1019.1432`); set
-  `IOS_BUILD_NUMBER` to choose one. Bump `version` in `app.json` for a new release.
+  `IOS_BUILD_NUMBER` to choose one. The version is `1.<build>` from the pipeline's run number (`APP_BUILD_NUMBER`, `app.config.js`).
 - It replaces your test-phone setup in `ios/`; prebuild again with
   `IOS_BUNDLE_ID=com.khroyals.app.dev` (§3) before the next test-phone build.
 - `app.json` declares that the app only uses standard encryption (HTTPS), so

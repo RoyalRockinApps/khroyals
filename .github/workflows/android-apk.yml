@@ -70,6 +70,7 @@ jobs:
         school: ${{ fromJSON(needs.schools.outputs.list) }}
     env:
       SCHOOL: ${{ matrix.school }}
+      APP_BUILD_NUMBER: ${{ github.run_number }}   # the app's version is 1.<this> (app.config.js)
     steps:
       - uses: actions/checkout@v5
 
@@ -113,7 +114,7 @@ jobs:
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "out/${SCHOOL}-${GITHUB_SHA::7}.apk"
+             "out/${SCHOOL}-1.${APP_BUILD_NUMBER}-${GITHUB_SHA::7}.apk"
 
       # Handed to the publish job below; pull request builds just prove it compiles.
       - name: Upload APK

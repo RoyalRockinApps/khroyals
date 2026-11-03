@@ -14,6 +14,7 @@ const withArgs = (args: string[], env: Record<string, string> = {}) => {
   const [argv, saved] = [process.argv, { ...process.env }];
   process.argv = ['node', 'expo', ...args];
   delete process.env.SCHOOL;   // Kingdom Heights unless a test picks a school
+  delete process.env.APP_BUILD_NUMBER;
   Object.assign(process.env, env);
   try {
     return makeConfig({ config: appJson.expo });
@@ -40,6 +41,19 @@ test('signing overrides apply only when set', () => {
   const dev = withArgs([], { APPLE_TEAM_ID: 'ABCDE12345', IOS_BUNDLE_ID: 'com.khroyals.app.dev' });
   assert.equal(dev.ios.bundleIdentifier, 'com.khroyals.app.dev');
   assert.equal(dev.ios.appleTeamId, 'ABCDE12345');
+});
+
+test('the version is 1.<pipeline build number>, and Android and iPhone builds count up with it', () => {
+  const ci = withArgs([], { APP_BUILD_NUMBER: '108' });
+  assert.equal(ci.version, '1.108');
+  assert.equal(ci.android.versionCode, 108);
+  assert.equal(ci.ios.buildNumber, '108');
+  assert.equal(ci.extra.buildNumber, 108);
+  assert.equal(withArgs([], { APP_BUILD_NUMBER: '108', IOS_BUILD_NUMBER: '2026.1103.1200' }).ios.buildNumber, '2026.1103.1200');
+  const local = withArgs([]);
+  assert.equal(local.version, '1.0', 'outside the pipeline');
+  assert.equal(local.android.versionCode, 1);
+  assert.equal(withArgs([], { APP_BUILD_NUMBER: 'nope' }).version, '1.0');
 });
 
 test('the Android build gets 4 GB for Gradle', () => {
