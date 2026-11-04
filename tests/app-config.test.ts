@@ -43,9 +43,10 @@ test('signing overrides apply only when set', () => {
   assert.equal(dev.ios.appleTeamId, 'ABCDE12345');
 });
 
-test('the version is 1.<pipeline build number>, and Android and iPhone builds count up with it', () => {
+test('the version is 1.<pipeline build number> (the iPhone app stays 1.0), and Android and iPhone builds count up with it', () => {
   const ci = withArgs([], { APP_BUILD_NUMBER: '108' });
   assert.equal(ci.version, '1.108');
+  assert.equal(ci.ios.version, '1.0', 'one version for Apple to review; its builds count up');
   assert.equal(ci.android.versionCode, 108);
   assert.equal(ci.ios.buildNumber, '108');
   assert.equal(ci.extra.buildNumber, 108);

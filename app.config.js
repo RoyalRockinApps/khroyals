@@ -18,7 +18,9 @@
 // 3. The version is 1.<build>, where <build> is the pipeline's build number (APP_BUILD_NUMBER, the
 //    Android APK workflow's run number; the web app's workflow gives its own). Android's versionCode
 //    and the iPhone build number are the same number, so every build is newer than the last. Builds
-//    outside the pipeline are 1.0.
+//    outside the pipeline are 1.0. The iPhone app stays version 1.0 (ios.version): Apple reviews every
+//    new version before TestFlight's outside testers get it, but passes new builds of a version it has
+//    reviewed at once. Its build number still counts up (scripts/testflight.sh: the date and time).
 //
 // 2. The web app is served from /khroyals (experiments.baseUrl), but iPhone
 //    release builds must not use that prefix: Xcode's bundling step
@@ -75,6 +77,7 @@ module.exports = ({ config: shared }) => {
     experiments: embeddingPlatform() === 'ios' ? experiments : config.experiments,
     ios: {
       ...config.ios,
+      version: '1.0',
       ...(process.env.IOS_BUNDLE_ID ? { bundleIdentifier: process.env.IOS_BUNDLE_ID } : {}),
       ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
       ...(process.env.IOS_BUILD_NUMBER ? { buildNumber: process.env.IOS_BUILD_NUMBER } : build ? { buildNumber: String(build) } : {}),

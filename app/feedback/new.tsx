@@ -15,7 +15,10 @@ export default function NewFeedback() {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [busy, setBusy] = useState(false);
-  const device = deviceLine(Platform.OS, Platform.OS === 'web' ? null : Platform.Version, Constants.expoConfig?.version);
+  // The iPhone app is always version 1.0, so its build number tells builds apart.
+  const ios = Constants.expoConfig?.ios;
+  const version = Platform.OS === 'ios' && ios?.version ? `${ios.version}${ios.buildNumber ? ` (${ios.buildNumber})` : ''}` : Constants.expoConfig?.version;
+  const device = deviceLine(Platform.OS, Platform.OS === 'web' ? null : Platform.Version, version);
 
   const send = () => {
     setBusy(true);
