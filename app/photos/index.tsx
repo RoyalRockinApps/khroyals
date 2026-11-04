@@ -15,6 +15,7 @@ import { schoolToday } from '../../src/calendar/past';
 import { AlbumCard, GradeTile } from '../../src/gallery/AlbumCard';
 import { AlbumForm, chip } from '../../src/gallery/AlbumForm';
 import { schoolYearLabel, schoolYearOf } from '../../src/gallery/years';
+import { ManageButton } from '../../src/ManageButton';
 import { useStaffView } from '../../src/staffView';
 import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
 
@@ -48,7 +49,12 @@ export default function Photos() {
   // Search as you type, a moment after the last key.
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const header = <Stack.Screen options={{ title: 'Photos' }} />;
+  const header = <Stack.Screen options={{
+    title: 'Photos',
+    headerRight: perms.includes('gallery.manage') ? () => (
+      <ManageButton app="Photos" items={[{ icon: 'pricetags-outline', label: 'Photo categories', onPress: () => setEditCats(true) }]} />
+    ) : undefined,
+  }} />;
   if (!albums) return <>{header}<Loading /></>;
   if (!person || person.pending) {
     return <View style={[s.screen, s.pad]}>{header}<Card><P>Log in on the Connect tab to see the school's photos.</P></Card></View>;
@@ -103,10 +109,8 @@ export default function Photos() {
             {restCats.map((c) => chip(`${c.icon} ${c.name}`, category === c.id, () => setCategory(category === c.id ? null : c.id), c.id))}
           </View>
         )}
-        {perms.includes('gallery.manage') && (
-          <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => setEditCats(!editCats)}>{editCats ? 'Done with categories' : 'Edit categories'}</Text>
-        )}
         {editCats && <CategoryEditor categories={categories} onChange={load} />}
+        {editCats && <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => setEditCats(false)}>Done with categories</Text>}
         {!others.length ? (
           <Card><P muted>{searching ? 'No albums match. Try another word.'
             : `No ${grades.length ? 'other ' : ''}albums for ${schoolYearLabel(year)} yet.${staff ? ' Start one above.' : ''}`}</P></Card>

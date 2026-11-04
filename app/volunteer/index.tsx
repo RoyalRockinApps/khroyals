@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   isVolunteerLead, listVolunteer, myAccess, subscribeVolunteer, volunteerInviteAnswer,
@@ -24,6 +24,7 @@ import { daysLabel, isPast, nameOf, whenLabel } from '../../src/volunteer/format
 import { OpportunityCard, progress } from '../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, SectionTitle } from '../../src/volunteer/parts';
 import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
+import { ManageButton } from '../../src/ManageButton';
 import { Button, C, Card, Chip, Loading, P, ask, s } from '../../src/ui';
 
 type Tab = 'open' | 'mine' | 'leading';
@@ -101,6 +102,13 @@ function Opportunities({ me }: { me: Person }) {
     <FlatList style={s.screen} contentContainerStyle={s.pad} data={shown} keyExtractor={(o) => o.id}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
+          <Stack.Screen options={{
+            headerRight: lead || director ? () => (
+              <ManageButton app="Volunteer" items={[
+                { icon: 'stats-chart', label: 'Volunteer analytics', sub: "Hours, who came, and who's doing a lot", href: '/volunteer/stats' },
+              ]} />
+            ) : undefined,
+          }} />
           {todays.map((o) => (
             <MyCheckIn key={o.id} o={o} mine={mineToday(o)} showTitle />
           ))}
@@ -111,9 +119,6 @@ function Opportunities({ me }: { me: Person }) {
               <View style={{ flex: 1 }}><Button label="+ Event" kind="ghost" onPress={() => router.push('/volunteer/event/new')} /></View>
               <View style={{ flex: 1 }}><Button label="+ Opportunity" onPress={() => router.push('/volunteer/new')} /></View>
             </View>
-          )}
-          {(lead || director) && (
-            <LinkRow icon="stats-chart" title="Volunteer analytics" sub="Hours, who came, and who's doing a lot" onPress={() => router.push('/volunteer/stats')} />
           )}
           <View style={[s.row, { gap: 6, flexWrap: 'wrap' }]}>
             {tabs.map((t) => (

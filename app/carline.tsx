@@ -7,9 +7,8 @@
  * Parents can transfer pickup to someone else for a day; the person asked answers at the top.
  */
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import {
   carlineBoard, carlineConfig, carlineToday, errorText, isFamily, live, myChildren, myPickupChildren, myVehicles, pickupNumbers, pickupTransfers,
   session, subscribeCarline, type BoardRow, type CarlineConfig, type Person, type Pickup, type PickupTransfers, type Vehicle,
@@ -20,6 +19,7 @@ import { TransferAsks } from '../src/carline/Transfers';
 import { hoursLabel } from '../src/carline/format';
 import { useStaffView } from '../src/staffView';
 import { Button, C, Card, H, Loading, P, s } from '../src/ui';
+import { ManageButton } from '../src/ManageButton';
 import { SCHOOL } from '../src/school';
 
 const isStaff = (p: Person | null) => !!p && ['admin', 'teacher', 'staff'].includes(p.schoolRole) && !p.pending;
@@ -77,9 +77,7 @@ export default function CarLine() {
     title: 'Car Line',
     // Car line leads who are staff get the settings in the staff version; leads who are parents always do.
     headerRight: config?.canEdit && (staffView || !isStaff(person ?? null)) ? () => (
-      <Pressable onPress={() => router.push('/carline-settings')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Car line settings" style={{ marginRight: 8 }}>
-        <Ionicons name="settings-outline" size={22} color="#fff" />
-      </Pressable>
+      <ManageButton app="Car Line" items={[{ icon: 'options-outline', label: 'Car line settings', href: '/carline-settings' }]} />
     ) : undefined,
   }} />;
   const box = (body: React.ReactNode) => <View style={[s.screen, s.pad]}>{header}{body}</View>;

@@ -154,6 +154,14 @@ export type VolunteerInvite = {
   note: string | null; createdAt: string; answeredAt: string | null;
 };
 
+/**
+ * What's waiting on a teacher or staff member today (staff_today), by key; each only where it applies to them, and
+ * the admin ones only in a verified session. src/info/needsYou.ts turns them into the Planner's rows.
+ */
+export type StaffToday = Partial<Record<
+  'roll' | 'subCovering' | 'absencesToday' | 'absencesToSee' | 'questionsAssigned' | 'questionsToRoute' | 'feedbackNew'
+  | 'accountsWaiting' | 'familyRequests' | 'lunchVisitors' | 'volunteerToMark', number>>;
+
 /** Someone a leader could invite, and where they stand on the opportunity. */
 export type InvitePerson = { id: string; name: string; schoolRole: string; invite: VolunteerInvite['status'] | null; signedUp: boolean };
 

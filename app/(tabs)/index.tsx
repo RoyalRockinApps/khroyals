@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { AppState, Linking, ScrollView, Text, View } from 'react-native';
-import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ComponentProps } from 'react';
+import { AppState, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { router, useFocusEffect, useNavigation, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   canVolunteer, carlineConfig, checkAssignment, childAssignments, isFamily, isSchoolStaff, listAssignments, listSports, listVolunteer,
-  listAlbums, listDressDays, live, me, myCalendar, myChildren, myForms, myPickupChildren, mySportSchedule, onAuthChange, session, sportRegistrations, subscribeAssignments,
+  listAlbums, listDressDays, live, me, myCalendar, myChildren, myForms, myPickupChildren, mySportSchedule, onAuthChange, session, sportRegistrations, staffToday, subscribeAssignments,
   type Assignment, type DressDay, type GalleryAlbum, type Person,
 } from '../../src/api/connect';
 import { getCalendar, getNews } from '../../src/api/mockApi';
 import { schoolToday } from '../../src/calendar/past';
 import { AlbumCard } from '../../src/gallery/AlbumCard';
 import { DayPager } from '../../src/info/DayPager';
+import { needsYou, type NeedRow } from '../../src/info/needsYou';
 import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
+import { useStaffView } from '../../src/staffView';
 import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
 import { TodaySection } from '../../src/info/TodaySection';
 import { ArticleCard } from '../../src/site/Blocks';
@@ -23,7 +25,8 @@ import { dateRange } from '../../src/site/calendar';
  * Planner: today's date in the header, a greeting, the next two weeks one day at a time
  * (swipe, or tap a day in the strip; it opens on today): the uniform, assignments, a
  * card for each of a parent's children, and the day's events, activities, volunteer
- * sign-ups and car line hours. Then the school calendar's next two weeks, the school's newsletter
+ * sign-ups and car line hours. Teachers and staff (on the Staff view) first get Needs you today: what's
+ * waiting on them across the apps (staff_today), each opening its screen. Then the school calendar's next two weeks, the school's newsletter
  * (Royal News) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
  * in Ask the School.)
  */
@@ -38,6 +41,7 @@ export default function Home() {
   const { info, toggle } = useInfoData(person, today);
   const dress = useDressDays(today);
   const photos = useLatestPhotos(person);
+  const needs = useNeedsYou(person);
   const events = data?.cal.events;
   const plans = useMemo(() => events
     ? twoWeeks(today).map((d) => planDay(d, today, events, info, person?.schoolRole === 'student' ? [person.grade] : [], dress))
@@ -59,6 +63,8 @@ export default function Home() {
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 22 }]}>
       <Text style={{ fontSize: 28, ...FONT_STYLE.heading, color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
+
+      {needs.length > 0 && <NeedsYou rows={needs} />}
 
       <DayPager plans={plans} index={index} onIndex={setIndex} render={(p) => <TodaySection plan={p} onToggle={toggle} />} />
 
@@ -109,6 +115,55 @@ export default function Home() {
         </View>
       )}
     </ScrollView>
+  );
+}
+
+/** Teachers and staff on the Staff view: what's waiting on them today, reloaded whenever the Planner comes back. */
+function useNeedsYou(person: Person | null) {
+  const staff = useStaffView(person);
+  const [rows, setRows] = useState<NeedRow[]>([]);
+  useFocusEffect(useCallback(() => {
+    if (!staff) { setRows([]); return; }
+    let on = true;
+    staffToday().then((t) => on && setRows(needsYou(t))).catch(() => {});
+    return () => { on = false; };
+  }, [staff]));
+  return rows;
+}
+
+/**
+ * Needs you today: each thing waiting, opening the screen that deals with it. Its heading folds it away (to a line
+ * of how many) and back; it opens unfolded each time the Planner starts.
+ */
+function NeedsYou({ rows }: { rows: NeedRow[] }) {
+  const AMBER = '#B45309';
+  const [open, setOpen] = useState(true);
+  const todo = rows.filter((r) => r.tone === 'todo').length;
+  const info = rows.length - todo;
+  const summary = [todo && `${todo} to do`, info && `${info} ${info === 1 ? 'heads-up' : 'heads-ups'}`].filter(Boolean).join(' · ');
+  return (
+    <Card style={{ gap: 2, paddingVertical: 10 }}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }}
+        accessibilityLabel={`Needs you today: ${summary}`} hitSlop={6}
+        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 }, pressed && { opacity: 0.6 }]}>
+        <Text style={{ flex: 1, fontSize: 13, fontWeight: '800', letterSpacing: 1, color: C.muted }}>NEEDS YOU TODAY</Text>
+        {!open && <Text style={{ color: todo ? AMBER : C.primary, fontWeight: '700' }}>{summary}</Text>}
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+      </Pressable>
+      {open && rows.map((r) => {
+        const color = r.tone === 'todo' ? AMBER : C.primary;
+        return (
+          <Pressable key={r.key} onPress={() => router.push(r.href as Href)} accessibilityRole="button" accessibilityLabel={r.title}
+            style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }, pressed && { opacity: 0.6 }]}>
+            <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${color}1A`, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={r.icon as ComponentProps<typeof Ionicons>['name']} size={19} color={color} />
+            </View>
+            <Text style={{ flex: 1, fontSize: 16, fontWeight: r.tone === 'todo' ? '700' : '500', color: C.ink }}>{r.title}</Text>
+            <Ionicons name="chevron-forward" size={18} color={C.muted} />
+          </Pressable>
+        );
+      })}
+    </Card>
   );
 }
 

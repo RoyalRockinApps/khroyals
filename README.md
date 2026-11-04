@@ -269,6 +269,21 @@ point) shows as "Probably" that place (`app.ap_place`). Locations are erased
 `alert_location_days` (30) after the all clear (`app.purge_alert_locations`, daily). iPhones
 need the Access Wi-Fi Information capability (`app.config.js`) to read the BSSID.
 
+**Needs you today** (the Planner, for teachers and staff on the Staff view). One card (tap its heading to fold it; it starts open) at the
+top lists what's waiting on them across the apps, each opening its screen: roll still to take
+in their classes, questions waiting for their answer (and, for routers, ones to route), absence
+reports to mark seen (the office), volunteer shifts they led that nobody marked, accounts and
+family requests waiting for approval and new feedback (admins, in a verified session), and
+heads-ups: their students reported out today, a sub with their class, lunch visitors. One call
+counts it all (`staff_today`; rows in `src/info/needsYou.ts`), and the card is left out when
+nothing is waiting.
+
+**Settings live behind the gear.** An app's settings and the tools for running it sit behind
+one gear in its header, shown only to people who can use them (`src/ManageButton.tsx`): Car
+line settings, Lunch Visits' times and rules, Calendar's dress-up days, Volunteer analytics,
+Activities' *Add an activity*, Photos' categories. Buttons that make something (+ Add event,
++ Opportunity, + New album) stay on the screen.
+
 **Notifications.** Everything sent to a person lands on the Notifications page
 (the bell in the top bar, `app/notifications.tsx`): the school's notifications
 (`public.notifications` via `my_notifications()`: group posts, announcements,

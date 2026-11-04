@@ -4195,6 +4195,72 @@ test('the bell counts new notifications until the bell page opens them', async (
   await asSuper();
 });
 
+test("staff today: the Planner's count of what's waiting on a teacher or the office", async () => {
+  // Next Monday, so the day's roll and reports are the test's own.
+  const monday = `(app.school_today() + (8 - extract(isodow from app.school_today()))::int)`;
+  const today = async (who: string, mfa = false, day = monday) => { await as(who, mfa); return (await one(`select staff_today(${day}) as t`)).t; };
+
+  // Parents and students get nothing; a teacher gets no admin counts.
+  assert.deepEqual(await today('u-p01'), {});
+  assert.deepEqual(await today('u-s01'), {});
+  const before = await today('u-eng');
+  assert.equal(before.roll, 1, "English 10's roll isn't taken");
+  for (const k of ['absencesToSee', 'questionsToRoute', 'feedbackNew', 'accountsWaiting', 'familyRequests']) assert.equal(before[k], undefined, k);
+
+  // Ava's parent reports her out that day, a question is assigned to her teacher, Rosa is coming to lunch, and a
+  // volunteer shift the teacher led two days ago is still unmarked.
+  await asSuper();
+  await db.exec(`insert into absence_reports (student_id, kind, starts_on, ends_on, reason, reported_by)
+                 values (${id('u-s01')}, 'absent', ${monday}, ${monday}, 'sick', ${id('u-p01')})`);
+  const q = await one(`insert into school_questions (asker_id, subject, status, assignee_id)
+                       values (${id('u-p02')}, 'Summer reading list?', 'assigned', ${id('u-eng')}) returning id`);
+  const w = await one(`insert into lunch_windows (name, weekdays, start_time, end_time, grade_from, grade_to, capacity)
+                       values ('Test lunch', array[1, 2, 3, 4, 5], '11:00', '11:30', -3, 12, 10) returning id`);
+  await db.exec(`insert into lunch_visits (window_id, day, student_id, visitor_id, allergy_ack_at) values ('${w.id}', ${monday}, ${id('u-s01')}, ${id('u-p01')}, now())`);
+  const shift = await one(`insert into volunteer_opportunities (lead_id, title, starts_on) values (${id('u-eng')}, 'Library shelving', app.school_today() - 2) returning id`);
+  await db.exec(`insert into volunteer_signups (opportunity_id, user_id) values ('${shift.id}', ${id('u-p01')})`);
+
+  const after = await today('u-eng');
+  assert.equal(after.absencesToday, (before.absencesToday ?? 0) + 1);
+  assert.equal(after.questionsAssigned, before.questionsAssigned + 1);
+  assert.equal(after.lunchVisitors, before.lunchVisitors + 1);
+  assert.equal(after.volunteerToMark, before.volunteerToMark + 1);
+  // A teacher who doesn't teach Ava sees none of it.
+  const sci = await today('u-sci');
+  assert.equal(sci.absencesToday, undefined, 'leads no class');
+  assert.equal(sci.lunchVisitors, 0);
+
+  // Marking the volunteer takes it off; so does a sub covering English 10 for the roll.
+  await as('u-eng');
+  await one(`select volunteer_mark('${shift.id}', ${id('u-p01')}, app.school_today() - 2, 'done')`);
+  await asSuper();
+  const sub = await one(`insert into sub_assignments (substitute_id, starts_on, ends_on, start_time, end_time)
+                         values (${id('u-sci')}, ${monday}, ${monday}, '08:00', '15:00') returning id`);
+  await db.exec(`insert into sub_assignment_sections values ('${sub.id}', 'eng10-p3')`);
+  const covered = await today('u-eng');
+  assert.equal(covered.volunteerToMark, before.volunteerToMark);
+  assert.equal(covered.roll, 0, 'the sub takes it');
+  assert.equal(covered.subCovering, 1);
+  // No roll on a weekend.
+  assert.equal((await today('u-eng', false, `${monday} + 5`)).roll, undefined);
+
+  // The office: its counts only in a verified session.
+  const unverified = await today('u-admin');
+  for (const k of ['absencesToSee', 'questionsToRoute', 'feedbackNew', 'accountsWaiting', 'familyRequests']) assert.equal(unverified[k], undefined, k);
+  const office = await today('u-admin', true);
+  assert.ok(office.absencesToSee >= 1, 'the report nobody has marked seen');
+  assert.ok(office.lunchVisitors >= 1, 'every visitor');
+  for (const k of ['questionsToRoute', 'feedbackNew', 'accountsWaiting', 'familyRequests']) assert.equal(typeof office[k], 'number', k);
+  await asSuper();
+  await db.exec('set role anon');
+  await rejects('select staff_today()', /permission denied/);
+
+  await asSuper();
+  await db.exec(`delete from absence_reports where student_id = ${id('u-s01')} and starts_on = ${monday};
+                 delete from school_questions where id = '${q.id}'; delete from lunch_windows where id = '${w.id}';
+                 delete from volunteer_opportunities where id = '${shift.id}'; delete from sub_assignments where id = '${sub.id}'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

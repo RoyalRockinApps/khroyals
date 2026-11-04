@@ -17,7 +17,8 @@ import { schoolToday } from '../../src/calendar/past';
 import { Pills } from '../../src/feedback/ui';
 import { addDays } from '../../src/info/today';
 import { gradeLabel } from '../../src/comms/grades';
-import { Button, C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
+import { ManageButton } from '../../src/ManageButton';
+import { C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
 
 const longDay = (d: string) => new Date(`${d}T12:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 const span = (a: string, b: string) => `${clock(a)}–${clock(b)}`;
@@ -51,7 +52,12 @@ export default function Lunch() {
     if (staff) lunchVisitors(day).then(setVisitors).catch(() => setVisitors([]));
   }, [staff, day]));
 
-  const header = <Stack.Screen options={{ title: 'Lunch visits' }} />;
+  const header = <Stack.Screen options={{
+    title: 'Lunch visits',
+    headerRight: manage ? () => (
+      <ManageButton app="Lunch Visits" items={[{ icon: 'options-outline', label: 'Lunch times, closed days and rules', href: '/lunch/settings' }]} />
+    ) : undefined,
+  }} />;
   if (me === undefined) return <>{header}<Loading /></>;
   if (!live || !me || me.pending) return <View style={[s.screen, s.pad]}>{header}<Card><P muted>Sign in to visit at lunch.</P></Card></View>;
 
@@ -65,7 +71,6 @@ export default function Lunch() {
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
       {header}
-      {manage && <Button kind="ghost" label="⚙️ Lunch times, closed days and rules" onPress={() => router.push('/lunch/settings')} />}
 
       {kids.length > 0 && (<>
         <H>Come eat lunch with {kids.length === 1 ? kids[0].firstName : 'your child'}</H>

@@ -23,6 +23,7 @@ import { recentActivities } from '../../src/sports/recent';
 import { dateRange, schoolToday, seasonState, shortDay, signupState, sportSections } from '../../src/sports/seasons';
 import { searchActivities } from '../../src/sports/search';
 import { EventRow, GOLD, NAVY, SportRow } from '../../src/sports/ui';
+import { ManageButton } from '../../src/ManageButton';
 import { ticketCount } from '../../src/tickets/labels';
 import { Button, C, Card, H, Loading, P, PLACEHOLDER, s } from '../../src/ui';
 
@@ -131,6 +132,10 @@ export default function ActivitiesHome() {
             accessibilityLabel={searching ? 'Close search' : 'Search activities'}>
             <Ionicons name={searching ? 'close' : 'search'} size={22} color="#fff" />
           </Pressable>
+          <ManageButton inRow app="Activities" items={access?.permissions.includes('sports.manage') ? [{
+            icon: 'add-circle-outline', label: 'Add an activity', sub: 'A sport, show, ensemble, art class or club, with its coaches',
+            href: { pathname: '/activities/edit', params: filter === 'all' ? {} : { category: filter } },
+          }] : []} />
         </View>
       ),
     }} />
@@ -142,7 +147,6 @@ export default function ActivitiesHome() {
   const { inSeason, upcoming: comingUp, others } = sportSections(shown, data.seasons, today);
   const why = (id: string) => mine.find((m) => m.sportId === id);
   const open = (id: string) => router.push(`/activities/${id}`);
-  const canAdd = !!access?.permissions.includes('sports.manage');
   const kind = filter === 'all' ? '' : `${categoryInfo(filter).label.toLowerCase()} `;
 
   // Yours first (registered, then followed), then ones you opened lately.
@@ -279,12 +283,6 @@ export default function ActivitiesHome() {
             ))}
           </View>
 
-          {canAdd && (
-            <View style={{ marginTop: 8 }}>
-              <Button label="+ Add an activity" kind="ghost"
-                onPress={() => router.push({ pathname: '/activities/edit', params: filter === 'all' ? {} : { category: filter } })} />
-            </View>
-          )}
         </>
       )}
     </ScrollView>

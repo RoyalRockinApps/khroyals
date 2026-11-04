@@ -10,6 +10,7 @@ import { SubscribeCard } from '../src/calendar/SubscribeCard';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../src/calendar/PastToggle';
 import { MyCalendarList } from '../src/myCalendar/MyCalendarList';
 import { dateRange } from '../src/site/calendar';
+import { ManageButton } from '../src/ManageButton';
 import { useStaffView } from '../src/staffView';
 import { Button, C, Card, Chip, Loading, P, s } from '../src/ui';
 import { SCHOOL } from '../src/school';
@@ -88,7 +89,12 @@ export default function Calendar() {
     }
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
-  const header = <Stack.Screen options={{ title: 'Calendar' }} />;
+  const header = <Stack.Screen options={{
+    title: 'Calendar',
+    headerRight: dressUp ? () => (
+      <ManageButton app="Calendar" items={[{ icon: 'shirt-outline', label: 'Dress-up days (Spirit Week)', href: '/dress-days' }]} />
+    ) : undefined,
+  }} />;
   const shown: CalView = staff ? view ?? (staffView ? 'mine' : 'school') : 'school';
   const switcher = staff ? <ViewSwitch view={shown} onChange={setView} /> : null;
   if (shown === 'mine') return <>{header}<MyCalendarList top={switcher} /></>;
@@ -126,7 +132,6 @@ export default function Calendar() {
             </Card>
           )}
           {canAdd && <Button label="+ Add event" onPress={() => router.push('/event/new')} />}
-          {dressUp && <Button kind="ghost" label="👕 Dress-up days (Spirit Week)" onPress={() => router.push('/dress-days')} />}
           <PastToggle count={split.past.length} shown={past.shown} onToggle={past.toggle} />
         </View>}
       ListFooterComponent={approved ? <View style={{ marginTop: 12 }}><SubscribeCard staff={staff} /></View> : null}

@@ -4641,6 +4641,7 @@ export type Database = {
       student_login_remove: { Args: { p_student: string }; Returns: undefined }
       student_login_request: { Args: { p_email: string; p_student: string }; Returns: Json }
       student_course: { Args: { p_course: string }; Returns: Json }
+      staff_today: { Args: { p_day?: string }; Returns: Json }
       student_record: { Args: { p_student?: string }; Returns: Json }
       sis_import: { Args: { p: Json }; Returns: Json }
       student_login_status: { Args: { p_student: string }; Returns: Json }
