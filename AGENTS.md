@@ -359,10 +359,13 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   `errorText()` so a dropped connection reads as one.
 - Admin powers only count in an authenticator-verified session (`aal2`).
   Tests simulate this with `as(user, true)`.
-- **The Admin portal is people and access only** (People, Students, Classes, Admins & roles, Activity log).
-  An admin tool that belongs to an app goes in that app (sending a notification on the bell page,
+- **The Admin portal is people and access only**, and opens on a dashboard (`app/admin/index.tsx`): tiles for
+  what needs attention (`staff_today`'s admin counts), people by role (one bar, each role's count beside its color),
+  its sections (People, Students, Classes, Admins & roles, Activity log; each its own screen, `app/admin/[section].tsx`,
+  listed in `SECTIONS` in `src/admin/sections.tsx` with the permission that opens it), recent activity, and the tools in
+  other apps. An admin tool that belongs to an app goes in that app (sending a notification on the bell page,
   `app/notifications/send.tsx`; routing questions in Ask the School → All questions; the Alert map in Alerts)
-  and in the portal's *Your tools in other apps* list (`ELSEWHERE` in `app/admin/index.tsx`). A whole admin
+  and in the portal's *Your tools in other apps* list (`ELSEWHERE` in `src/admin/sections.tsx`). A whole admin
   screen goes behind `MfaGate`; a tool on a screen everyone uses asks in place with `VerifyCard`
   (`needsCodeFor` / `mayHave` in `src/comms/mfa.ts`), never "go verify in the Admin portal".
 - **React is pinned to 19.2.3** to match `react-dom` for the web build. Use

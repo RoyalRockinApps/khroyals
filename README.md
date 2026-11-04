@@ -184,8 +184,11 @@ server-side (`admin_list_people`). Admin tools need a code
 from an authenticator app (free TOTP, enforced in the database; switch with
 `app.settings.require_admin_mfa`). The admin portal is the app's **Admin portal**
 screen: same on web (`npx expo export --platform web`, host the `dist/` folder),
-Android and iPhone. It holds people and access only (People, Students, Classes,
-Admins & roles, Activity log). Admin tools that belong to an app live in that app:
+Android and iPhone. It opens on a dashboard: tiles for what needs attention (accounts
+waiting for approval, family requests, questions to route, new feedback, absence reports
+to mark seen), everyone on the app by role, its sections (People, Students, Classes,
+Admins & roles, Activity log; each opens its own screen), recent activity, and the
+admin's tools in other apps. It holds people and access only. Admin tools that belong to an app live in that app:
 sending a notification on the bell page, routing questions in Ask the School, the
 Alert map in Alerts, and so on. The portal lists the ones an admin holds under *Your
 tools in other apps*. Those screens ask for the authenticator code right where the

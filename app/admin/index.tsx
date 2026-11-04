@@ -1,482 +1,236 @@
 /**
- * Admin portal — same screens on web, Android and iPhone: people and access only (People,
- * Students, Classes, Admins & roles, Activity log). Admin tools that belong to an app live in
- * that app (sending a notification on the bell page, routing questions in Ask the School, the
- * Alert map in Alerts…); the portal lists the ones this admin holds under "In other apps".
- * What each admin sees follows their role and permissions (the database enforces the same
- * rules), and the whole portal sits behind authenticator-app verification (MfaGate).
+ * Admin portal: a dashboard. What needs attention (accounts waiting for approval, family requests, questions to
+ * route, new feedback, absence reports to mark seen: a tile each with its count, opening where it's dealt with),
+ * people by role (one bar of the whole, with each role's count beside its color), the portal's sections as tiles
+ * (People, Students, Classes, Admins & roles, Activity log: each its own screen, app/admin/[section].tsx), the
+ * latest activity, and the admin's tools in other apps. Only what this admin's permissions open, and the whole
+ * portal sits behind authenticator-app verification (MfaGate); the database enforces the same rules.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, ScrollView, Text, View } from 'react-native';
-import { Stack, router, type Href } from 'expo-router';
+import { useCallback, useState, type ComponentProps, type ReactNode } from 'react';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Stack, router, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  adminClearAvatar, adminDeleteRole, adminDeleteUser, adminFamilyLinks, adminLinkGuardian, adminListPeople, adminRoles, adminSaveRole, adminSetAccess,
-  adminSetCarlineDuty, adminSetDirector, adminSetVolunteerLead, adminUpdateProfile, getUser, listAudit, me, permissionCatalog,
-  ROLE_LABELS,
-  type Access, type AdminPerson, type AdminRole, type FamilyLink, type PeopleFilter, type PermissionInfo,
+  adminListPeople, adminListSections, listAudit, me, staffToday,
+  type Access, type AdminSection, type PeopleFilter, type StaffToday,
 } from '../../src/api/connect';
-import { ClassesPanel } from '../../src/admin/ClassesPanel';
-import { StudentsPanel } from '../../src/admin/StudentsPanel';
-import { GradePicker } from '../../src/comms/GradePicker';
-import { gradeLabel } from '../../src/comms/grades';
+import { ELSEWHERE, SECTIONS, actionLabel, personName } from '../../src/admin/sections';
 import { MfaGate } from '../../src/comms/MfaGate';
-import type { SchoolRole } from '../../src/comms/types';
-import { Avatar, Button, C, Card, Chip, Field, H, Loading, P, s } from '../../src/ui';
-import { SCHOOL } from '../../src/school';
+import { C, Card, Loading, P, s, useContentWidth } from '../../src/ui';
 
-const PAGE = 20;
-const ROLES: SchoolRole[] = ['admin', 'teacher', 'staff', 'substitute', 'parent', 'family', 'student'];
-const FILTERS: [PeopleFilter, string][] = [
-  ['all', 'All'], ['pending', 'Needs approval'], ['staff', 'Staff'], ['parents', 'Parents'], ['family', 'Family'], ['students', 'Students'], ['admins', 'Admins'],
+type Icon = ComponentProps<typeof Ionicons>['name'];
+const AMBER = '#B45309';
+const GOOD = '#15803D';
+
+/** Each role's color in the people bar (validated as a set: dataviz palette, light surface). */
+const ROLES: { key: PeopleFilter | 'substitutes'; label: string; color: string }[] = [
+  { key: 'staff', label: 'Staff', color: '#2a78d6' },
+  { key: 'parents', label: 'Parents', color: '#eb6834' },
+  { key: 'family', label: 'Family', color: '#1baf7a' },
+  { key: 'students', label: 'Students', color: '#eda100' },
+  { key: 'substitutes', label: 'Substitutes', color: '#e87ba4' },
 ];
-const STAFF = ['admin', 'teacher', 'staff'];
+const COUNTED: PeopleFilter[] = ['all', 'pending', 'staff', 'parents', 'family', 'students', 'admins'];
 
-const pill = (label: string, on: boolean, onPress: () => void, color = C.primary) => (
-  <Text key={label} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }}
-    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: 'hidden', borderWidth: 1,
-      borderColor: C.line, backgroundColor: on ? color : '#fff', color: on ? '#fff' : C.ink }}>{label}</Text>
-);
-const link = (label: string, onPress: () => void, color = C.primary) => (
-  <Text onPress={onPress} accessibilityRole="button" style={{ color, fontWeight: '700' }}>{label}</Text>
-);
-const label = (t: string) => <Text style={{ fontSize: 12, fontWeight: '700', color: C.muted, marginTop: 6 }}>{t}</Text>;
-const confirm = (title: string, msg: string, onYes: () => void) => {
-  if (Platform.OS === 'web') { if (globalThis.confirm?.(`${title}\n\n${msg}`)) onYes(); return; }
-  Alert.alert(title, msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: onYes }]);
-};
-const fail = (e: any) => Alert.alert('Not allowed', e.message);
-const fullName = (p: { firstName: string; lastName: string }) => (p.firstName || p.lastName ? `${p.firstName} ${p.lastName}`.trim() : '(no name yet)');
+/** What needs attention, by the staff_today key that counts it and the permission that shows it. */
+const NEEDS: { key: keyof StaffToday; perm: string; label: string; href: Href }[] = [
+  { key: 'accountsWaiting', perm: 'people.approve', label: 'Accounts waiting for approval', href: { pathname: '/admin/[section]', params: { section: 'people', filter: 'pending' } } },
+  { key: 'familyRequests', perm: 'people.family', label: 'Family requests', href: '/admin/students' },
+  { key: 'questionsToRoute', perm: 'questions.manage', label: 'Questions to route', href: '/questions' },
+  { key: 'feedbackNew', perm: 'feedback.triage', label: 'New feedback', href: '/feedback' },
+  { key: 'absencesToSee', perm: 'checkin.manage', label: 'Absence reports to mark seen', href: '/forms/excused-absence' },
+];
 
-/** Debounced server search: one page of people matching the term and filter. */
-function usePeople(search: string, filter: PeopleFilter, limit: number, offset: number, reload = 0, enabled = true) {
-  const [res, setRes] = useState<{ people: AdminPerson[]; total: number } | null>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    let live = true;
-    const t = setTimeout(() => adminListPeople({ search, filter, limit, offset })
-      .then((r) => live && setRes(r)).catch((e) => { if (live) { setRes({ people: [], total: 0 }); fail(e); } }), search ? 300 : 0);
-    return () => { live = false; clearTimeout(t); };
-  }, [search, filter, limit, offset, reload, enabled]);
-  return res;
+type Dash = { today: StaffToday; people: Partial<Record<PeopleFilter, number>> | null; classes: AdminSection[] | null; activity: any[] | null };
+
+/** "Just now", "5 min ago", "3 h ago", "2 d ago", then the date. */
+function ago(iso: string) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 24 * 60) return `${Math.floor(mins / 60)} h ago`;
+  if (mins < 7 * 24 * 60) return `${Math.floor(mins / (24 * 60))} d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
+function Heading({ children, right }: { children: string; right?: ReactNode }) {
+  return (
+    <View style={[s.row, { marginTop: 10 }]}>
+      <Text style={{ flex: 1, fontSize: 13, fontWeight: '800', letterSpacing: 1, color: C.muted }}>{children.toUpperCase()}</Text>
+      {right}
+    </View>
+  );
 }
 
-// ------------------------------------------------------------------ people
+/** Tiles in rows: two across on phones, up to four on iPads. */
+function Grid({ children, min = 160 }: { children: ReactNode[]; min?: number }) {
+  const cols = Math.max(2, Math.min(4, Math.floor(useContentWidth() / min)));
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 }}>
+      {children.map((c, i) => <View key={i} style={{ width: `${100 / cols}%`, padding: 5 }}>{c}</View>)}
+    </View>
+  );
+}
 
-function PersonCard({ p, links, access, roles, onChange }: {
-  p: AdminPerson; links: FamilyLink[]; access: Access; roles: AdminRole[]; onChange: () => void;
-}) {
-  const [open, setOpen] = useState(!!p.pending);
-  const [grade, setGrade] = useState<number | null>(p.grade ?? null);
-  const [linkKid, setLinkKid] = useState<{ id: string; name: string } | null>(null);
-  const [q, setQ] = useState('');
-  const found = usePeople(q.trim(), 'students', 6, 0, 0, q.trim() !== '');
+/** A count that needs someone: the number, what it is, and (icon and words, not color alone) whether it's waiting. */
+function NeedTile({ value, label, href }: { value: number; label: string; href: Href }) {
+  const waiting = value > 0;
+  return (
+    <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}
+      style={({ pressed }) => [s.card, { height: '100%', gap: 4, borderColor: waiting ? `${AMBER}55` : C.line }, pressed && { opacity: 0.8 }]}>
+      <Text style={{ fontSize: 32, fontWeight: '700', color: C.ink }}>{value.toLocaleString()}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: C.ink, flex: 1 }}>{label}</Text>
+      <View style={[s.row, { gap: 4 }]}>
+        <Ionicons name={waiting ? 'alert-circle' : 'checkmark-circle'} size={15} color={waiting ? AMBER : GOOD} />
+        <Text style={{ fontSize: 13, fontWeight: '700', color: waiting ? AMBER : GOOD }}>{waiting ? 'Needs you' : 'All caught up'}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Everyone with an account, by role: one thin bar of the whole, and each role's count by its color (the bar's key). */
+function PeopleCard({ counts }: { counts: Partial<Record<PeopleFilter, number>> }) {
+  const n = (k: PeopleFilter) => counts[k] ?? 0;
+  const approved = Math.max(0, n('all') - n('pending'));
+  const known = n('staff') + n('parents') + n('family') + n('students');
+  const value = (k: (typeof ROLES)[number]['key']) => (k === 'substitutes' ? Math.max(0, approved - known) : n(k));
+  const parts = ROLES.map((r) => ({ ...r, value: value(r.key) })).filter((r) => r.value > 0 || r.key !== 'substitutes');
+  const shown = parts.filter((p) => p.value > 0);
+  return (
+    <Card style={{ gap: 12 }}>
+      <View style={[s.row, { alignItems: 'baseline', gap: 8 }]}>
+        <Text style={{ fontSize: 28, fontWeight: '700', color: C.ink }}>{approved.toLocaleString()}</Text>
+        <Text style={{ flex: 1, fontSize: 15, color: C.muted, fontWeight: '600' }}>{approved === 1 ? 'person on the app' : 'people on the app'}</Text>
+      </View>
+      {approved > 0 && (
+        <View accessible accessibilityLabel={`People by role: ${shown.map((p) => `${p.label} ${p.value}`).join(', ')}`}
+          style={{ flexDirection: 'row', height: 8, gap: 2 }}>
+          {shown.map((p) => <View key={p.key} style={{ flex: p.value, backgroundColor: p.color, borderRadius: 4 }} />)}
+        </View>
+      )}
+      <Grid min={150}>
+        {parts.map((p) => (
+          <Pressable key={p.key} onPress={() => router.push({ pathname: '/admin/[section]', params: { section: 'people', filter: p.key === 'substitutes' ? 'all' : p.key } })}
+            accessibilityRole="button" accessibilityLabel={`${p.label}: ${p.value}. Open`}
+            style={({ pressed }) => [s.row, { gap: 8, paddingVertical: 4 }, pressed && { opacity: 0.6 }]}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.color }} />
+            <Text style={{ flex: 1, color: C.ink, fontWeight: '600' }}>{p.label}</Text>
+            <Text style={{ color: C.ink, fontWeight: '800' }}>{p.value.toLocaleString()}</Text>
+          </Pressable>
+        ))}
+      </Grid>
+    </Card>
+  );
+}
+
+/** One of the portal's sections: its icon, name, what it's for, and a count where there is one. */
+function SectionTile({ icon, title, sub, note, href }: { icon: Icon; title: string; sub: string; note?: string; href: Href }) {
+  return (
+    <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={title}
+      style={({ pressed }) => [s.card, { height: '100%', gap: 6 }, pressed && { opacity: 0.8 }]}>
+      <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${C.primary}14`, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={22} color={C.primary} />
+      </View>
+      <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{title}</Text>
+      <Text style={{ color: C.muted, flex: 1 }}>{sub}</Text>
+      {!!note && <Text style={{ color: C.primary, fontWeight: '700' }}>{note}</Text>}
+    </Pressable>
+  );
+}
+
+function Dashboard({ access }: { access: Access }) {
   const can = (x: string) => access.permissions.includes(x);
-  const isAdminAccount = !!p.adminTier || p.schoolRole === 'admin';
-  const roleOptions = ROLES.filter((r) => {
-    if (r === 'admin' || isAdminAccount) return can('admins.manage');
-    if (p.pending && (r === 'parent' || r === 'student' || r === 'family')) return can('people.approve') || can('people.roles');
-    return can('people.roles');
-  });
-  const setRole = (r: SchoolRole | null) =>
-    adminUpdateProfile(p.id, r, r === 'student' && grade !== null ? grade : p.grade ?? null).then(onChange).catch(fail);
-  const children = links.filter((l) => l.guardianId === p.id);
-  const parents = links.filter((l) => l.studentId === p.id);
-  const roleName = roles.find((r) => r.id === p.adminTier)?.name ?? p.adminTier;
+  const [d, setD] = useState<Dash | null>(null);
+  const [showTools, setShowTools] = useState(false);
+  const load = useCallback(async () => {
+    const has = (x: string) => access.permissions.includes(x);
+    const [today, people, classes, activity] = await Promise.all([
+      staffToday().catch(() => ({} as StaffToday)),
+      has('people.view')
+        ? Promise.all(COUNTED.map(async (f) => [f, (await adminListPeople({ filter: f, limit: 1 })).total] as const))
+          .then((list) => Object.fromEntries(list)).catch(() => null)
+        : null,
+      has('people.family') ? adminListSections().catch(() => null) : null,
+      has('audit.view') ? listAudit(5).catch(() => null) : null,
+    ]);
+    setD({ today, people, classes, activity });
+  }, [access]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const needs = NEEDS.filter((x) => can(x.perm) && d?.today[x.key] !== undefined);
+  const sections = SECTIONS.filter((x) => can(x.perm));
+  const tools = ELSEWHERE.filter((t) => can(t.perm));
+  const note = (key: (typeof SECTIONS)[number]['key']) => {
+    const p = d?.people;
+    if (key === 'people' && p?.all != null) return count(Math.max(0, p.all - (p.pending ?? 0)), 'account');
+    if (key === 'students' && p?.students != null) return count(p.students, 'student');
+    if (key === 'classes' && d?.classes) return count(d.classes.length, 'class', 'classes');
+    if (key === 'admins' && p?.admins != null) return `${p.admins.toLocaleString()} with admin access`;
+    return undefined;
+  };
 
   return (
-    <Card onPress={() => setOpen(!open)}>
-      <View style={s.row}>
-        <Avatar person={getUser(p.id) ?? p} size={36} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '700', color: C.ink }}>{fullName(p)}</Text>
-          <P muted>{p.email ?? 'No login'}{p.grade != null ? ` · ${gradeLabel(p.grade)}` : ''}</P>
-        </View>
-        {roleName && <Chip label={roleName} color={C.accent} />}
-        {p.carlineDuty && <Chip label="Car line lead" color="#15803D" />}
-        {p.volunteerLead && <Chip label="Volunteer lead" color="#DB2777" />}
-        {p.pending ? <Chip label="Needs approval" color="#B45309" /> : <Chip label={ROLE_LABELS[p.schoolRole] ?? p.schoolRole} />}
-      </View>
-      {(children.length > 0 || parents.length > 0) && (
-        <P muted>{children.length
-          ? `${p.schoolRole === 'family' ? 'Picks up' : 'Parent of'} ${children.map((c) => c.studentName).join(', ')}`
-          : [['Parents', parents.filter((c) => !c.pickupOnly)], ['Family', parents.filter((c) => c.pickupOnly)]]
-              .filter(([, l]) => (l as FamilyLink[]).length).map(([t, l]) => `${t}: ${(l as FamilyLink[]).map((c) => c.guardianName).join(', ')}`).join(' · ')}</P>
-      )}
-      {open && (
-        <View style={{ gap: 8 }}>
-          {roleOptions.length > 0 && p.adminTier !== 'director' && (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>
-              {roleOptions.map((r) => pill(r, p.schoolRole === r && !p.pending, () => setRole(r)))}
-              {!p.pending && p.id !== me()?.id && pill('revoke access', false, () => confirm('Revoke access?', `${p.firstName} will lose access to ${SCHOOL.connectName}.`, () => setRole(null)), C.danger)}
-            </View>
-          )}
-          {p.adminTier === 'director' && <P muted>Directors are managed under Admins & roles.</P>}
-          {can('people.roles') && !!getUser(p.id)?.avatar && p.id !== me()?.id && (
-            <Text style={{ color: C.danger }} onPress={() => confirm('Remove photo?', `${fullName(p)}'s profile photo will be removed.`,
-              () => adminClearAvatar(p.id).then(onChange).catch(fail))}>Remove profile photo</Text>
-          )}
-          {!p.pending && ['admin', 'teacher', 'staff'].includes(p.schoolRole) && can('people.family') && (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>
-              {pill(p.carlineDuty ? '🚗 Car line lead' : '🚗 Make car line lead', !!p.carlineDuty,
-                () => adminSetCarlineDuty(p.id, !p.carlineDuty).then(onChange).catch(fail), '#15803D')}
-            </View>
-          )}
-          {!p.pending && p.schoolRole !== 'student' && p.schoolRole !== 'family' && p.schoolRole !== 'substitute' && can('people.family') && (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>
-              {pill(p.volunteerLead ? '🙋 Volunteer Leader' : '🙋 Make Volunteer Leader', !!p.volunteerLead,
-                () => adminSetVolunteerLead(p.id, !p.volunteerLead).then(onChange).catch(fail), '#DB2777')}
-            </View>
-          )}
-          {p.schoolRole === 'student' && can('people.family') && (
-            <View style={[s.row, { alignItems: 'flex-end' }]}>
-              <View style={{ flex: 1 }}><GradePicker value={grade} onChange={setGrade} /></View>
-              <Button label="Save grade" kind="ghost" disabled={grade === p.grade} onPress={() => setRole('student')} />
-            </View>
-          )}
-          {!p.pending && p.schoolRole !== 'student' && can('people.family') && (
-            <View style={{ gap: 6 }}>
-              {children.map((c) => (
-                <Text key={c.studentId} style={{ color: C.ink }}>👪 {c.studentName}{'  '}
-                  <Text style={{ color: C.danger }} onPress={() => adminLinkGuardian(p.id, c.studentId, false).then(onChange).catch(fail)}>unlink</Text>
-                </Text>
-              ))}
-              {linkKid && (
-                <View style={{ gap: 6 }}>
-                  <Text style={{ color: C.ink }}>Link {p.firstName} to {linkKid.name} as their:</Text>
-                  <View style={[s.row, { gap: 8 }]}>
-                    {(['mother', 'father'] as const).map((r) => (
-                      <View key={r} style={{ flex: 1 }}>
-                        <Button label={r === 'mother' ? 'Mother' : 'Father'}
-                          onPress={() => adminLinkGuardian(p.id, linkKid.id, true, r).then(() => { setLinkKid(null); onChange(); }).catch(fail)} />
-                      </View>
-                    ))}
-                  </View>
-                  <Text style={{ color: C.muted }} onPress={() => setLinkKid(null)}>Cancel</Text>
+    <ScrollView style={s.screen} contentContainerStyle={s.pad} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
+      <P muted>{[access.isDirector ? 'Director' : access.roleName ?? 'Custom permissions', me()?.email].filter(Boolean).join(' · ')}</P>
+      {!d ? <Loading /> : (<>
+        {needs.length > 0 && (<>
+          <Heading>Needs attention</Heading>
+          <Grid>{needs.map((x) => <NeedTile key={x.key} value={d.today[x.key] ?? 0} label={x.label} href={x.href} />)}</Grid>
+        </>)}
+
+        {d.people && (<>
+          <Heading>People</Heading>
+          <PeopleCard counts={d.people} />
+        </>)}
+
+        {sections.length > 0 && (<>
+          <Heading>Manage</Heading>
+          <Grid>{sections.map((x) => (
+            <SectionTile key={x.key} icon={x.icon} title={x.title} sub={x.sub} note={note(x.key)} href={`/admin/${x.key}` as Href} />
+          ))}</Grid>
+        </>)}
+
+        {d.activity && (<>
+          <Heading right={<Text onPress={() => router.push('/admin/activity')} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>See all ›</Text>}>
+            Recent activity
+          </Heading>
+          <Card style={{ gap: 0, paddingVertical: 4 }}>
+            {d.activity.length === 0 && <P muted>No activity yet.</P>}
+            {d.activity.map((a, i) => (
+              <View key={a.id} style={[s.row, { gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }]}>
+                <Ionicons name="ellipse" size={8} color={C.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700', color: C.ink }}>{actionLabel(a.action)}</Text>
+                  <Text style={{ color: C.muted }}>
+                    {personName(a.actor_id)}{a.target_id ? ` → ${personName(a.target_id)}` : ''}{a.groups?.name ? ` · ${a.groups.name}` : ''}
+                  </Text>
                 </View>
-              )}
-              <Field label="Link a student" placeholder="Search by name" value={q} onChangeText={setQ} />
-              {q.trim() !== '' && found?.people.filter((x) => !children.some((c) => c.studentId === x.id)).map((x) => (
-                <Text key={x.id} style={{ color: C.primary }} onPress={() => {
-                  setQ('');
-                  if (p.schoolRole === 'family') adminLinkGuardian(p.id, x.id).then(onChange).catch(fail);
-                  else setLinkKid({ id: x.id, name: fullName(x) });
-                }}>
-                  + {fullName(x)} ({x.grade != null ? gradeLabel(x.grade) : 'no grade'})
-                </Text>
-              ))}
-              <P muted>{p.schoolRole === 'family'
-                ? 'Family accounts can pick up the students linked here at the car line. They don\'t join groups.'
-                : 'Linked parents join their student\'s family groups automatically.'}</P>
-            </View>
+                <Text style={{ color: C.muted, fontSize: 13 }}>{ago(a.at)}</Text>
+              </View>
+            ))}
+          </Card>
+        </>)}
+
+        {tools.length > 0 && (<>
+          <Heading right={
+            <Text onPress={() => setShowTools(!showTools)} accessibilityRole="button" accessibilityState={{ expanded: showTools }}
+              style={{ color: C.primary, fontWeight: '700' }}>{showTools ? 'Hide' : `Show ${tools.length}`}</Text>
+          }>Your tools in other apps</Heading>
+          {(showTools || (!needs.length && !sections.length)) && (
+            <Grid>{tools.map((t) => (
+              <Pressable key={t.perm} onPress={() => router.push(t.href)} accessibilityRole="button" accessibilityLabel={`${t.label}, in ${t.where}`}
+                style={({ pressed }) => [s.card, { height: '100%', gap: 4, paddingVertical: 12 }, pressed && { opacity: 0.8 }]}>
+                <Ionicons name={t.icon} size={20} color={C.primary} />
+                <Text style={{ fontWeight: '700', color: C.ink }}>{t.label}</Text>
+                <Text style={{ color: C.muted, fontSize: 13 }}>{t.where}</Text>
+              </Pressable>
+            ))}</Grid>
           )}
-          {can('people.delete') && p.id !== me()?.id && p.adminTier !== 'director' && (p.email || p.schoolRole !== 'student')
-            && (!isAdminAccount || can('admins.manage')) && (
-            <Text style={{ color: C.danger, marginTop: 4 }} onPress={() => confirm('Delete account?',
-              `${fullName(p)}'s account will be permanently deleted, with everything they posted. This can't be undone.`,
-              () => adminDeleteUser(p.id).then(onChange).catch(fail))}>Delete account…</Text>
-          )}
-        </View>
-      )}
-    </Card>
-  );
-}
+        </>)}
 
-function Pager({ offset, total, onPage }: { offset: number; total: number; onPage: (o: number) => void }) {
-  if (total <= PAGE) return null;
-  return (
-    <View style={[s.row, { justifyContent: 'space-between' }]}>
-      <Button label="‹ Previous" kind="ghost" disabled={offset === 0} onPress={() => onPage(Math.max(0, offset - PAGE))} />
-      <Text style={{ color: C.muted }}>{offset + 1}–{Math.min(offset + PAGE, total)} of {total}</Text>
-      <Button label="Next ›" kind="ghost" disabled={offset + PAGE >= total} onPress={() => onPage(offset + PAGE)} />
-    </View>
-  );
-}
-
-function People({ access, roles }: { access: Access; roles: AdminRole[] }) {
-  const [q, setQ] = useState('');
-  const [filter, setFilter] = useState<PeopleFilter>('all');
-  const [offset, setOffset] = useState(0);
-  const [reload, setReload] = useState(0);
-  const [links, setLinks] = useState<FamilyLink[]>([]);
-  const page = usePeople(q.trim(), filter, PAGE, offset, reload);
-  const loadLinks = useCallback(() => adminFamilyLinks().then(setLinks).catch(() => setLinks([])), []);
-  useEffect(() => { loadLinks(); }, [loadLinks]);
-  useEffect(() => setOffset(0), [q, filter]);
-  const changed = () => { setReload((n) => n + 1); loadLinks(); };
-
-  return (
-    <>
-      <Field label="Search people" placeholder="Name or email" autoCapitalize="none" value={q} onChangeText={setQ} />
-      <View style={[s.row, { flexWrap: 'wrap' }]}>{FILTERS.map(([k, l]) => pill(l, filter === k, () => setFilter(k)))}</View>
-      {!page ? <Loading /> : (
-        <>
-          <P muted>{page.total === 0 ? 'Nobody matches.' : `${page.total} ${page.total === 1 ? 'person' : 'people'}`}</P>
-          {page.people.map((p) => <PersonCard key={p.id} p={p} links={links} access={access} roles={roles} onChange={changed} />)}
-          <Pager offset={offset} total={page.total} onPage={setOffset} />
-        </>
-      )}
-    </>
-  );
-}
-
-// ------------------------------------------------------------------ admins & roles (directors)
-
-function PermissionChecks({ catalog, value, fixed = [], onChange, disabled }: {
-  catalog: PermissionInfo[]; value: string[]; fixed?: string[]; onChange: (v: string[]) => void; disabled?: boolean;
-}) {
-  return (
-    <View style={{ gap: 6 }}>
-      {catalog.filter((c) => c.key !== 'admins.manage').map((c) => {
-        const fromRole = fixed.includes(c.key);
-        const on = fromRole || value.includes(c.key);
-        return (
-          <Text key={c.key} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled: fromRole || disabled }}
-            onPress={fromRole || disabled ? undefined : () => onChange(on ? value.filter((g) => g !== c.key) : [...value, c.key])}
-            style={{ color: fromRole ? C.muted : C.ink }}>
-            {on ? '☑' : '☐'} <Text style={{ fontWeight: '700' }}>{c.label}</Text>{fromRole ? ' (from role)' : ''}{'\n'}
-            <Text style={{ color: C.muted, fontSize: 13 }}>{c.description}</Text>
-          </Text>
-        );
-      })}
-    </View>
-  );
-}
-
-function RoleCard({ role, catalog, onChange, startOpen = false, onCancel }: {
-  role: AdminRole | null; catalog: PermissionInfo[]; onChange: () => void; startOpen?: boolean; onCancel?: () => void;
-}) {
-  const [open, setOpen] = useState(startOpen);
-  const [name, setName] = useState(role?.name ?? '');
-  const [description, setDescription] = useState(role?.description ?? '');
-  const [perms, setPerms] = useState<string[]>(role?.permissions ?? []);
-  const save = () => adminSaveRole({ id: role?.id ?? null, name, description, permissions: perms })
-    .then(() => { if (!role) onCancel?.(); else setOpen(false); onChange(); }).catch(fail);
-
-  if (role?.isSystem) {
-    return (
-      <Card>
-        <View style={s.row}><Text style={{ flex: 1, fontWeight: '800', color: C.ink }}>{role.name}</Text><Chip label="Built in" color={C.accent} /></View>
-        <P muted>{role.description}</P>
-      </Card>
-    );
-  }
-  return (
-    <Card onPress={open ? undefined : () => setOpen(true)}>
-      {role && (
-        <View style={s.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '800', color: C.ink }}>{role.name}</Text>
-            <P muted>{role.description || 'No description'} · {role.permissions.length} permission{role.permissions.length === 1 ? '' : 's'}</P>
-          </View>
-          {open && link('Close', () => setOpen(false), C.muted)}
-        </View>
-      )}
-      {open && (
-        <View style={{ gap: 10 }}>
-          <Field label="Role name" placeholder="e.g. Athletics Director" value={name} onChangeText={setName} maxLength={60} />
-          <Field label="Description" placeholder="What this role is for" value={description} onChangeText={setDescription} maxLength={200} />
-          {label('PERMISSIONS')}
-          <PermissionChecks catalog={catalog} value={perms} onChange={setPerms} />
-          <Button label={role ? 'Save role' : 'Create role'} disabled={!name.trim()} onPress={save} />
-          {role ? link('Delete role…', () => confirm(`Delete "${role.name}"?`, 'Everyone with this role loses the admin access it gave them.',
-            () => adminDeleteRole(role.id).then(onChange).catch(fail)), C.danger)
-            : link('Cancel', () => onCancel?.(), C.muted)}
-        </View>
-      )}
-    </Card>
-  );
-}
-
-function AccessCard({ p, roles, catalog, onChange }: { p: AdminPerson; roles: AdminRole[]; catalog: PermissionInfo[]; onChange: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [role, setRole] = useState<string | null>(p.adminTier);
-  const [granted, setGranted] = useState<string[]>(p.granted);
-  const staff = STAFF.includes(p.schoolRole);
-  const assignable = roles.filter((r) => !r.isSystem);
-  const fixed = roles.find((r) => r.id === role)?.permissions ?? [];
-  const roleName = roles.find((r) => r.id === p.adminTier)?.name ?? p.adminTier;
-  const save = () => adminSetAccess(p.id, role, granted.filter((g) => !fixed.includes(g))).then(() => { setOpen(false); onChange(); }).catch(fail);
-
-  return (
-    <Card onPress={open ? undefined : () => setOpen(true)}>
-      <View style={s.row}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '700', color: C.ink }}>{fullName(p)}</Text>
-          <P muted>{p.email} · {p.schoolRole}{p.granted.length ? ` · +${p.granted.length} permission${p.granted.length > 1 ? 's' : ''}` : ''}</P>
-        </View>
-        {roleName && <Chip label={roleName} color={C.accent} />}
-      </View>
-      {open && (
-        <View style={{ gap: 10 }}>
-          {label('ROLE')}
-          {staff ? (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>
-              {pill('No admin role', role === null, () => setRole(null))}
-              {assignable.map((r) => pill(r.name, role === r.id, () => setRole(r.id)))}
-            </View>
-          ) : <P muted>Admin roles are for staff accounts; you can still grant individual permissions.</P>}
-          {label('EXTRA PERMISSIONS')}
-          <PermissionChecks catalog={catalog} value={granted} fixed={fixed} onChange={setGranted} disabled={p.schoolRole === 'student' || p.schoolRole === 'family' || p.schoolRole === 'substitute'} />
-          <Button label="Save access" onPress={save} />
-          <View style={[s.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}>
-            {staff ? link(`Make ${p.firstName || 'them'} a director…`, () => confirm('Add a director?',
-              `${fullName(p)} gets every permission, including managing admins, roles and other directors.`,
-              () => adminSetDirector(p.id, true).then(onChange).catch(fail)), C.danger) : <View />}
-            {link('Close', () => setOpen(false), C.muted)}
-          </View>
-        </View>
-      )}
-    </Card>
-  );
-}
-
-function Admins({ catalog, roles, reloadRoles }: { catalog: PermissionInfo[]; roles: AdminRole[]; reloadRoles: () => void }) {
-  const [reload, setReload] = useState(0);
-  const [q, setQ] = useState('');
-  const [offset, setOffset] = useState(0);
-  const [newRole, setNewRole] = useState(false);
-  const admins = usePeople('', 'admins', 100, 0, reload);
-  const search = usePeople(q.trim(), 'all', PAGE, offset, reload, q.trim() !== '');
-  useEffect(() => setOffset(0), [q]);
-  const changed = () => { setReload((n) => n + 1); reloadRoles(); };
-  const meId = me()?.id;
-  if (!admins) return <Loading />;
-  const directors = admins.people.filter((p) => p.adminTier === 'director');
-  const others = admins.people.filter((p) => p.adminTier !== 'director');
-
-  return (
-    <>
-      <H>Directors</H>
-      <P muted>Directors have every permission and manage admins and roles. You can have several, but never none — add the new director before the old one steps down.</P>
-      {directors.map((p) => (
-        <Card key={p.id}>
-          <View style={s.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '800', color: C.ink }}>{fullName(p)}{p.id === meId ? ' (you)' : ''}</Text>
-              <P muted>{p.email}</P>
-            </View>
-            <Chip label="Director" color={C.accent} />
-          </View>
-          {directors.length > 1
-            ? link(p.id === meId ? 'Step down as director…' : 'Remove director…', () => confirm(p.id === meId ? 'Step down?' : 'Remove director?',
-                `${p.id === meId ? 'You' : fullName(p)} will become an Administrator.`, () => adminSetDirector(p.id, false).then(changed).catch(fail)), C.danger)
-            : <P muted>The only director. To hand over, make someone else a director first, then step down.</P>}
-        </Card>
-      ))}
-
-      <H>Roles</H>
-      <P muted>Roles bundle permissions. Create one for each job (for example "Athletics Director" with calendar and notifications), then assign it below.</P>
-      {roles.map((r) => <RoleCard key={`${r.id}:${r.name}:${r.permissions.join()}`} role={r} catalog={catalog} onChange={changed} />)}
-      {newRole ? <RoleCard role={null} catalog={catalog} onChange={changed} startOpen onCancel={() => setNewRole(false)} />
-        : <Button label="+ New role" kind="ghost" onPress={() => setNewRole(true)} />}
-
-      <H>People with admin access</H>
-      {others.length === 0 ? <P muted>Nobody else yet.</P>
-        : others.map((p) => <AccessCard key={`${p.id}:${p.adminTier}:${p.granted.join()}`} p={p} roles={roles} catalog={catalog} onChange={changed} />)}
-
-      <H>Give someone access</H>
-      <Field label="Find a person" placeholder="Name or email" autoCapitalize="none" value={q} onChangeText={setQ} />
-      {q.trim() !== '' && (!search ? <Loading /> : (
-        <>
-          {search.people.filter((p) => !p.pending && p.adminTier !== 'director').map((p) =>
-            <AccessCard key={`${p.id}:${p.adminTier}:${p.granted.join()}`} p={p} roles={roles} catalog={catalog} onChange={changed} />)}
-          {search.total === 0 && <P muted>Nobody matches.</P>}
-          <Pager offset={offset} total={search.total} onPage={setOffset} />
-        </>
-      ))}
-    </>
-  );
-}
-
-// ------------------------------------------------------------------ portal
-
-function Audit() {
-  const [rows, setRows] = useState<any[] | null>(null);
-  useEffect(() => { listAudit().then(setRows).catch((e) => { setRows([]); fail(e); }); }, []);
-  if (!rows) return <Loading />;
-  const name = (id: string) => { const p = getUser(id); return p ? fullName(p) : 'someone'; };
-  return rows.length === 0 ? <P muted>No activity yet.</P> : (
-    <>{rows.map((a) => (
-      <Card key={a.id}>
-        <Text style={{ fontWeight: '700', color: C.ink }}>{a.action}</Text>
-        <P muted>{name(a.actor_id)}{a.groups?.name ? ` · ${a.groups.name}` : ''} · {new Date(a.at).toLocaleString()}</P>
-        {a.target_id && getUser(a.target_id) && <P muted>→ {name(a.target_id)}</P>}
-      </Card>
-    ))}</>
-  );
-}
-
-/**
- * Admin tools that live in their app, by the permission that opens them: the portal lists the
- * ones this admin holds, so nobody has to remember where each went.
- */
-const ELSEWHERE: { perm: string; label: string; where: string; href: Href }[] = [
-  { perm: 'push.send', label: 'Send a notification', where: 'Notifications (the bell)', href: '/notifications/send' },
-  { perm: 'alerts.send', label: 'Send critical alerts', where: 'Alerts', href: '/alerts' },
-  { perm: 'alerts.map', label: 'Alert map', where: 'Alerts', href: '/alerts/map' },
-  { perm: 'questions.manage', label: 'Route questions', where: 'Ask the School → All questions', href: '/questions' },
-  { perm: 'checkin.manage', label: 'Check students in and out', where: 'Classes', href: '/checkin' },
-  { perm: 'subs.manage', label: 'Schedule substitutes', where: 'Classes → Substitutes', href: '/subs' },
-  { perm: 'messages.review', label: 'Student messages', where: 'Classes → Messages', href: '/teachers' },
-  { perm: 'lunch.manage', label: 'Lunch times and rules', where: 'Lunch Visits', href: '/lunch/settings' },
-  { perm: 'calendar.school', label: 'School calendar and dress-up days', where: 'Calendar', href: '/calendar' },
-  { perm: 'forms.send', label: 'Send forms to grades or the school', where: 'Forms', href: '/forms' },
-  { perm: 'sports.manage', label: 'Add activities and coaches', where: 'Activities', href: '/activities' },
-  { perm: 'gallery.manage', label: 'Photo albums and categories', where: 'Photos', href: '/photos' },
-  { perm: 'feedback.triage', label: 'Triage feedback', where: 'Feedback → Triage', href: '/feedback' },
-];
-
-/** Folded away under the portal's own tabs; open when the portal has none for this admin. */
-function Elsewhere({ access, startOpen }: { access: Access; startOpen: boolean }) {
-  const [open, setOpen] = useState(startOpen);
-  const mine = ELSEWHERE.filter((t) => access.permissions.includes(t.perm));
-  if (!mine.length) return null;
-  return (
-    <View style={{ gap: 8, marginTop: 8 }}>
-      <Text onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }}
-        style={{ fontSize: 12, fontWeight: '700', color: C.muted, marginTop: 6 }}>
-        YOUR TOOLS IN OTHER APPS ({mine.length})  {open ? '▾' : '▸'}
-      </Text>
-      {open && mine.map((t) => (
-        <Card key={t.perm} onPress={() => router.push(t.href)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '700', color: C.ink }}>{t.label}</Text>
-            <P muted>{t.where}</P>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={C.muted} />
-        </Card>
-      ))}
-    </View>
-  );
-}
-
-function Portal({ access }: { access: Access }) {
-  const can = (x: string) => access.permissions.includes(x);
-  const tabs = [
-    can('people.view') && ['people', 'People'],
-    can('people.family') && ['students', 'Students'],
-    can('people.family') && ['classes', 'Classes'],
-    can('admins.manage') && ['admins', 'Admins & roles'],
-    can('audit.view') && ['audit', 'Activity log'],
-  ].filter(Boolean) as [string, string][];
-  const [tab, setTab] = useState(tabs[0]?.[0]);
-  const [catalog, setCatalog] = useState<PermissionInfo[]>([]);
-  const [roles, setRoles] = useState<AdminRole[]>([]);
-  const loadRoles = useCallback(() => { adminRoles().then(setRoles).catch(() => setRoles([])); }, []);
-  useEffect(() => { permissionCatalog().then(setCatalog).catch(fail); loadRoles(); }, [loadRoles]);
-
-  return (
-    <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
-      <P muted>{access.isDirector ? 'Director' : access.roleName ?? 'Custom permissions'} · {me()?.email}</P>
-      {tabs.length > 1 && <View style={[s.row, { flexWrap: 'wrap' }]}>{tabs.map(([k, l]) => pill(l, tab === k, () => setTab(k)))}</View>}
-      {tabs.length === 0 && <P muted>Your admin tools are in the apps they belong to.</P>}
-      {tab === 'people' && <People access={access} roles={roles} />}
-      {tab === 'students' && <StudentsPanel />}
-      {tab === 'classes' && <ClassesPanel />}
-      {tab === 'admins' && <Admins catalog={catalog} roles={roles} reloadRoles={loadRoles} />}
-      {tab === 'audit' && <Audit />}
-      <Elsewhere access={access} startOpen={tabs.length === 0} />
+        {!needs.length && !sections.length && !tools.length && <P muted>Your admin tools are in the apps they belong to.</P>}
+      </>)}
     </ScrollView>
   );
 }
@@ -485,7 +239,7 @@ export default function Admin() {
   return (
     <>
       <Stack.Screen options={{ title: 'Admin portal' }} />
-      <MfaGate>{(access) => <Portal access={access} />}</MfaGate>
+      <MfaGate>{(access) => <Dashboard access={access} />}</MfaGate>
     </>
   );
 }
