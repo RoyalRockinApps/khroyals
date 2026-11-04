@@ -63,11 +63,14 @@ function Heading({ children, right }: { children: string; right?: ReactNode }) {
   );
 }
 
-/** Tiles in rows: two across on phones, up to four on iPads. */
+/**
+ * Tiles in rows: two across on phones, up to four on iPads. Tiles keep the same height by giving their text a fixed
+ * two lines, not by stretching: on iPhone a growing tile inside a scrolling page grows to the screen's height.
+ */
 function Grid({ children, min = 160 }: { children: ReactNode[]; min?: number }) {
   const cols = Math.max(2, Math.min(4, Math.floor(useContentWidth() / min)));
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -5 }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', marginHorizontal: -5 }}>
       {children.map((c, i) => <View key={i} style={{ width: `${100 / cols}%`, padding: 5 }}>{c}</View>)}
     </View>
   );
@@ -78,9 +81,9 @@ function NeedTile({ value, label, href }: { value: number; label: string; href: 
   const waiting = value > 0;
   return (
     <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={`${label}: ${value}`}
-      style={({ pressed }) => [s.card, { height: '100%', gap: 4, borderColor: waiting ? `${AMBER}55` : C.line }, pressed && { opacity: 0.8 }]}>
+      style={({ pressed }) => [s.card, { gap: 4, borderColor: waiting ? `${AMBER}55` : C.line }, pressed && { opacity: 0.8 }]}>
       <Text style={{ fontSize: 32, fontWeight: '700', color: C.ink }}>{value.toLocaleString()}</Text>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: C.ink, flex: 1 }}>{label}</Text>
+      <Text numberOfLines={2} style={{ fontSize: 14, lineHeight: 19, minHeight: 38, fontWeight: '600', color: C.ink }}>{label}</Text>
       <View style={[s.row, { gap: 4 }]}>
         <Ionicons name={waiting ? 'alert-circle' : 'checkmark-circle'} size={15} color={waiting ? AMBER : GOOD} />
         <Text style={{ fontSize: 13, fontWeight: '700', color: waiting ? AMBER : GOOD }}>{waiting ? 'Needs you' : 'All caught up'}</Text>
@@ -128,13 +131,13 @@ function PeopleCard({ counts }: { counts: Partial<Record<PeopleFilter, number>> 
 function SectionTile({ icon, title, sub, note, href }: { icon: Icon; title: string; sub: string; note?: string; href: Href }) {
   return (
     <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={title}
-      style={({ pressed }) => [s.card, { height: '100%', gap: 6 }, pressed && { opacity: 0.8 }]}>
+      style={({ pressed }) => [s.card, { gap: 6 }, pressed && { opacity: 0.8 }]}>
       <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${C.primary}14`, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name={icon} size={22} color={C.primary} />
       </View>
       <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{title}</Text>
-      <Text style={{ color: C.muted, flex: 1 }}>{sub}</Text>
-      {!!note && <Text style={{ color: C.primary, fontWeight: '700' }}>{note}</Text>}
+      <Text numberOfLines={2} style={{ color: C.muted, lineHeight: 20, minHeight: 40 }}>{sub}</Text>
+      <Text numberOfLines={1} style={{ color: C.primary, fontWeight: '700' }}>{note ?? ' '}</Text>
     </Pressable>
   );
 }
@@ -220,10 +223,10 @@ function Dashboard({ access }: { access: Access }) {
           {(showTools || (!needs.length && !sections.length)) && (
             <Grid>{tools.map((t) => (
               <Pressable key={t.perm} onPress={() => router.push(t.href)} accessibilityRole="button" accessibilityLabel={`${t.label}, in ${t.where}`}
-                style={({ pressed }) => [s.card, { height: '100%', gap: 4, paddingVertical: 12 }, pressed && { opacity: 0.8 }]}>
+                style={({ pressed }) => [s.card, { gap: 4, paddingVertical: 12 }, pressed && { opacity: 0.8 }]}>
                 <Ionicons name={t.icon} size={20} color={C.primary} />
-                <Text style={{ fontWeight: '700', color: C.ink }}>{t.label}</Text>
-                <Text style={{ color: C.muted, fontSize: 13 }}>{t.where}</Text>
+                <Text numberOfLines={2} style={{ fontWeight: '700', color: C.ink, lineHeight: 20, minHeight: 40 }}>{t.label}</Text>
+                <Text numberOfLines={1} style={{ color: C.muted, fontSize: 13 }}>{t.where}</Text>
               </Pressable>
             ))}</Grid>
           )}
