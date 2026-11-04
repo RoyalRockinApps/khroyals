@@ -141,7 +141,21 @@ export type Opportunity = {
   startTime: string | null; endTime: string | null; location: string | null; spots: number | null;
   kind: 'help' | 'items'; item: string | null; quantity: number | null;
   status: 'open' | 'deleted'; deleteReason: string | null; createdAt: string;
+  /** Only the people its leader invites can say yes, and nobody else sees it (a draft until someone does). */
+  inviteOnly: boolean;
 };
+
+/**
+ * An invite to help with an opportunity: waiting for an answer, said yes (they're signed up), declined (Deny, or
+ * they removed themselves after saying yes) or called off. People see their own; its leaders see everyone's.
+ */
+export type VolunteerInvite = {
+  opportunityId: string; userId: string; invitedBy: string | null; status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  note: string | null; createdAt: string; answeredAt: string | null;
+};
+
+/** Someone a leader could invite, and where they stand on the opportunity. */
+export type InvitePerson = { id: string; name: string; schoolRole: string; invite: VolunteerInvite['status'] | null; signedUp: boolean };
 
 /** Someone who said yes, or (for item requests) pledged `quantity`. */
 export type Signup = { opportunityId: string; userId: string; createdAt: string; quantity: number | null };

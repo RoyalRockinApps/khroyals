@@ -8,21 +8,24 @@
  * One that's part of an event (Harvest Fest) links to it, and its leader can move it into
  * or out of an event. On the day, volunteers who said yes scan the leader's QR code to check in
  * and out (at the top); its leaders (the event's leader and the office too) show that code and
- * mark who came under Check-in.
+ * mark who came under Check-in. Its leaders invite people under Invited and follow each answer
+ * (`?invite=1` opens the people picker, as after posting one for invited people only); an invited
+ * person answers Say Yes! or Deny. Until someone has said yes it's deleted without a reason.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
-  getOpportunity, listVolunteerEvents, myAccess, subscribeVolunteer, volunteerDelete, volunteerMark,
-  volunteerPledge, volunteerSayYes, volunteerSend, volunteerSetEvent, volunteerWithdraw,
-  type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent, type VolunteerMessage,
+  getOpportunity, listVolunteerEvents, myAccess, subscribeVolunteer, volunteerDelete, volunteerInvite, volunteerInviteAnswer, volunteerInviteCancel,
+  volunteerMark, volunteerPledge, volunteerSayYes, volunteerSend, volunteerSetEvent, volunteerWithdraw,
+  type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent, type VolunteerInvite, type VolunteerMessage,
 } from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
 import { GOLD, NAVY } from '../../src/sports/ui';
 import { MyCheckIn, RollCall } from '../../src/volunteer/CheckIn';
 import { Cheer } from '../../src/volunteer/Cheer';
+import { InviteAnswer, InvitedSection } from '../../src/volunteer/InvitePanel';
 import { detailSections, durationLabel, pledgedTotal, sectionIcon, spotsLeft, startsLabel, stillNeeded } from '../../src/volunteer/details';
 import { countLabel, isPast, longDayLabel, nameOf, timeLabel } from '../../src/volunteer/format';
 import { EventChips, GREEN, OpportunityBanner, Pill, QuantityStepper, Section, SectionTitle, SpotsBar } from '../../src/volunteer/parts';
@@ -30,14 +33,19 @@ import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
 import { Button, C, Card, Chip, Field, H, Input, Loading, P, s, ask, useBottomInset } from '../../src/ui';
 
 export default function OpportunityScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  return <VolunteerGate title="Volunteer">{(me) => <Detail id={id} me={me} />}</VolunteerGate>;
+  const { id, invite } = useLocalSearchParams<{ id: string; invite?: string }>();
+  return <VolunteerGate title="Volunteer">{(me) => <Detail id={id} me={me} startPicking={invite === '1'} />}</VolunteerGate>;
 }
 
-function Detail({ id, me }: { id: string; me: Person }) {
+/** Back to the Volunteer list (after denying an invite-only one, or deleting a draft, there's nothing left to see). */
+const leave = () => (router.canGoBack() ? router.back() : router.replace('/volunteer'));
+
+function Detail({ id, me, startPicking }: { id: string; me: Person; startPicking: boolean }) {
   const [data, setData] = useState<{
-    opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; events: VolunteerEvent[];
+    opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[];
+    events: VolunteerEvent[];
   } | null>(null);
+  const [picking, setPicking] = useState(startPicking);   // the leader's people picker, to invite
   const [office, setOffice] = useState(false);   // groups.manage: runs every opportunity's check-in
   const [showPeople, setShowPeople] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);   // the reason, while the leader is deleting
@@ -50,7 +58,7 @@ function Detail({ id, me }: { id: string; me: Person }) {
 
   const load = useCallback(() => Promise.all([getOpportunity(id), listVolunteerEvents().catch(() => [])])
     .then(([o, events]) => setData({ ...o, events }))
-    .catch(() => setData({ opportunity: null, signups: [], messages: [], attendance: [], events: [] })), [id]);
+    .catch(() => setData({ opportunity: null, signups: [], messages: [], attendance: [], invites: [], events: [] })), [id]);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
   useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
 
@@ -90,6 +98,24 @@ function Detail({ id, me }: { id: string; me: Person }) {
     setAmount(null);
     if (!myRow) setCheer({ title: o.title, bringing: `${q} ${o.item}` });
   });
+  // Invites: the leader's, and yours to answer.
+  const myInvite = data.invites.find((i) => i.userId === me.id);
+  const invited = myInvite?.status === 'pending' && !signedUp ? myInvite : null;
+  const inviter = nameOf(myInvite?.invitedBy ?? o.leadId);
+  const invite = async (userIds: string[], note: string) => {
+    setBusy(true);
+    try { await volunteerInvite(o.id, userIds, note); setPicking(false); await load(); return true; }
+    catch (e: any) { Alert.alert('Volunteer', e.message); return false; }
+    finally { setBusy(false); }
+  };
+  const callOff = (userId: string) => ask('Call off this invite?', `${nameOf(userId)} will be told.`, 'Call off',
+    () => act(() => volunteerInviteCancel(o.id, userId)));
+  const deny = () => ask('Deny this invite?', `${inviter} will be told you can't help, so they can ask someone else.`, 'Deny',
+    () => act(() => volunteerInviteAnswer(o.id, false), () => { if (o.inviteOnly) leave(); }));
+  // Before anyone has said yes, it goes without a reason (there's nobody to send one to).
+  const deleteNow = () => ask(o.inviteOnly ? 'Delete this draft?' : 'Delete this opportunity?',
+    data.invites.some((i) => i.status === 'pending') ? 'Anyone still invited is told it’s called off.' : 'Nobody has said yes yet.', 'Delete',
+    () => act(() => volunteerDelete(o.id, ''), leave));
   const send = () => {
     const body = draft.trim();
     if (!body) return;
@@ -179,6 +205,11 @@ function Detail({ id, me }: { id: string; me: Person }) {
           )}
         </Section>
 
+        {runs && !items && o.status === 'open' && !past && (
+          <InvitedSection o={o} invites={data.invites} signups={data.signups} attendance={data.attendance} today={today} busy={busy}
+            picking={picking} onPick={setPicking} onCancelInvite={callOff} onDeleteDraft={deleteNow} onInvite={invite} />
+        )}
+
         {runs && !items && o.status === 'open' && (
           <RollCall o={o} signups={data.signups} attendance={data.attendance} busy={busy}
             onMark={(user, day, status, minutes) => act(() => volunteerMark(o.id, user, day, status, minutes))} />
@@ -196,7 +227,11 @@ function Detail({ id, me }: { id: string; me: Person }) {
             <P>{o.deleteReason}</P>
           </Card>
         ) : leading ? (
-          deleting === null ? (
+          people === 0 ? (
+            <Text style={{ color: C.danger, fontWeight: '600' }} onPress={busy ? undefined : deleteNow}>
+              {o.inviteOnly ? 'Delete this draft' : 'Delete this opportunity'}
+            </Text>
+          ) : deleting === null ? (
             <Text style={{ color: C.danger, fontWeight: '600' }} onPress={() => setDeleting('')}>Delete this opportunity</Text>
           ) : (
             <Card style={{ gap: 8 }}>
@@ -247,6 +282,11 @@ function Detail({ id, me }: { id: string; me: Person }) {
           </Card>
         ) : past ? (
           <Card><P muted>{items ? 'This request is over.' : 'This opportunity is over.'}</P></Card>
+        ) : invited ? (
+          <InviteAnswer o={o} invite={invited} busy={busy} onNo={deny}
+            onYes={() => act(() => volunteerInviteAnswer(o.id, true), () => setCheer({ title: o.title }))} />
+        ) : o.inviteOnly ? (
+          <Card><P muted>Only the people {nameOf(o.leadId)} invites can sign up for this.</P></Card>
         ) : full ? (
           <Card><P muted>{items ? "Everything's been pledged. Thank you to everyone who's bringing something!" : 'All spots are filled. Thank you to everyone who said yes!'}</P></Card>
         ) : items ? (

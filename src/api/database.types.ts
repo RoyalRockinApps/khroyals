@@ -2885,6 +2885,36 @@ export type Database = {
         }
         Relationships: []
       }
+      volunteer_invites: {
+        Row: {
+          answered_at: string | null
+          created_at: string
+          invited_by: string | null
+          note: string | null
+          opportunity_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          created_at?: string
+          invited_by?: string | null
+          note?: string | null
+          opportunity_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          created_at?: string
+          invited_by?: string | null
+          note?: string | null
+          opportunity_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       volunteer_opportunities: {
         Row: {
           created_at: string
@@ -2894,6 +2924,7 @@ export type Database = {
           ends_on: string | null
           event_id: string | null
           id: string
+          invite_only: boolean
           item: string | null
           kind: string
           lead_id: string
@@ -2914,6 +2945,7 @@ export type Database = {
           ends_on?: string | null
           event_id?: string | null
           id?: string
+          invite_only?: boolean
           item?: string | null
           kind?: string
           lead_id: string
@@ -2934,6 +2966,7 @@ export type Database = {
           ends_on?: string | null
           event_id?: string | null
           id?: string
+          invite_only?: boolean
           item?: string | null
           kind?: string
           lead_id?: string
@@ -4805,6 +4838,7 @@ export type Database = {
           p_end_time?: string
           p_ends_on?: string
           p_event?: string | null
+          p_invite_only?: boolean
           p_item?: string
           p_kind?: string
           p_location?: string
@@ -4822,6 +4856,7 @@ export type Database = {
           ends_on: string | null
           event_id: string | null
           id: string
+          invite_only: boolean
           item: string | null
           kind: string
           lead_id: string
@@ -4855,6 +4890,13 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      volunteer_invite: { Args: { p_note?: string | null; p_opportunity: string; p_users: string[] }; Returns: number }
+      volunteer_invite_answer: { Args: { p_opportunity: string; p_yes: boolean }; Returns: undefined }
+      volunteer_invite_cancel: { Args: { p_opportunity: string; p_user: string }; Returns: undefined }
+      volunteer_invite_people: {
+        Args: { p_opportunity: string; p_search?: string }
+        Returns: { id: string; invite: string | null; name: string; school_role: string; signed_up: boolean }[]
       }
       volunteer_mark: {
         Args: { p_day: string; p_minutes?: number; p_opportunity: string; p_status: string | null; p_user: string }

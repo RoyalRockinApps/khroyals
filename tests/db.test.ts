@@ -851,6 +851,117 @@ test('volunteer item requests: leaders ask for things, people pledge up to what 
     /volunteer_items_shape/);
 });
 
+test('volunteer invites: leaders invite people, who Say Yes! or Deny; invite-only drafts stay private and go without a reason', async () => {
+  const told = async (who: string, opp: string) => {
+    await as(who);
+    return (await rows(`select title || ' | ' || body as t from my_notifications() where data->>'opportunityId' = '${opp}'`)).map((n) => n.t).join('\n');
+  };
+  const inviteOf = async (opp: string, who: string) =>
+    (await one(`select status from volunteer_invites where opportunity_id = '${opp}' and user_id = ${id(who)}`))?.status;
+
+  // Luis (a Volunteer Leader since the first volunteer test) posts an opportunity only for people he invites. Item
+  // requests always go to everyone.
+  await as('u-p05');
+  const draft = await one(`select * from volunteer_post('Science fair judge', 'Judge the 5th grade projects.', app.school_today() + 10,
+    null, '09:00', '11:00', 'Gym', 1, 'help', null, null, null, true)`);
+  assert.equal(draft.invite_only, true);
+  await rejects(`select * from volunteer_post('Snacks', '', app.school_today() + 3, null, null, null, null, null, 'items', 'boxes', 3, null, true)`,
+    /Item requests go to everyone/);
+
+  // Nobody else sees it, or can say yes to it, invite people to it or look for people to invite.
+  await as('u-p01');
+  assert.equal((await rows(`select 1 from volunteer_opportunities where id = '${draft.id}'`)).length, 0, 'a draft is private');
+  await rejects(`select volunteer_say_yes('${draft.id}')`, /by invitation only/);
+  await rejects(`select volunteer_invite('${draft.id}', array[${id('u-p02')}])`, /Only its leader/);
+  await rejects(`select * from volunteer_invite_people('${draft.id}', 'wei')`, /Only its leader/);
+
+  // Luis finds people by name (names and roles only). Students, himself and more people than the spots are refused,
+  // and a refused invite tells nobody.
+  await as('u-p05');
+  const found = await rows(`select * from volunteer_invite_people('${draft.id}', 'wei')`);
+  assert.ok(found.some((p) => p.name === 'Wei Chen' && p.invite === null && p.signed_up === false));
+  assert.deepEqual(Object.keys(found[0]).sort(), ['id', 'invite', 'name', 'school_role', 'signed_up']);
+  assert.equal((await rows(`select 1 from volunteer_invite_people('${draft.id}', 'ava reyes')`)).length, 0, "students can't volunteer");
+  await rejects(`select volunteer_invite('${draft.id}', array[${id('u-s01')}])`, /can't volunteer/);
+  await rejects(`select volunteer_invite('${draft.id}', array[${id('u-p05')}])`, /You lead this one/);
+  await rejects(`select volunteer_invite('${draft.id}', array[${id('u-p02')}, ${id('u-p03')}])`, /more people than the 1 spot/);
+  assert.equal(await told('u-p03', draft.id), '', 'a refused invite sends nothing');
+  await as('u-p05');
+  assert.equal((await one(`select volunteer_invite('${draft.id}', array[${id('u-p02')}], 'You did a great job last year!') as n`)).n, 1);
+  await rejects(`select volunteer_invite('${draft.id}', array[${id('u-p02')}])`, /already invited/);
+
+  // Wei is told and sees the draft; she can't take part in its chat until she says yes. She denies: the draft is gone
+  // for her, and Luis is told he can invite someone else or delete it.
+  assert.match(await told('u-p02', draft.id), /^✉️ Luis O\. invited you to volunteer \| Science fair judge on \w+, \w+ \d+\. "You did a great job last year!"$/);
+  await as('u-p02');
+  assert.equal((await rows(`select 1 from volunteer_opportunities where id = '${draft.id}'`)).length, 1);
+  await rejects(`select * from volunteer_send('${draft.id}', 'Hi!')`, /Say Yes! to join/);
+  await one(`select volunteer_invite_answer('${draft.id}', false)`);
+  await rejects(`select volunteer_invite_answer('${draft.id}', true)`, /already said no/);
+  assert.equal((await rows(`select 1 from volunteer_opportunities where id = '${draft.id}'`)).length, 0, 'gone once she said no');
+  assert.match(await told('u-p05', draft.id), /Wei C\. can't help with Science fair judge \| Invite someone else, or delete the draft\./);
+  await as('u-p05');
+  assert.equal(await inviteOf(draft.id, 'u-p02'), 'declined');
+
+  // Luis invites Dana instead; she says yes, so she's signed up (in her My sign-ups) and he's told and sees it.
+  await one(`select volunteer_invite('${draft.id}', array[${id('u-p03')}])`);
+  assert.deepEqual(await rows(`select name, invite from volunteer_invite_people('${draft.id}', '') where invite is not null order by name`),
+    [{ name: 'Dana Brooks', invite: 'pending' }, { name: 'Wei Chen', invite: 'declined' }]);
+  await as('u-p03');
+  await one(`select volunteer_invite_answer('${draft.id}', true)`);
+  assert.equal((await rows(`select 1 from volunteer_signups where opportunity_id = '${draft.id}' and user_id = ${id('u-p03')}`)).length, 1);
+  assert.match(await told('u-p05', draft.id), /Dana B\. said yes \| Science fair judge · 1 of 1 spots filled\./);
+  await as('u-p05');
+  assert.equal(await inviteOf(draft.id, 'u-p03'), 'accepted');
+  // Still private: others don't see it, or who's in it.
+  await as('u-p01');
+  assert.equal((await rows(`select 1 from volunteer_signups where opportunity_id = '${draft.id}'`)).length, 0);
+
+  // Removing herself counts as a no again (Luis is told), so the spot is his to fill.
+  await as('u-p03');
+  await one(`select volunteer_withdraw('${draft.id}')`);
+  await as('u-p05');
+  assert.equal(await inviteOf(draft.id, 'u-p03'), 'declined');
+
+  // An invite still waiting can be called off (the person is told), and asked again.
+  await one(`select volunteer_invite('${draft.id}', array[${id('u-p04')}])`);
+  await one(`select volunteer_invite_cancel('${draft.id}', ${id('u-p04')})`);
+  await rejects(`select volunteer_invite_cancel('${draft.id}', ${id('u-p04')})`, /isn't waiting/);
+  assert.match(await told('u-p04', draft.id), /called off the invite to Science fair judge/);
+  await as('u-p04');
+  await rejects(`select volunteer_invite_answer('${draft.id}', true)`, /called off/);
+  await as('u-p05');
+  await one(`select volunteer_invite('${draft.id}', array[${id('u-p04')}])`);
+
+  // Nobody has said yes, so the draft is deleted without a reason; whoever is still invited is told.
+  await one(`select volunteer_delete('${draft.id}', '')`);
+  assert.match(await told('u-p04', draft.id), /Invite called off: Science fair judge \| Luis O\. doesn't need help with Science fair judge anymore\./);
+  await as('u-p05');
+  assert.equal(await inviteOf(draft.id, 'u-p04'), 'cancelled');
+
+  // On an opportunity everyone sees, an invite holds its spot; saying yes the usual way answers it.
+  const open = await one(`select * from volunteer_post('Car wash crew', 'Wash and dry.', app.school_today() + 4, null, null, null, 'Front lot', 2)`);
+  await one(`select volunteer_invite('${open.id}', array[${id('u-p06')}])`);
+  await as('u-p07');
+  await one(`select volunteer_say_yes('${open.id}')`);
+  await as('u-p08');
+  await rejects(`select volunteer_say_yes('${open.id}')`, /held for people who were invited/);
+  await as('u-p06');
+  await one(`select volunteer_say_yes('${open.id}')`);
+  await as('u-p05');
+  assert.equal(await inviteOf(open.id, 'u-p06'), 'accepted');
+  // With volunteers, deleting still needs the reason they're sent.
+  await rejects(`select volunteer_delete('${open.id}', '')`, /Say why/);
+  // Item requests take no invites.
+  const items = await one(`select * from volunteer_post('Paper towels', '', app.school_today() + 4, null, null, null, null, null, 'items', 'rolls', 6)`);
+  await rejects(`select volunteer_invite('${items.id}', array[${id('u-p06')}])`, /Item requests go to everyone/);
+  // Clients can't write invites themselves.
+  await rejects(`insert into volunteer_invites (opportunity_id, user_id) values ('${open.id}', ${id('u-p08')})`, /permission denied/);
+
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities where id in ('${draft.id}', '${open.id}', '${items.id}')`);
+});
+
 test('students: Ask the Teacher and assignments, with teachers from class rosters', async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const [ava, jen] = [await uid('u-s01'), await uid('u-eng')];

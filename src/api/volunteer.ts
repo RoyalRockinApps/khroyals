@@ -1,25 +1,29 @@
 import { subscribeChanges } from './realtime';
 /** volunteer: internal API implementation. Screens import the connect facade. */
-import type { BusyLimits, Opportunity, Signup, VolunteerAttendance, VolunteerDay, VolunteerEvent, VolunteerMessage, VolunteerScan, VolunteerStat } from './types';
+import type { BusyLimits, InvitePerson, Opportunity, Signup, VolunteerAttendance, VolunteerDay, VolunteerEvent, VolunteerInvite, VolunteerMessage, VolunteerScan, VolunteerStat } from './types';
 import { live, rpc, run, sb } from './client';
 import { current } from './session';
 import { schoolToday } from '../calendar/past';
-import { toAttendance, toMessage, toOpportunity, toSignup, toVolunteerEvent } from './mappers';
+import { toAttendance, toInvite, toMessage, toOpportunity, toSignup, toVolunteerEvent } from './mappers';
 import { enumValue } from './validation';
 
 /**
- * Opportunities this person can see (open ones, plus deleted ones they were part of), everyone's sign-ups, the open
- * events they're grouped under, and today's check-ins they can see (their own, and the opportunities they run).
+ * Opportunities this person can see (open ones, plus deleted ones they were part of, invite-only ones they're
+ * invited to or run), their sign-ups, the open events they're grouped under, today's check-ins they can see (their
+ * own, and the opportunities they run) and the invites they can see (their own, and those of what they run).
  */
-export async function listVolunteer(): Promise<{ opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[] }> {
-  if (!live || !current) return { opportunities: [], signups: [], events: [], attendance: [] };
-  const [o, s, e, a] = await Promise.all([
+export async function listVolunteer(): Promise<{
+  opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[];
+}> {
+  if (!live || !current) return { opportunities: [], signups: [], events: [], attendance: [], invites: [] };
+  const [o, s, e, a, i] = await Promise.all([
     run(sb().from('volunteer_opportunities').select('*').order('starts_on').order('start_time')),
     run(sb().from('volunteer_signups').select('*').order('created_at')),
     listVolunteerEvents(),
     run(sb().from('volunteer_attendance').select('*').eq('day', schoolToday())),
+    run(sb().from('volunteer_invites').select('*').neq('status', 'cancelled').order('created_at')),
   ]);
-  return { opportunities: o.map(toOpportunity), signups: s.map(toSignup), events: e, attendance: a.map(toAttendance) };
+  return { opportunities: o.map(toOpportunity), signups: s.map(toSignup), events: e, attendance: a.map(toAttendance), invites: i.map(toInvite) };
 }
 
 /** The open events (Harvest Fest…) that opportunities are grouped under, soonest first. */
@@ -48,15 +52,23 @@ export async function volunteerSetEvent(opportunityId: string, eventId: string |
   await rpc('volunteer_set_event', { p_opportunity: opportunityId, p_event: eventId });
 }
 
-/** An opportunity, its sign-ups and chat, and the check-ins this person can see (their own; every one for its leaders). */
-export async function getOpportunity(id: string): Promise<{ opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[] }> {
-  const [o, s, m, a] = await Promise.all([
+/**
+ * An opportunity, its sign-ups and chat, the check-ins this person can see (their own; every one for its leaders) and
+ * its invites (their own; every one for its leaders).
+ */
+export async function getOpportunity(id: string): Promise<{
+  opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[];
+}> {
+  const [o, s, m, a, i] = await Promise.all([
     run(sb().from('volunteer_opportunities').select('*').eq('id', id).maybeSingle()),
     run(sb().from('volunteer_signups').select('*').eq('opportunity_id', id).order('created_at')),
     run(sb().from('volunteer_messages').select('*').eq('opportunity_id', id).order('created_at')),
     run(sb().from('volunteer_attendance').select('*').eq('opportunity_id', id)),
+    run(sb().from('volunteer_invites').select('*').eq('opportunity_id', id).order('created_at')),
   ]);
-  return { opportunity: o ? toOpportunity(o) : null, signups: s.map(toSignup), messages: m.map(toMessage), attendance: a.map(toAttendance) };
+  return {
+    opportunity: o ? toOpportunity(o) : null, signups: s.map(toSignup), messages: m.map(toMessage), attendance: a.map(toAttendance), invites: i.map(toInvite),
+  };
 }
 
 export async function volunteerPost(o: {
@@ -66,22 +78,44 @@ export async function volunteerPost(o: {
   items?: { item: string; quantity: number };
   /** The event it's part of, if any. */
   eventId?: string | null;
+  /** Only the people its leader invites (help only). */
+  inviteOnly?: boolean;
 }): Promise<Opportunity> {
   return toOpportunity(await rpc('volunteer_post', {
     p_title: o.title, p_description: o.description, p_starts_on: o.startsOn, p_ends_on: o.endsOn,
     p_start_time: o.startTime, p_end_time: o.endTime, p_location: o.location, p_spots: o.items ? null : o.spots,
     p_kind: o.items ? 'items' : 'help', p_item: o.items?.item ?? null, p_quantity: o.items?.quantity ?? null, p_event: o.eventId ?? null,
+    p_invite_only: !o.items && !!o.inviteOnly,
   }));
 }
 
 export async function volunteerSayYes(id: string) { await rpc('volunteer_say_yes', { p_opportunity: id }); }
+
+/** Its leaders: invite people to help (each is told), with an optional note. Returns how many were invited. */
+export async function volunteerInvite(id: string, userIds: string[], note?: string) {
+  return (await rpc('volunteer_invite', { p_opportunity: id, p_users: userIds, p_note: note?.trim() || null })) as number;
+}
+
+/** Answer your invite: Say Yes! (you're signed up) or Deny; whoever invited you is told. */
+export async function volunteerInviteAnswer(id: string, yes: boolean) { await rpc('volunteer_invite_answer', { p_opportunity: id, p_yes: yes }); }
+
+/** Its leaders: call off an invite that's still waiting (the person is told). */
+export async function volunteerInviteCancel(id: string, userId: string) { await rpc('volunteer_invite_cancel', { p_opportunity: id, p_user: userId }); }
+
+/** Its leaders: people who can volunteer whose name matches, and where each stands on this opportunity. */
+export async function volunteerInvitePeople(id: string, search: string): Promise<InvitePerson[]> {
+  return (await rpc('volunteer_invite_people', { p_opportunity: id, p_search: search })).map((r) => ({
+    id: r.id, name: r.name, schoolRole: r.school_role, signedUp: r.signed_up,
+    invite: r.invite ? enumValue(r.invite, ['pending', 'accepted', 'declined', 'cancelled']) : null,
+  }));
+}
 
 /** Pledge (or change) how many of a request's items you'll bring; volunteerWithdraw takes it back. */
 export async function volunteerPledge(id: string, quantity: number) { await rpc('volunteer_pledge', { p_opportunity: id, p_quantity: quantity }); }
 
 export async function volunteerWithdraw(id: string) { await rpc('volunteer_withdraw', { p_opportunity: id }); }
 
-/** The leader deletes it; the reason goes to every volunteer. */
+/** The leader deletes it; the reason goes to every volunteer (none is needed before anyone has said yes). */
 export async function volunteerDelete(id: string, reason: string) { await rpc('volunteer_delete', { p_opportunity: id, p_reason: reason }); }
 
 export async function volunteerSend(id: string, body: string) { await rpc('volunteer_send', { p_opportunity: id, p_body: body }); }
@@ -147,5 +181,5 @@ export async function adminSetVolunteerLead(userId: string, on: boolean) {
 /** Live changes to opportunities, sign-ups, chats and check-ins (row-level security limits them to what this person may see). */
 export function subscribeVolunteer(onChange: () => void): () => void {
   return subscribeChanges('subscribeVolunteer', [{ event: '*', table: 'volunteer_opportunities' }, { event: '*', table: 'volunteer_signups' },
-    { event: '*', table: 'volunteer_messages' }, { event: '*', table: 'volunteer_attendance' }], onChange);
+    { event: '*', table: 'volunteer_messages' }, { event: '*', table: 'volunteer_attendance' }, { event: '*', table: 'volunteer_invites' }], onChange);
 }

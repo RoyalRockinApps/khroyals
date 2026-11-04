@@ -30,7 +30,7 @@ const PARENT: InfoData = {
   registrations: [{ id: 'r', seasonId: 'vb-f', studentId: 'liam', requestedBy: 'p', status: 'registered', note: '', decisionNote: '', createdAt: '' }],
   opportunities: [{
     eventId: null, position: null, id: 'o1', leadId: 'x', title: 'Book fair helpers', description: '', startsOn: '2026-11-02', endsOn: null, startTime: '08:00', endTime: '10:00',
-    location: 'Library', spots: 4, kind: 'help', item: null, quantity: null, status: 'open', deleteReason: null, createdAt: '',
+    location: 'Library', spots: 4, kind: 'help', item: null, quantity: null, status: 'open', deleteReason: null, createdAt: '', inviteOnly: false,
   }],
   signups: [{ opportunityId: 'o1', userId: 'p', createdAt: '', quantity: null }],
   carline: { start: '14:45', end: '15:30', openNow: true },

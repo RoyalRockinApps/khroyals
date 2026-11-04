@@ -4,28 +4,31 @@
  * Opportunities that are part of an event (Harvest Fest) sit inside its card, which opens
  * the event; the rest follow under "Other opportunities". On a day you're volunteering, its
  * check-in (scan the leader's QR code) is at the top. Volunteer Leaders and directors open the volunteer analytics from here,
- * and everyone sees their own hours from My sign-ups.
+ * and everyone sees their own hours from My sign-ups. Invites waiting for your answer come first, each with Say Yes! and
+ * Deny; opportunities only for invited people stay out of Opportunities (their leader finds them under Leading).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  isVolunteerLead, listVolunteer, myAccess, subscribeVolunteer, type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent,
+  isVolunteerLead, listVolunteer, myAccess, subscribeVolunteer, volunteerInviteAnswer,
+  type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent, type VolunteerInvite,
 } from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
 import { runsOn } from '../../src/volunteer/attendance';
 import { MyCheckIn } from '../../src/volunteer/CheckIn';
-import { daysLabel, isPast } from '../../src/volunteer/format';
+import { Cheer } from '../../src/volunteer/Cheer';
+import { daysLabel, isPast, nameOf, whenLabel } from '../../src/volunteer/format';
 import { OpportunityCard, progress } from '../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, SectionTitle } from '../../src/volunteer/parts';
 import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
-import { Button, C, Card, Chip, Loading, P, s } from '../../src/ui';
+import { Button, C, Card, Chip, Loading, P, ask, s } from '../../src/ui';
 
 type Tab = 'open' | 'mine' | 'leading';
 type Kind = 'all' | Opportunity['kind'];
-type Data = { opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[] };
+type Data = { opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[] };
 
 export default function Volunteer() {
   return <VolunteerGate title="Volunteer">{(me) => <Opportunities me={me} />}</VolunteerGate>;
@@ -37,9 +40,12 @@ function Opportunities({ me }: { me: Person }) {
   const [kind, setKind] = useState<Kind>('all');
   const showPast = usePastToggle();
   const [director, setDirector] = useState(false);   // sees the analytics too (after verifying with their authenticator app)
+  const [busy, setBusy] = useState<string | null>(null);   // the invite being answered
+  const [cheer, setCheer] = useState<string | null>(null);   // celebrated after Say Yes!
   const lead = isVolunteerLead(me);
 
-  const load = useCallback(() => listVolunteer().then(setData).catch(() => setData({ opportunities: [], signups: [], events: [], attendance: [] })), []);
+  const load = useCallback(() => listVolunteer().then(setData)
+    .catch(() => setData({ opportunities: [], signups: [], events: [], attendance: [], invites: [] })), []);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
   useEffect(() => { myAccess().then((a) => setDirector(!!a?.isDirector)).catch(() => {}); }, []);
   if (!data) return <Loading />;
@@ -51,9 +57,26 @@ function Opportunities({ me }: { me: Person }) {
   const todays = data.opportunities.filter((o) => o.status === 'open' && o.kind === 'help' && runsOn(o, today) && said(o));
   const mineToday = (o: Opportunity) => data.attendance.find((a) => a.opportunityId === o.id && a.userId === me.id && a.day === today);
   const eventOf = (o: Opportunity) => data.events.find((e) => e.id === o.eventId);
+  const invitesOf = (o: Opportunity) => data.invites.filter((i) => i.opportunityId === o.id);
+  // Invites waiting for your answer (shown above the lists, not again in them).
+  const asked = data.invites.filter((i) => i.userId === me.id && i.status === 'pending')
+    .map((i) => ({ i, o: data.opportunities.find((o) => o.id === i.opportunityId) }))
+    .filter((x): x is { i: VolunteerInvite; o: Opportunity } => !!x.o && x.o.status === 'open' && !isPast(x.o) && !said(x.o));
+  const askedIds = new Set(asked.map((x) => x.o.id));
+  const answer = (o: Opportunity, yes: boolean) => {
+    const go = () => {
+      setBusy(o.id);
+      volunteerInviteAnswer(o.id, yes).then(() => { if (yes) setCheer(o.title); return load(); })
+        .catch((e) => Alert.alert('Volunteer', e.message)).finally(() => setBusy(null));
+    };
+    if (yes) return go();
+    const from = nameOf(data.invites.find((i) => i.opportunityId === o.id && i.userId === me.id)?.invitedBy ?? o.leadId);
+    ask('Deny this invite?', `${from} will be told you can't help, so they can ask someone else.`, 'Deny', go);
+  };
   // Like every calendar in the app: past opportunities stay out of view until asked for, then look greyed out.
   const all: Record<Tab, Opportunity[]> = {
-    open: data.opportunities.filter((o) => o.status === 'open'),
+    // Invite-only ones are private: yours to answer above, or under Leading.
+    open: data.opportunities.filter((o) => o.status === 'open' && !o.inviteOnly && !askedIds.has(o.id)),
     mine: data.opportunities.filter(said),
     leading: data.opportunities.filter((o) => o.leadId === me.id),
   };
@@ -81,6 +104,8 @@ function Opportunities({ me }: { me: Person }) {
           {todays.map((o) => (
             <MyCheckIn key={o.id} o={o} mine={mineToday(o)} showTitle />
           ))}
+          {asked.length > 0 && <SectionTitle icon="mail-outline" title={`Invitations (${asked.length})`} tint={GREEN} />}
+          {asked.map(({ i, o }) => <InviteCard key={o.id} o={o} invite={i} busy={busy === o.id} onAnswer={(yes) => answer(o, yes)} />)}
           {lead && (
             <View style={s.row}>
               <View style={{ flex: 1 }}><Button label="+ Event" kind="ghost" onPress={() => router.push('/volunteer/event/new')} /></View>
@@ -118,8 +143,40 @@ function Opportunities({ me }: { me: Person }) {
           {events.length > 0 && shown.length > 0 && <SectionTitle icon="hand-left-outline" title="Other opportunities" />}
         </View>}
       ListEmptyComponent={events.length ? null : <Card><P muted>{empty[tab]}</P></Card>}
-      ListFooterComponent={<PastToggle count={past.length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />}
-      renderItem={({ item: o }) => <OpportunityCard o={o} signups={signupsOf(o)} me={me} event={eventOf(o)?.title} />} />
+      renderItem={({ item: o }) => <OpportunityCard o={o} signups={signupsOf(o)} me={me} event={eventOf(o)?.title} invites={invitesOf(o)} />}
+      ListFooterComponentStyle={{ gap: 12 }}
+      ListFooterComponent={<>
+        <PastToggle count={past.length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />
+        <Cheer title={cheer} onDone={() => setCheer(null)} />
+      </>} />
+  );
+}
+
+/** An invite waiting for your answer: what and when, who asked (and their note), and Say Yes! or Deny. */
+function InviteCard({ o, invite, busy, onAnswer }: { o: Opportunity; invite: VolunteerInvite; busy: boolean; onAnswer: (yes: boolean) => void }) {
+  return (
+    <View style={{ backgroundColor: C.card, borderRadius: 18, borderWidth: 2, borderColor: GREEN, overflow: 'hidden' }}>
+      <Pressable onPress={() => router.push(`/volunteer/${o.id}`)} accessibilityRole="button"
+        accessibilityLabel={`${o.title}, ${whenLabel(o)}, invited by ${nameOf(invite.invitedBy ?? o.leadId)}`}
+        style={({ pressed }) => [{ padding: 14, gap: 4 }, pressed && { opacity: 0.85 }]}>
+        <Text style={{ color: GREEN, fontWeight: '800', fontSize: 13 }}>✉️ {nameOf(invite.invitedBy ?? o.leadId)} invited you</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: C.ink }}>{o.title}</Text>
+        <P muted>{whenLabel(o)}{o.location ? ` · ${o.location}` : ''}</P>
+        {!!invite.note && <Text style={{ color: C.ink, fontStyle: 'italic' }}>“{invite.note}”</Text>}
+      </Pressable>
+      <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.line }}>
+        <Pressable disabled={busy} onPress={() => onAnswer(true)} accessibilityRole="button" accessibilityLabel={`Say Yes! to ${o.title}`}
+          style={({ pressed }) => [{ flex: 2, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 13, backgroundColor: GREEN },
+            (pressed || busy) && { opacity: 0.8 }]}>
+          <Ionicons name="hand-left" size={18} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Say Yes!</Text>
+        </Pressable>
+        <Pressable disabled={busy} onPress={() => onAnswer(false)} accessibilityRole="button" accessibilityLabel={`Deny ${o.title}`}
+          style={({ pressed }) => [{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 13 }, (pressed || busy) && { opacity: 0.6 }]}>
+          <Text style={{ color: C.danger, fontWeight: '800', fontSize: 16 }}>Deny</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 

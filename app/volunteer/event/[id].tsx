@@ -13,7 +13,7 @@ import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router
 import { Ionicons } from '@expo/vector-icons';
 import {
   errorText, eventAlbumId, isSchoolStaff, isVolunteerLead, listVolunteer, makeEventAlbum, myAccess, subscribeVolunteer, volunteerEventDelete, volunteerEventReorder,
-  type Opportunity, type Person, type Signup, type VolunteerEvent,
+  type Opportunity, type Person, type Signup, type VolunteerEvent, type VolunteerInvite,
 } from '../../../src/api/connect';
 import { PastToggle, usePastToggle } from '../../../src/calendar/PastToggle';
 import { GOLD, NAVY } from '../../../src/sports/ui';
@@ -30,7 +30,7 @@ export default function EventScreen() {
   return <VolunteerGate title="Event">{(me) => <EventDetail id={id} me={me} />}</VolunteerGate>;
 }
 
-type Data = { events: VolunteerEvent[]; opportunities: Opportunity[]; signups: Signup[] };
+type Data = { events: VolunteerEvent[]; opportunities: Opportunity[]; signups: Signup[]; invites?: VolunteerInvite[] };
 
 function EventDetail({ id, me }: { id: string; me: Person }) {
   const [data, setData] = useState<Data | null>(null);
@@ -155,7 +155,8 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
             </Card>
           )}
           {[...coming, ...(showPast.shown ? past : [])].map((o) => (
-            <OpportunityCard key={o.id} o={o} signups={data.signups.filter((x) => x.opportunityId === o.id)} me={me} />
+            <OpportunityCard key={o.id} o={o} signups={data.signups.filter((x) => x.opportunityId === o.id)} me={me}
+              invites={data.invites?.filter((i) => i.opportunityId === o.id)} />
           ))}
           <PastToggle count={past.length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />
         </>

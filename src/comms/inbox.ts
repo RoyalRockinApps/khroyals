@@ -54,7 +54,8 @@ export function notificationHref(data: Record<string, unknown> | null | undefine
   if (data.subSchedule) return '/subs';
   if (data.children) return '/children';
   if (data.listingId) return `/market/${data.listingId}`;
-  if (data.opportunityId) return `/volunteer/${data.opportunityId}`;
+  // An invite that was called off: the opportunity may be private again, so the Volunteer list.
+  if (data.opportunityId) return data.volunteerList ? '/volunteer' : `/volunteer/${data.opportunityId}`;
   if (data.questionId) return `/questions/${data.questionId}`;
   if (data.teacherThreadId) return `/teachers/${data.teacherThreadId}`;
   if (data.assignmentId) return '/assignments';

@@ -1,6 +1,6 @@
 /** mappers: internal API implementation. Screens import the connect facade. */
 import type { Comment, Group, Post, SchoolRole } from '../comms/types';
-import type { CriticalAlert, FamilyRequest, GroupEvent, Listing, MarketLine, MySettings, Notice, Opportunity, Person, Pickup, QuestionMessage, SchoolQuestion, Signup, SportEvent, SportRegistration, SportSeason, Vehicle, VolunteerAttendance, VolunteerEvent, VolunteerMessage } from './types';
+import type { CriticalAlert, FamilyRequest, GroupEvent, Listing, MarketLine, MySettings, Notice, Opportunity, Person, Pickup, QuestionMessage, SchoolQuestion, Signup, SportEvent, SportRegistration, SportSeason, Vehicle, VolunteerAttendance, VolunteerEvent, VolunteerInvite, VolunteerMessage } from './types';
 import type { Tables } from './database.types';
 import { enumValue, jsonObject } from './validation';
 import { KIND_LABELS } from '../sports/categories';
@@ -93,7 +93,12 @@ export const toOpportunity = (r: Tables<'volunteer_opportunities'>): Opportunity
   eventId: r.event_id ?? null, position: r.position ?? null, id: r.id, leadId: r.lead_id, title: r.title, description: r.description, startsOn: r.starts_on, endsOn: r.ends_on,
   startTime: r.start_time?.slice(0, 5) ?? null, endTime: r.end_time?.slice(0, 5) ?? null, location: r.location,
   spots: r.spots, kind: enumValue(r.kind ?? 'help', ['help', 'items']), item: r.item ?? null, quantity: r.quantity ?? null,
-  status: enumValue(r.status, ['open', 'deleted']), deleteReason: r.delete_reason, createdAt: r.created_at,
+  status: enumValue(r.status, ['open', 'deleted']), deleteReason: r.delete_reason, createdAt: r.created_at, inviteOnly: !!r.invite_only,
+});
+
+export const toInvite = (r: Tables<'volunteer_invites'>): VolunteerInvite => ({
+  opportunityId: r.opportunity_id, userId: r.user_id, invitedBy: r.invited_by,
+  status: enumValue(r.status, ['pending', 'accepted', 'declined', 'cancelled']), note: r.note, createdAt: r.created_at, answeredAt: r.answered_at,
 });
 
 export const toSignup = (r: Tables<'volunteer_signups'>): Signup => ({ opportunityId: r.opportunity_id, userId: r.user_id, createdAt: r.created_at, quantity: r.quantity ?? null });

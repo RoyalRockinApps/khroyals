@@ -246,6 +246,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   posts into any open event (`volunteer_post` with `p_event`); an opportunity's leader moves it (`volunteer_set_event`).
   Only the event's starter (or `groups.manage`) puts its opportunities in order (`volunteer_event_reorder`, `position`;
   unplaced ones follow by date, `inEventOrder`) or removes it (`volunteer_event_delete`), which keeps its opportunities.
+- **Volunteer invites** (`volunteer_invites`; `src/volunteer/InvitePanel.tsx`, `src/volunteer/invites.ts`): help opportunities only.
+  Its leaders (`app.runs_volunteer`) invite people who can volunteer, found by name (`volunteer_invite_people`: names and
+  roles only), with a note (`volunteer_invite`; open invites plus volunteers never exceed the spots, and on an opportunity
+  everyone sees an open invite holds its spot in `volunteer_say_yes`). The person answers Say Yes! (signs up through
+  `volunteer_say_yes`) or Deny (`volunteer_invite_answer`); whoever invited them is told either way, and a leader calls off a
+  waiting invite (`volunteer_invite_cancel`). **Invite-only** opportunities (`volunteer_opportunities.invite_only`, "Only people I
+  invite" when posting) are drafts nobody else sees: the RLS lets in only their leaders, people with an open or accepted invite
+  (`app.invited_to`) and their volunteers, and their sign-ups stay as private. Until someone has said yes, an opportunity is
+  deleted without a reason (`volunteer_delete` cancels open invites and tells those people).
 - **Volunteer check-in** (`volunteer_attendance`; `src/volunteer/CheckIn.tsx`): help opportunities only, never item
   requests. Volunteers who said yes **scan a QR code** when they arrive and again when they're done
   (`volunteer_scan`, `app/volunteer/scan.tsx`; the second scan asks them to confirm, then checks them out), on each

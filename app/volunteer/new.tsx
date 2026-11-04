@@ -1,6 +1,8 @@
 /**
  * A Volunteer Leader posts an opportunity: asking for people's time, or for items (how many
  * of what, brought by a date), on its own or as part of an event (?event= from the event's page).
+ * One asking for time goes to everyone, or only to the people they invite (a draft nobody else
+ * sees): posting that opens its page with the people picker.
  */
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
@@ -38,6 +40,7 @@ function Form() {
   const [end, setEnd] = useState('');
   const [location, setLocation] = useState('');
   const [spots, setSpots] = useState('');
+  const [inviteOnly, setInviteOnly] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // The events still to come. Choosing one (or coming from its page) starts with its day and place.
@@ -77,8 +80,8 @@ function Form() {
         ? { title: title.trim(), description: description.trim(), startsOn: date, endsOn: null, startTime: null, endTime: null,
             location: location.trim() || null, spots: null, items: { item: item.trim(), quantity: q }, eventId }
         : { title: title.trim(), description: description.trim(), startsOn: date, endsOn: endDate || null,
-            startTime: start || null, endTime: end || null, location: location.trim() || null, spots: n, eventId });
-      router.replace(`/volunteer/${o.id}`);
+            startTime: start || null, endTime: end || null, location: location.trim() || null, spots: n, eventId, inviteOnly });
+      router.replace(o.inviteOnly ? { pathname: '/volunteer/[id]', params: { id: o.id, invite: '1' } } : `/volunteer/${o.id}`);
     } catch (e: any) {
       Alert.alert("Couldn't post", e.message);
     } finally {
@@ -144,7 +147,25 @@ function Form() {
           value={location} onChangeText={setLocation} maxLength={120} />
         {!items && <Field label="Volunteers needed (optional)" placeholder="No limit if empty" keyboardType="number-pad" value={spots} onChangeText={setSpots} />}
       </Card>
-      <Button label={busy ? 'Posting…' : items ? 'Post request' : 'Post opportunity'} disabled={busy} onPress={post} />
+      {!items && (
+        <Card>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink }}>Who can say yes</Text>
+          <View style={{ flexDirection: 'row', padding: 4, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line }}>
+            {([[false, 'people-outline', 'Everyone'], [true, 'mail-outline', 'Only people I invite']] as const).map(([value, icon, label]) => (
+              <Pressable key={label} onPress={() => setInviteOnly(value)} accessibilityRole="button" accessibilityState={{ selected: inviteOnly === value }}
+                style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 999,
+                  backgroundColor: inviteOnly === value ? C.primary : 'transparent' }}>
+                <Ionicons name={icon} size={16} color={inviteOnly === value ? '#fff' : C.muted} />
+                <Text style={{ fontWeight: '800', color: inviteOnly === value ? '#fff' : C.muted }}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <P muted>{inviteOnly
+            ? 'Nobody else sees it. Next, choose who to invite: each answers Say Yes! or Deny, and you’re told either way.'
+            : 'Everyone who volunteers sees it. You can still invite people in particular from its page.'}</P>
+        </Card>
+      )}
+      <Button label={busy ? 'Posting…' : items ? 'Post request' : inviteOnly ? 'Save and choose who to invite' : 'Post opportunity'} disabled={busy} onPress={post} />
     </ScrollView>
   );
 }

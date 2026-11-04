@@ -343,6 +343,15 @@ leader's messages are highlighted. A leader deletes an opportunity with a reason
 that every volunteer is sent. Students can't take part. The seed makes the demo
 Teacher a Volunteer Leader.
 
+**Invites.** A leader asks people in particular from an opportunity's page (*Invited* →
+*Invite people*: find them by name, add a note). Each is told and finds it under
+*Invitations* at the top of Volunteer, with **Say Yes!** and **Deny**. Saying yes signs
+them up (it's in their *My sign-ups*) and tells the leader, who follows each invite there:
+waiting, said no, said yes, then checked in or done on the day. On an opportunity everyone
+sees, an invite holds its spot until it's answered. Posting with *Who can say yes → Only
+people I invite* makes a draft nobody else sees; when someone denies, the leader invites
+someone else or deletes the draft (no reason needed before anyone has said yes).
+
 Opportunities can be grouped under an **event** (`volunteer_events`): Harvest Fest
 is one card in the Volunteer list, and tapping it opens the event with its
 opportunities inside (bringing bottled water, setting up the day of); the rest
