@@ -1,7 +1,7 @@
 /**
  * Royal News: every issue of the school's emailed newsletter, newest first, by month. Staff who
  * send notifications (push.send) write or paste an issue (app/royal-news/write.tsx), add one from
- * its Smore link, or remove one; anyone with the power who hasn't verified is told to.
+ * its Smore link, or remove one; anyone with the power who hasn't verified does so right here.
  */
 import { useCallback, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, View } from 'react-native';
@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   deleteNewsletter, errorText, importNewsletter, issueDate, listNewsletters, live, myAccess, session, type NewsletterSummary,
 } from '../../src/api/connect';
+import { needsCodeFor } from '../../src/comms/mfa';
+import { VerifyCard } from '../../src/comms/MfaGate';
 import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
 import { SCHOOL } from '../../src/school';
 
@@ -34,7 +36,7 @@ export default function RoyalNews() {
         const a = await myAccess().catch(() => null);
         const can = !!a?.permissions.includes('push.send');
         setCanAdd(can);
-        setNeedsCode(!can && !!a && (a.tier !== null || a.granted.includes('push.send')) && a.mfaRequired && !a.mfaVerified);
+        setNeedsCode(needsCodeFor(a, 'push.send'));
       }
     } catch (e) {
       Alert.alert(`${SCHOOL.newsName} didn't load`, errorText(e));
@@ -67,11 +69,7 @@ export default function RoyalNews() {
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 12 }]} keyboardShouldPersistTaps="handled">
       {header}
       <P muted>The school's newsletter, emailed to families. Every issue stays here to look back on.</P>
-      {needsCode && (
-        <Card onPress={() => router.push('/admin')}>
-          <P muted>To add an issue, verify with your authenticator app in the Admin portal first, then come back. ›</P>
-        </Card>
-      )}
+      {needsCode && <VerifyCard why="Admins who add issues verify first." onVerified={load} />}
       {canAdd && <Button label="✏️ Write or paste an issue" onPress={() => router.push('/royal-news/write')} />}
       {canAdd && (
         <Card style={{ gap: 8 }}>

@@ -1,14 +1,16 @@
-import { useCallback, useState } from 'react';
-import { Alert, Linking, SectionList, Text, View } from 'react-native';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Linking, Pressable, SectionList, Text, View } from 'react-native';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { getCalendar } from '../src/api/mockApi';
-import { deleteEvent, editableCalendars, isSchoolStaff, listEvents, live, myAccess, session, type GroupEvent } from '../src/api/connect';
+import { deleteEvent, editableCalendars, isSchoolStaff, listEvents, live, myAccess, session, type GroupEvent, type Person } from '../src/api/connect';
 import { AddToCalendar } from '../src/calendar/AddToCalendar';
 import { chicagoIso, type CalEvent } from '../src/calendar/addTo';
 import { isPastDay, splitPast } from '../src/calendar/past';
 import { SubscribeCard } from '../src/calendar/SubscribeCard';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../src/calendar/PastToggle';
+import { MyCalendarList } from '../src/myCalendar/MyCalendarList';
 import { dateRange } from '../src/site/calendar';
+import { useStaffView } from '../src/staffView';
 import { Button, C, Card, Chip, Loading, P, s } from '../src/ui';
 import { SCHOOL } from '../src/school';
 
@@ -27,12 +29,35 @@ const calEvent = (e: GroupEvent): CalEvent => (e.startTime
   ? { title: e.title, startsAt: chicagoIso(e.date, e.startTime), endsAt: e.endTime ? chicagoIso(e.endDate ?? e.date, e.endTime) : null, location: e.location }
   : { title: e.title, date: e.date, endDate: e.endDate, location: e.location });
 
+type CalView = 'school' | 'mine';
+
+/** School / Mine at the top of the Calendar, for teachers and staff. */
+function ViewSwitch({ view, onChange }: { view: CalView; onChange: (v: CalView) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', padding: 4, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line }}>
+      {([['school', 'School calendar'], ['mine', 'My calendar']] as [CalView, string][]).map(([k, label]) => (
+        <Pressable key={k} onPress={() => onChange(k)} accessibilityRole="button" accessibilityState={{ selected: view === k }}
+          style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 999, backgroundColor: view === k ? C.primary : 'transparent' }}>
+          <Text style={{ fontWeight: '800', color: view === k ? '#fff' : C.muted }}>{label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 /**
- * School calendar, plus (when signed in) the calendars of your groups.
+ * School calendar, plus (when signed in) the calendars of your groups. Teachers and staff switch
+ * to My calendar at the top (src/myCalendar/MyCalendarList.tsx: their own events and their
+ * students' games); in staff view it opens there, and `?view=school|mine` picks one.
  * Like every calendar in the app, it shows what's coming; past events stay out of view
  * until "Show past events", and then look greyed out.
  */
 export default function Calendar() {
+  const { view: asked } = useLocalSearchParams<{ view?: string }>();
+  const [person, setPerson] = useState<Person | null>(null);
+  const staffView = useStaffView(person);
+  const [view, setView] = useState<CalView | null>(asked === 'mine' || asked === 'school' ? asked : null);
+  useEffect(() => { if (asked === 'mine' || asked === 'school') setView(asked); }, [asked]);
   const [events, setEvents] = useState<GroupEvent[] | null>(null);
   const [canEdit, setCanEdit] = useState<Set<string>>(new Set());
   const [canAdd, setCanAdd] = useState(false);
@@ -45,6 +70,7 @@ export default function Calendar() {
     try {
       if (live) {
         const p = await session();
+        setPerson(p);
         setStaff(isSchoolStaff(p));
         setApproved(!!p && !p.pending);
         const [evs, cals, access] = await Promise.all([listEvents(), editableCalendars(), myAccess().catch(() => null)]);
@@ -63,6 +89,9 @@ export default function Calendar() {
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const header = <Stack.Screen options={{ title: 'Calendar' }} />;
+  const shown: CalView = staff ? view ?? (staffView ? 'mine' : 'school') : 'school';
+  const switcher = staff ? <ViewSwitch view={shown} onChange={setView} /> : null;
+  if (shown === 'mine') return <>{header}<MyCalendarList top={switcher} /></>;
   if (!events) return <>{header}<Loading /></>;
 
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime ?? '').localeCompare(b.startTime ?? ''));
@@ -89,13 +118,13 @@ export default function Calendar() {
       ListEmptyComponent={<Card><P muted>Nothing coming up on the calendar.</P></Card>}
       ListHeaderComponent={
         <View style={{ gap: 8 }}>
+          {switcher}
           {PDF && (
             <Card onPress={() => Linking.openURL(PDF)}>
               <Text style={{ fontWeight: '800', fontSize: 16, color: C.ink }}>2026–2027 School Calendar</Text>
               <P muted>Important dates from the official calendar{live ? ', plus events from your groups' : ''}. Tap to open the PDF.</P>
             </Card>
           )}
-          {staff && <Button kind="ghost" label="🗓️ My calendar and my students' events" onPress={() => router.push('/my-calendar')} />}
           {canAdd && <Button label="+ Add event" onPress={() => router.push('/event/new')} />}
           {dressUp && <Button kind="ghost" label="👕 Dress-up days (Spirit Week)" onPress={() => router.push('/dress-days')} />}
           <PastToggle count={split.past.length} shown={past.shown} onToggle={past.toggle} />

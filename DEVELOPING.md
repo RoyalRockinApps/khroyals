@@ -320,10 +320,10 @@ npx eas-cli@latest credentials -p android  # upload the Firebase (FCM V1) servic
 - **Android:** also needs `google-services.json` from a Firebase project
   (`android.googleServicesFile` in `app.json`).
 
-Then rebuild the app, sign in and allow notifications. Test by sending from Admin
-portal → Notifications, or with another account (Dibs on a Marketplace post). Until
-this is done, notifications are queued, shown in the admin portal's history and on
-the bell page, but not delivered to phones. On the simulator, see a push with
+Then rebuild the app, sign in and allow notifications. Test by sending from the bell
+page → *Send a notification*, or with another account (Dibs on a Marketplace post). Until
+this is done, notifications are queued, shown under *Sent recently* and on the bell
+page, but not delivered to phones. On the simulator, see a push with
 `xcrun simctl push booted com.khroyals.app payload.apns` (data goes under `"body"`).
 
 ## 8. CarPlay

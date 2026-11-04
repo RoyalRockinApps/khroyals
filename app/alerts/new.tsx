@@ -3,12 +3,14 @@
  * instructions (each kind starts with a template), and send it to every teacher and staff
  * member at once.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { isSchoolStaff, myAccess, sendCriticalAlert, session, type Access } from '../../src/api/connect';
 import { ALERT_KINDS, alertKind, type AlertKind } from '../../src/alerts/kinds';
+import { needsCodeFor } from '../../src/comms/mfa';
+import { VerifyCard } from '../../src/comms/MfaGate';
 import { Button, C, Card, Field, Loading, P, s } from '../../src/ui';
 
 export default function NewAlert() {
@@ -18,15 +20,18 @@ export default function NewAlert() {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const loadAccess = useCallback(() => {
     session().then((p) => (isSchoolStaff(p) ? myAccess() : null)).then(setAccess).catch(() => setAccess(null));
   }, []);
+  useEffect(() => { loadAccess(); }, [loadAccess]);
 
   const header = <Stack.Screen options={{ title: 'Send a critical alert' }} />;
   if (access === undefined) return <>{header}<Loading /></>;
   if (!access?.permissions.includes('alerts.send')) return (
     <View style={[s.screen, s.pad]}>{header}
-      <Card><P>Only admins with "Send critical alerts" can send them, after verifying with their authenticator app in the Admin portal.</P></Card>
+      {needsCodeFor(access, 'alerts.send')
+        ? <VerifyCard why="Admins who send critical alerts verify first." onVerified={loadAccess} />
+        : <Card><P>Only admins with "Send critical alerts" can send them.</P></Card>}
     </View>
   );
 

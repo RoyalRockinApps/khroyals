@@ -1,7 +1,10 @@
-/** Add an assignment: a teacher picks one of their classes (its students are told); a student adds their own. */
+/**
+ * Add an assignment: a teacher picks one of their classes (its students are told; `?section=` picks it
+ * when coming from that class); a student adds their own.
+ */
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { addAssignment, isSchoolStaff, mySections, session, type Person, type Section } from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
 import { DateField } from '../../src/forms/DateTimeField';
@@ -15,6 +18,7 @@ export default function NewAssignment() {
   const [details, setDetails] = useState('');
   const [due, setDue] = useState('');
   const [busy, setBusy] = useState(false);
+  const { section } = useLocalSearchParams<{ section?: string }>();
 
   useEffect(() => {
     session().then(async (p) => {
@@ -22,10 +26,11 @@ export default function NewAssignment() {
       if (p && isSchoolStaff(p)) {
         const list = await mySections().catch(() => []);
         setSections(list);
-        if (list.length === 1) setRoster(list[0].id);
+        const from = list.find((sec) => sec.id === section);
+        if (from || list.length === 1) setRoster((from ?? list[0]).id);
       }
     }).catch(() => setMe(null));
-  }, []);
+  }, [section]);
 
   const header = <Stack.Screen options={{ title: me && isSchoolStaff(me) ? 'Assign to a class' : 'Add an assignment' }} />;
   if (me === undefined) return <>{header}<Loading /></>;

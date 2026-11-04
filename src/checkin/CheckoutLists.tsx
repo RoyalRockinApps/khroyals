@@ -1,6 +1,6 @@
 /**
  * Check-out lists for field trips, class events and Activities events (the lower part of the
- * Attendance app): the lists the teacher, coach or director runs, and starting one for an Activities
+ * Classes app): the lists the teacher, coach or director runs, and starting one for an Activities
  * event they coach or direct (its registered students) or for a field trip or class event (students
  * from their sections). Each child goes only to someone on their pickup list. Staff only.
  */

@@ -1,26 +1,27 @@
 /**
- * Admin portal — same screens on web, Android and iPhone.
- * What each admin sees follows their role and permissions (the database
- * enforces the same rules), and the whole portal sits behind authenticator-app
- * verification (MfaGate).
+ * Admin portal — same screens on web, Android and iPhone: people and access only (People,
+ * Students, Classes, Admins & roles, Activity log). Admin tools that belong to an app live in
+ * that app (sending a notification on the bell page, routing questions in Ask the School, the
+ * Alert map in Alerts…); the portal lists the ones this admin holds under "In other apps".
+ * What each admin sees follows their role and permissions (the database enforces the same
+ * rules), and the whole portal sits behind authenticator-app verification (MfaGate).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, ScrollView, Switch, Text, View } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Alert, Platform, ScrollView, Text, View } from 'react-native';
+import { Stack, router, type Href } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
   adminClearAvatar, adminDeleteRole, adminDeleteUser, adminFamilyLinks, adminLinkGuardian, adminListPeople, adminRoles, adminSaveRole, adminSetAccess,
-  adminSetCarlineDuty, adminSetDirector, adminSetVolunteerLead, adminUpdateProfile, getUser, listAudit, listMyGroups, listNotifications, listQuestions, me, notificationOpenCounts, permissionCatalog,
-  ROLE_LABELS, sendNotification, subscribeQuestions,
-  type Access, type AdminPerson, type AdminRole, type FamilyLink, type Notice, type PeopleFilter, type PermissionInfo, type SchoolQuestion,
+  adminSetCarlineDuty, adminSetDirector, adminSetVolunteerLead, adminUpdateProfile, getUser, listAudit, me, permissionCatalog,
+  ROLE_LABELS,
+  type Access, type AdminPerson, type AdminRole, type FamilyLink, type PeopleFilter, type PermissionInfo,
 } from '../../src/api/connect';
-import { AlertMapPanel } from '../../src/admin/AlertMapPanel';
 import { ClassesPanel } from '../../src/admin/ClassesPanel';
 import { StudentsPanel } from '../../src/admin/StudentsPanel';
 import { GradePicker } from '../../src/comms/GradePicker';
 import { gradeLabel } from '../../src/comms/grades';
 import { MfaGate } from '../../src/comms/MfaGate';
-import { age, ageColor, waiting } from '../../src/questions/format';
-import type { Group, SchoolRole } from '../../src/comms/types';
+import type { SchoolRole } from '../../src/comms/types';
 import { Avatar, Button, C, Card, Chip, Field, H, Loading, P, s } from '../../src/ui';
 import { SCHOOL } from '../../src/school';
 
@@ -388,124 +389,6 @@ function Admins({ catalog, roles, reloadRoles }: { catalog: PermissionInfo[]; ro
   );
 }
 
-// ------------------------------------------------------------------ notifications
-
-function Notifications({ access }: { access: Access }) {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [audience, setAudience] = useState<'everyone' | 'roles' | 'group'>('everyone');
-  const [roles, setRoles] = useState<SchoolRole[]>(['parent']);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [groupId, setGroupId] = useState<string>();
-  const [history, setHistory] = useState<Notice[] | null>(null);
-  const [opens, setOpens] = useState<Record<string, number>>({});
-  const [urgent, setUrgent] = useState(false);
-  const load = useCallback(() => listNotifications(30).then((h) => {
-    setHistory(h);
-    notificationOpenCounts(h.map((n) => n.id)).then(setOpens).catch(() => {});
-  }), []);
-  useEffect(() => { load(); listMyGroups().then(setGroups); }, [load]);
-  const canSend = access.permissions.includes('push.send');
-
-  const send = () => confirm('Send notification?', `"${title}" goes to ${audience === 'everyone' ? 'everyone' : audience === 'roles' ? roles.join(', ') : groups.find((g) => g.id === groupId)?.name}.`,
-    () => sendNotification(title, body, audience, { roles, groupId, urgent }).then(() => { setTitle(''); setBody(''); setUrgent(false); load(); }).catch(fail));
-
-  return (
-    <View style={{ gap: 12 }}>
-      {canSend ? (
-        <Card>
-          <H>Send a push notification</H>
-          <View style={[s.row, { flexWrap: 'wrap' }]}>
-            {pill('Everyone', audience === 'everyone', () => setAudience('everyone'))}
-            {pill('By role', audience === 'roles', () => setAudience('roles'))}
-            {pill('A group', audience === 'group', () => setAudience('group'))}
-          </View>
-          {audience === 'roles' && (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>
-              {(['parent', 'family', 'student', 'teacher', 'staff'] as SchoolRole[]).map((r) => pill(r, roles.includes(r), () => setRoles(roles.includes(r) ? roles.filter((x) => x !== r) : [...roles, r])))}
-            </View>
-          )}
-          {audience === 'group' && (
-            <View style={[s.row, { flexWrap: 'wrap' }]}>{groups.map((g) => pill(`${g.icon} ${g.name}`, g.id === groupId, () => setGroupId(g.id)))}</View>
-          )}
-          <Field label="Title" placeholder="e.g. Weather closure" value={title} onChangeText={setTitle} maxLength={80} />
-          <Field label="Message" multiline value={body} onChangeText={setBody} maxLength={400} style={{ minHeight: 80 }} />
-          {audience !== 'group' && (
-            <View style={[s.row, { justifyContent: 'space-between' }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: '600', color: C.ink }}>Urgent</Text>
-                <P muted>Reaches everyone, even people who turned off school notifications or are in quiet hours. Use for closures and safety.</P>
-              </View>
-              <Switch value={urgent} onValueChange={setUrgent} trackColor={{ true: C.danger }} accessibilityLabel="Urgent" />
-            </View>
-          )}
-          <Button label="Send" onPress={send} disabled={!title.trim() || !body.trim() || (audience === 'group' && !groupId) || (audience === 'roles' && !roles.length)} />
-          <P muted>Goes to everyone in the audience who has the app with notifications on, and appears in their notification list.</P>
-        </Card>
-      ) : <P muted>You don't have permission to send school-wide notifications.</P>}
-      {label('RECENT')}
-      {!history ? <Loading /> : history.map((n) => (
-        <Card key={n.id}>
-          <Text style={{ fontWeight: '700', color: C.ink }}>{n.title}</Text>
-          <P>{n.body}</P>
-          <P muted>{new Date(n.createdAt).toLocaleString()} · {n.audience} · {n.status}{n.status === 'sent' ? ` to ${n.sentCount} device${n.sentCount === 1 ? '' : 's'}` : ''}</P>
-          {opens[n.id] !== undefined && <P muted>👁 Opened by {opens[n.id]} {opens[n.id] === 1 ? 'person' : 'people'}</P>}
-        </Card>
-      ))}
-    </View>
-  );
-}
-
-// ------------------------------------------------------------------ questions (routing)
-
-/** Questions sent to the school: oldest waiting first, so nothing sits too long. */
-function QuestionsPanel() {
-  const [qs, setQs] = useState<SchoolQuestion[] | null>(null);
-  const [filter, setFilter] = useState<'waiting' | 'answered' | 'closed'>('waiting');
-  const [, setTick] = useState(0);
-  const load = useCallback(() => listQuestions().then(setQs).catch(() => setQs([])), []);
-  useEffect(() => { load(); return subscribeQuestions(load); }, [load]);
-  useEffect(() => { const t = setInterval(() => setTick((n) => n + 1), 60_000); return () => clearInterval(t); }, []);
-  if (!qs) return <Loading />;
-
-  const open = qs.filter(waiting).sort((a, b) => (a.waitingSince ?? '').localeCompare(b.waitingSince ?? ''));
-  const unassigned = open.filter((q) => !q.assigneeId).length;
-  const shown = filter === 'waiting' ? open : qs.filter((q) => q.status === filter);
-  const name = (id: string | null) => { const p = id ? getUser(id) : undefined; return p ? `${p.firstName} ${p.lastName}` : 'someone'; };
-
-  return (
-    <>
-      <Card>
-        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>
-          {open.length} waiting · {unassigned} unassigned{open.length ? ` · oldest ${age(open[0].waitingSince)}` : ''}
-        </Text>
-        <P muted>Open a question to assign it to faculty or staff, or answer it yourself. Ages turn amber after a day and red after three.</P>
-      </Card>
-      <View style={[s.row, { flexWrap: 'wrap' }]}>
-        {(['waiting', 'answered', 'closed'] as const).map((f) => pill(f === 'waiting' ? `Waiting (${open.length})` : f === 'answered' ? 'Answered' : 'Closed', filter === f, () => setFilter(f)))}
-      </View>
-      {shown.length === 0 && <P muted>{filter === 'waiting' ? 'Nothing is waiting. 🎉' : 'None yet.'}</P>}
-      {shown.map((q) => (
-        <Card key={q.id} onPress={() => router.push(`/questions/${q.id}`)} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-          {waiting(q) && (
-            <View style={{ width: 54, alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: ageColor(q.waitingSince) }}>{age(q.waitingSince)}</Text>
-              <Text style={{ fontSize: 11, color: C.muted }}>waiting</Text>
-            </View>
-          )}
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ fontWeight: '700', color: C.ink }}>{q.subject}</Text>
-            <P muted>From {name(q.askerId)} · {q.topic}</P>
-            <Text style={{ color: q.assigneeId ? C.muted : '#B45309', fontWeight: q.assigneeId ? '400' : '700' }}>
-              {q.assigneeId ? `Assigned to ${name(q.assigneeId)}` : 'Unassigned'}
-            </Text>
-          </View>
-        </Card>
-      ))}
-    </>
-  );
-}
-
 // ------------------------------------------------------------------ portal
 
 function Audit() {
@@ -524,6 +407,50 @@ function Audit() {
   );
 }
 
+/**
+ * Admin tools that live in their app, by the permission that opens them: the portal lists the
+ * ones this admin holds, so nobody has to remember where each went.
+ */
+const ELSEWHERE: { perm: string; label: string; where: string; href: Href }[] = [
+  { perm: 'push.send', label: 'Send a notification', where: 'Notifications (the bell)', href: '/notifications/send' },
+  { perm: 'alerts.send', label: 'Send critical alerts', where: 'Alerts', href: '/alerts' },
+  { perm: 'alerts.map', label: 'Alert map', where: 'Alerts', href: '/alerts/map' },
+  { perm: 'questions.manage', label: 'Route questions', where: 'Ask the School → All questions', href: '/questions' },
+  { perm: 'checkin.manage', label: 'Check students in and out', where: 'Classes', href: '/checkin' },
+  { perm: 'subs.manage', label: 'Schedule substitutes', where: 'Classes → Substitutes', href: '/subs' },
+  { perm: 'messages.review', label: 'Student messages', where: 'Classes → Messages', href: '/teachers' },
+  { perm: 'lunch.manage', label: 'Lunch times and rules', where: 'Lunch Visits', href: '/lunch/settings' },
+  { perm: 'calendar.school', label: 'School calendar and dress-up days', where: 'Calendar', href: '/calendar' },
+  { perm: 'forms.send', label: 'Send forms to grades or the school', where: 'Forms', href: '/forms' },
+  { perm: 'sports.manage', label: 'Add activities and coaches', where: 'Activities', href: '/activities' },
+  { perm: 'gallery.manage', label: 'Photo albums and categories', where: 'Photos', href: '/photos' },
+  { perm: 'feedback.triage', label: 'Triage feedback', where: 'Feedback → Triage', href: '/feedback' },
+];
+
+/** Folded away under the portal's own tabs; open when the portal has none for this admin. */
+function Elsewhere({ access, startOpen }: { access: Access; startOpen: boolean }) {
+  const [open, setOpen] = useState(startOpen);
+  const mine = ELSEWHERE.filter((t) => access.permissions.includes(t.perm));
+  if (!mine.length) return null;
+  return (
+    <View style={{ gap: 8, marginTop: 8 }}>
+      <Text onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }}
+        style={{ fontSize: 12, fontWeight: '700', color: C.muted, marginTop: 6 }}>
+        YOUR TOOLS IN OTHER APPS ({mine.length})  {open ? '▾' : '▸'}
+      </Text>
+      {open && mine.map((t) => (
+        <Card key={t.perm} onPress={() => router.push(t.href)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', color: C.ink }}>{t.label}</Text>
+            <P muted>{t.where}</P>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </Card>
+      ))}
+    </View>
+  );
+}
+
 function Portal({ access }: { access: Access }) {
   const can = (x: string) => access.permissions.includes(x);
   const tabs = [
@@ -531,12 +458,9 @@ function Portal({ access }: { access: Access }) {
     can('people.family') && ['students', 'Students'],
     can('people.family') && ['classes', 'Classes'],
     can('admins.manage') && ['admins', 'Admins & roles'],
-    ['notify', 'Notifications'],
-    can('questions.manage') && ['questions', 'Questions'],
-    can('alerts.map') && ['alertmap', 'Alert map'],
     can('audit.view') && ['audit', 'Activity log'],
   ].filter(Boolean) as [string, string][];
-  const [tab, setTab] = useState(tabs[0][0]);
+  const [tab, setTab] = useState(tabs[0]?.[0]);
   const [catalog, setCatalog] = useState<PermissionInfo[]>([]);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const loadRoles = useCallback(() => { adminRoles().then(setRoles).catch(() => setRoles([])); }, []);
@@ -545,15 +469,14 @@ function Portal({ access }: { access: Access }) {
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       <P muted>{access.isDirector ? 'Director' : access.roleName ?? 'Custom permissions'} · {me()?.email}</P>
-      <View style={[s.row, { flexWrap: 'wrap' }]}>{tabs.map(([k, l]) => pill(l, tab === k, () => setTab(k)))}</View>
+      {tabs.length > 1 && <View style={[s.row, { flexWrap: 'wrap' }]}>{tabs.map(([k, l]) => pill(l, tab === k, () => setTab(k)))}</View>}
+      {tabs.length === 0 && <P muted>Your admin tools are in the apps they belong to.</P>}
       {tab === 'people' && <People access={access} roles={roles} />}
       {tab === 'students' && <StudentsPanel />}
       {tab === 'classes' && <ClassesPanel />}
       {tab === 'admins' && <Admins catalog={catalog} roles={roles} reloadRoles={loadRoles} />}
-      {tab === 'notify' && <Notifications access={access} />}
-      {tab === 'questions' && <QuestionsPanel />}
-      {tab === 'alertmap' && <AlertMapPanel />}
       {tab === 'audit' && <Audit />}
+      <Elsewhere access={access} startOpen={tabs.length === 0} />
     </ScrollView>
   );
 }

@@ -117,7 +117,7 @@ src/comms/            types, presets, permission engine, roster auto-assignment,
 src/carline/          Car Line parent and duty views, automatic check-in
 src/market/           Marketplace terms gate and helpers
 src/volunteer/        Volunteer gate and helpers
-src/attendance/       Attendance: marks, a class's roll in words, school-day stepping, class cards
+src/attendance/       Classes: marks, a class's roll in words, school-day stepping, class cards and their tools
 src/checkin/          checking students in and out: reasons, pickup-list picker, field trip lists
 src/handbook/         Handbook reader: pages, paragraphs, search
 src/questions/        Ask the School gate and helpers
@@ -184,7 +184,13 @@ server-side (`admin_list_people`). Admin tools need a code
 from an authenticator app (free TOTP, enforced in the database; switch with
 `app.settings.require_admin_mfa`). The admin portal is the app's **Admin portal**
 screen: same on web (`npx expo export --platform web`, host the `dist/` folder),
-Android and iPhone.
+Android and iPhone. It holds people and access only (People, Students, Classes,
+Admins & roles, Activity log). Admin tools that belong to an app live in that app:
+sending a notification on the bell page, routing questions in Ask the School, the
+Alert map in Alerts, and so on. The portal lists the ones an admin holds under *Your
+tools in other apps*. Those screens ask for the authenticator code right where the
+tool is (`VerifyCard` in `src/comms/MfaGate.tsx`), so nobody goes to the portal and
+back.
 
 **My profile** (person button in the top bar, or your name on Connect): profile
 photo (private `avatars` bucket, signed URLs; staff with *people.roles* can remove
@@ -254,7 +260,7 @@ right behind it, a GPS fix with its accuracy and the BSSID of the Wi-Fi access p
 phone is on (`src/alerts/locate.ts`, `critical_alert_share_location`; nothing is kept from
 anyone who said no). Senders tap anyone in the roll call to see their answer, the place
 ("Room 112 · Main building · 1st floor"), the GPS spot with **Open in Maps**, or why there's
-no location. The place comes from the **Alert map** (Admin portal → Alert map; `alerts.map`:
+no location. The place comes from the **Alert map** (Alerts → Alert map; `alerts.map`:
 directors, administrators and IT): the school's access points and the room or area each is in,
 added one at a time (on a phone, *Use this phone's access point* while standing in the room)
 or pasted from IT's list (`wifi_access_points`, `wifi_ap_save` / `wifi_ap_import`). A BSSID
@@ -275,7 +281,8 @@ sign-in the iPhone and Android apps ask permission to show notifications; the pa
 says when they're off and links to Settings.
 
 **Push** goes through Expo's free push service: new posts notify group members
-(per-group preferences), and the portal sends to everyone, a role, or a group.
+(per-group preferences), and staff with *Send notifications* send to everyone, a role,
+or a group from the bell page (*Send a notification*, `app/notifications/send.tsx`).
 `supabase/functions/send-push` delivers them (deployed by the setup script). Phones
 register after sign-in once the build has an Expo project id (`eas init` →
 `extra.eas.projectId`) and that Expo project has an APNs key (iPhone) or Firebase
@@ -347,10 +354,12 @@ leader who started an event puts its opportunities in order, most important firs
 follow by date), changes the event, or removes it, which keeps its opportunities,
 on their own.
 
-**Attendance** (Apps → Attendance; teachers and staff). A teacher's class sections
-(`rosters` with kind 'section', Admin portal → Classes) each show the day's roll at a
-glance: a bar of present / late / absent and "Roll not taken yet" until it's started.
-Tapping one opens the roll: P, L or A for each student (tap again to clear) and
+**Classes** (Apps → Classes, the `app/attendance` screens; teachers and staff). A teacher's
+class sections (`rosters` with kind 'section', Admin portal → Classes) each show the day's roll
+at a glance: a bar of present / late / absent and "Roll not taken yet" until it's started, with
+*Take roll* and *Assignments* (that class's, and assigning more) along the bottom. Below them are
+*Messages* (the teacher side of Ask the Teacher, with the unread count) and *Substitutes*.
+Students keep Ask the Teacher and Assignments as their own apps. Tapping a class opens the roll: P, L or A for each student (tap again to clear) and
 *Mark the rest present*. The office's late arrivals and early check-outs (Check In &
 Out) show on the student's row, a late check-in counts as Late whatever the teacher
 marked, and the teacher gets a notification for each. Earlier school days are a tap
@@ -376,7 +385,7 @@ school adds its keys (DEVELOPING.md); until then only free tickets are issued.
 **Substitutes.** A Substitute account (Admin portal → People → role Substitute) is
 closed by default: Apps shows only *Sub Days* and the public apps (Calendar, News,
 Handbook, Feedback), and they're in no groups. A teacher schedules a sub for the
-classes they lead (Attendance → Substitutes → *Schedule a sub*): who, which classes,
+classes they lead (Classes → Substitutes → *Schedule a sub*): who, which classes,
 the first and last day, the hours, and sub plans; the office (Schedule substitutes
 permission) does it for any class. The sub gets a notification and sees which classes
 and when. Only during those days and hours does *Sub Days* open the classes: the
@@ -419,7 +428,7 @@ pg_cron). Activities live in the `sports` tables (named before theater was added
 `sports.category` says which kind) and the `app/activities` screens. Without the school
 server the app shows sample activities (`src/sports/sample.ts`).
 
-**My calendar** (teachers, staff and admins: Apps → My Calendar, or Calendar → *My calendar*). One
+**My calendar** (teachers, staff and admins: Calendar → *My calendar*, where Calendar opens in the staff view). One
 list, day by day: their own events (meetings, duties, grades due; `personal_events`, private to them,
 `personal_event_save` / `personal_event_delete`), the activity items they're going to (★ Going; they follow
 the schedule, so a moved or cancelled game moves or shows *Cancelled* too, `my_calendar`), and, lighter with a
@@ -451,7 +460,7 @@ real bugs and building requested features. New reports notify the triage team.
 
 **Excused Absence** (Forms → Forms to Send to Office). A parent reports that their child is absent (one day or several),
 arriving late or leaving early, with a reason (sick, appointment, family, travel, other) and a note.
-The office and the child's teachers are told right away and see it, a day at a time, in Attendance →
+The office and the child's teachers are told right away and see it, a day at a time, in Classes →
 Absences reported by parents and on the class roll; the office marks each one seen, and the parents
 hear back. Parents call a report off if plans change.
 
@@ -467,7 +476,7 @@ and teachers and staff see who's coming each day with each child's allergies.
 the school a question (topic, subject, message); it stays in *My questions* with the
 whole conversation, so they can come back for the answer and follow up. Routers (the
 *Route questions* permission, in the Director, Administrator and Office roles to
-start) work from Admin portal → Questions: oldest waiting first, with ages that turn amber
+start) work from Ask the School → *All questions*: oldest waiting first, with ages that turn amber
 after a day and red after three, and they assign each question to a faculty or staff
 member, who sees it under *Assigned to me* and answers it. Only the asker, the
 assignee and routers can see a question. Routers are told about new questions,

@@ -96,9 +96,9 @@ export function planDay(day: string, today: string, calendar: CalendarDay[], d: 
   const mine = (d.myCalendar ?? []).filter((i) => i.date === day);
   const planned = new Set(mine.map((i) => i.sportEventId).filter(Boolean));
   const items: Row[] = [
-    ...eventsToday(day, calendar).map((e): Row => ({ key: `cal-${e.id}`, icon: 'calendar-outline', title: e.title, detail: e.category, href: '/calendar' })),
+    ...eventsToday(day, calendar).map((e): Row => ({ key: `cal-${e.id}`, icon: 'calendar-outline', title: e.title, detail: e.category, href: '/calendar?view=school' })),
     ...mine.map((i): Row => ({
-      key: `my-${i.id}`, icon: 'person-circle-outline', tone: i.cancelled ? 'muted' : undefined, title: i.title, href: '/my-calendar',
+      key: `my-${i.id}`, icon: 'person-circle-outline', tone: i.cancelled ? 'muted' : undefined, title: i.title, href: '/calendar?view=mine',
       detail: i.cancelled ? 'Cancelled' : [itemTime(i.startTime, i.endTime), i.location].filter(Boolean).join(' · '),
     })),
     ...games.filter((e) => !planned.has(e.id) && !going(e).some((id) => d.kids.some((k) => k.id === id))).map((e) => activity(e, `sport-${e.id}`)),

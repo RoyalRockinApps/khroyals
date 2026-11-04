@@ -2,11 +2,12 @@
  * Assignments. A student sees their classes' assignments (from the teachers) and their
  * own, sorted overdue / today / upcoming / no date, and checks them off (only they see
  * that); done ones wait behind "Show done". A teacher sees what they've assigned to
- * their classes, with past ones behind "Show past", and assigns more.
+ * their classes, with past ones behind "Show past", and assigns more; from a class's card in
+ * Classes (`?section=`) it shows just that class, with a way to see them all.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   checkAssignment, deleteAssignment, isSchoolStaff, listAssignments, live, mySections, session, subscribeAssignments,
@@ -22,6 +23,7 @@ const GREEN = '#15803D';
 
 export default function Assignments() {
   const [data, setData] = useState<{ me: Person | null; list: Assignment[]; sections: Section[] } | null>(null);
+  const { section } = useLocalSearchParams<{ section?: string }>();
   const showDone = usePastToggle();
 
   const load = useCallback(async () => {
@@ -86,15 +88,25 @@ export default function Assignments() {
   // A teacher: what they've assigned, by class; past ones stay out of view until asked for.
   const given = list.filter((a) => a.ownerId === me.id && a.rosterId);
   const isOld = (a: Assignment) => !!a.dueOn && isPastDay(a.dueOn);
-  const past = given.filter(isOld);
-  const shown = showDone.shown ? given : given.filter((a) => !isOld(a));
+  // One class (from its card in Classes), or all of them.
+  const one = data.sections.find((sec) => sec.id === section);
+  const sections = one ? [one] : data.sections;
+  const inView = (a: Assignment) => !one || a.rosterId === one.id;
+  const past = given.filter((a) => isOld(a) && inView(a));
+  const shown = (showDone.shown ? given : given.filter((a) => !isOld(a))).filter(inView);
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
-      {header}
+      {one ? <Stack.Screen options={{ title: one.name }} /> : header}
       {data.sections.length > 0
-        ? <Button label="+ Assign to a class" onPress={() => router.push('/assignments/new')} />
+        ? <Button label={one ? `+ Assign to ${one.name}` : '+ Assign to a class'}
+            onPress={() => router.push(one ? { pathname: '/assignments/new', params: { section: one.id } } : '/assignments/new')} />
         : <Card><P muted>Classes you teach show up here once the office sets them up in the admin portal.</P></Card>}
-      {data.sections.map((sec) => {
+      {one && data.sections.length > 1 && (
+        <Text onPress={() => router.setParams({ section: undefined })} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>
+          See all your classes’ assignments
+        </Text>
+      )}
+      {sections.map((sec) => {
         const items = shown.filter((a) => a.rosterId === sec.id);
         return (
           <View key={sec.id} style={{ gap: 8 }}>

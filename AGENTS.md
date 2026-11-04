@@ -95,7 +95,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
 - **Substitutes** (`school_role = 'substitute'`; `sub_assignments`, `sub_assignment_sections`) are closed by default
   like Family accounts: no groups, rosters, photo gallery, Ask the School, children, Marketplace or Volunteer, and never
   admin powers (`app.substitute_profile`). A class's teacher schedules a sub for the sections they lead, and `subs.manage`
-  holders (office, administrators, directors; an admin power, so `aal2`) for any section (`sub_schedule_save`; Attendance →
+  holders (office, administrators, directors; an admin power, so `aal2`) for any section (`sub_schedule_save`; Classes →
   Substitutes); the sub is notified. Only while a duty window runs (`app.duty_now`: between its days and hours, Central
   time; `app.on_duty_for(section)`, `app.on_duty()`) does the sub take that class's roll (today's only: `app.takes_roll`
   vs `app.keeps_roll`), get the office's check-in notifications, read the sub plans (`my_sub_days`), run today's check-out
@@ -113,7 +113,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   names the same channel. Channel sound settings can't change once made: change the id instead.
   **Alert locations:** staff consent once (`location_consents`); answers then send GPS + the Wi-Fi BSSID
   (`critical_alert_share_location`, after the answer so it's never held up), placed on the **Alert map**
-  (`wifi_access_points`, `alerts.map`, `app.ap_place`). Only the person and `alerts.send` holders read them;
+  (Alerts → Alert map, `app/alerts/map.tsx`; `wifi_access_points`, `alerts.map`, `app.ap_place`). Only the person and `alerts.send` holders read them;
   `app.purge_alert_locations` erases them after `alert_location_days`. Never read location at any other time
   or in the background for alerts, and never keep it without consent.
 - **Parents and pickup people:** a child has at most two parents, one mother and one
@@ -153,7 +153,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   parents and `messages.review` holders only read (`app.reads_teacher_thread`). Checking an assignment
   off (`assignment_done`) is private to the student. Parents see their children's class assignments
   (`child_assignments`, for the Planner tab), never the student's own entries or check-offs; Family
-  accounts see none. Students' Main Page is the short list in
+  accounts see none. Both tiles are students' only: teachers reach the teacher side from **Classes**
+  (a class card's *Assignments*, `?section=`, and *Messages*). Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them).
 - **Student records** (the Student app, `app/student`; `sis_students`, `sis_terms`, `sis_attendance`, `sis_courses`,
   `sis_assignments`): a read-only copy of the school's student information system (FACTS, Blackbaud…). Only `sis_import`
@@ -167,7 +168,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   the class's own average and letter come from the school's system, the overall letter from the `grade_scale` setting.
   The banner's photo is the profile photo: a parent changes their child's (`set_child_photo`, as under My children), a
   student their own (`set_my_avatar`). Sample records come with `scripts/presentation_data.mjs` (`--only student`).
-- **My calendar** (`personal_events`; `app/my-calendar`, one list with the students' events mixed in): staff only
+- **My calendar** (`personal_events`; Calendar → My calendar, `src/myCalendar/MyCalendarList.tsx` under the Calendar's
+  School / Mine switch, where staff view opens; `/my-calendar` redirects there; one list with the students' events mixed in): staff only
   (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and
   cancellation live), so never copy schedule details into it. **My students** (`student_events`) shows a
   teacher the activity items students in the sections they lead are registered for (`app.class_students_in`):
@@ -187,12 +189,12 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   a child is only ever released to someone on their pickup list (`app.pickup_people`: parents, `family_pickups`,
   today's `pickup_authorizations`); the database refuses anyone else. **School:** `checkin.manage` (office,
   administrators, directors; an admin power, so `aal2`) records late arrivals and early check-outs with a reason
-  (`school_check`; Attendance → Check a student in or out, `app/checkin.tsx`). **Events:** check-out lists for an Activities event (its registered students; the
+  (`school_check`; Classes → Check a student in or out, `app/checkin.tsx`). **Events:** check-out lists for an Activities event (its registered students; the
   activity's coaches and directors, `checkout_list_for_event`) or a teacher's own list from the sections they lead
   (`checkout_list_save`); `app.manages_checkout` decides who runs one. Parents are notified of every check-in and
   release (`app.notify_parents`). Reasons are in both `src/checkin/labels.ts` and the database check.
 - **Excused Absence** (`absence_reports`; `app/forms/excused-absence.tsx`, Forms → Forms to Send to Office, listed in
-  `src/schoolForms/office.ts`; Attendance → Absences reported by parents; old `/absences` links redirect there): only a
+  `src/schoolForms/office.ts`; Classes → Absences reported by parents; old `/absences` links redirect there): only a
   child's parents (`app.is_guardian_of`, never Family accounts) report absent (one or several days), arriving late or leaving
   early, with a reason (`absence_report`, today to 90 days ahead) or call it off (`absence_cancel`). The office
   (`checkin.manage`, `app.office_team`) and the teachers of the child's sections are told and read them
@@ -207,7 +209,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   child's teachers are told. Staff see the day's visitors with each child's allergies (`lunch_visitors`). `lunch.manage`
   (directors, administrators, office; an admin power) sets lunch times, closed days and rules (`lunch_window_save`,
   `lunch_close_day`, `lunch_set_rules`) and cancels visits (`lunch_visit_cancel`; the visitor is told).
-- **Class attendance** (`class_attendance`; the Attendance app, which also holds the event check-out lists): a
+- **Class attendance** (`class_attendance`; the Classes app, `app/attendance`, which also holds the event check-out lists): a
   section's lead teacher marks each student present, late or absent (`class_attendance_mark`, today or the last two
   weeks); `checkin.manage` holders take any section's and see every one (`attendance_overview`). `app.takes_roll`
   decides who may. Where a student stands (`app.attendance_state`) is the teacher's mark, except the office's late
@@ -348,6 +350,12 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   `errorText()` so a dropped connection reads as one.
 - Admin powers only count in an authenticator-verified session (`aal2`).
   Tests simulate this with `as(user, true)`.
+- **The Admin portal is people and access only** (People, Students, Classes, Admins & roles, Activity log).
+  An admin tool that belongs to an app goes in that app (sending a notification on the bell page,
+  `app/notifications/send.tsx`; routing questions in Ask the School → All questions; the Alert map in Alerts)
+  and in the portal's *Your tools in other apps* list (`ELSEWHERE` in `app/admin/index.tsx`). A whole admin
+  screen goes behind `MfaGate`; a tool on a screen everyone uses asks in place with `VerifyCard`
+  (`needsCodeFor` / `mayHave` in `src/comms/mfa.ts`), never "go verify in the Admin portal".
 - **React is pinned to 19.2.3** to match `react-dom` for the web build. Use
   `npx expo install <pkg>` (not `npm install`) for anything native so versions
   match the Expo SDK.

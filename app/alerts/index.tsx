@@ -1,12 +1,13 @@
 /**
  * Critical alerts (Apps → Alerts; teachers, staff and admins only). Active alerts with
  * I'm safe / I need help; for admins who send them (alerts.send), the live roll call and
- * the all clear. Earlier alerts are listed below.
+ * the all clear. Earlier alerts are listed below. The Alert map (alerts.map) is here too,
+ * and admins verify with their authenticator app on this screen.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   endAlert, getUser, isSchoolStaff, listAlerts, live, myAccess, myAlertAnswers, session, subscribeAlerts,
   type Access, type AlertAnswer, type CriticalAlert, type Person,
@@ -14,6 +15,8 @@ import {
 import { AnswerButtons, RollCall } from '../../src/alerts/AlertParts';
 import { alertKind } from '../../src/alerts/kinds';
 import { clock } from '../../src/carline/time';
+import { mayHave, needsCodeFor } from '../../src/comms/mfa';
+import { VerifyCard } from '../../src/comms/MfaGate';
 import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
 
 const when = (iso: string) => `${new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}, ${clock(iso)}`;
@@ -84,6 +87,7 @@ export default function Alerts() {
     setAccess(await myAccess().catch(() => null));
     await refresh();
   }, [refresh]);
+  const verified = useCallback(() => { load(); }, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useEffect(() => subscribeAlerts(refresh), [refresh]);
 
@@ -94,7 +98,7 @@ export default function Alerts() {
   if (!isSchoolStaff(me)) return box(<Card><H>For teachers and staff</H><P muted>Critical alerts go to the school's teachers and staff.</P></Card>);
 
   const canSend = !!access?.permissions.includes('alerts.send');
-  const needsCode = !canSend && !!access?.mfaRequired && !access?.mfaVerified;
+  const needsCode = needsCodeFor(access, 'alerts.send');
   const active = alerts.filter((a) => !a.endedAt);
   const earlier = alerts.filter((a) => a.endedAt);
 
@@ -102,11 +106,7 @@ export default function Alerts() {
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       {header}
       {canSend && <Button label="Send a critical alert" onPress={() => router.push('/alerts/new')} />}
-      {needsCode && (
-        <Card onPress={() => router.push('/admin')}>
-          <P muted>Admins: verify with your authenticator app in the Admin portal to send critical alerts. ›</P>
-        </Card>
-      )}
+      {needsCode && <VerifyCard why="Admins who send critical alerts verify first." onVerified={verified} />}
 
       {active.length === 0 && (
         <Card style={{ gap: 6 }}>
@@ -135,6 +135,17 @@ export default function Alerts() {
             );
           })}
         </>
+      )}
+
+      {mayHave(access, 'alerts.map') && (
+        <Card onPress={() => router.push('/alerts/map')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <Ionicons name="wifi" size={22} color={C.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '800', color: C.ink }}>Alert map</Text>
+            <P muted>The Wi-Fi access points and the room each one is in, so answers show where people are.</P>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </Card>
       )}
     </ScrollView>
   );

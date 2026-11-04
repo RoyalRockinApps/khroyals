@@ -2,14 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Linking, Platform, Pressable, RefreshControl, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { clearMyNotifications, dismissNotifications, markNotificationsOpened, myNotifications, openedNotifications, session, subscribeNotifications, type Notice, type Person } from '../src/api/connect';
-import { notificationHref } from '../src/comms/inbox';
-import { clearLocalNotifications, dismissLocal, localNotifications } from '../src/comms/localInbox';
-import { enablePush, pushStatus, type Permission } from '../src/comms/push';
-import { clearUnread, refreshUnread } from '../src/comms/unread';
-import { SwipeToDelete } from '../src/comms/SwipeToDelete';
-import { Button, C, Card, H, Loading, P, s } from '../src/ui';
-import { SCHOOL } from '../src/school';
+import {
+  clearMyNotifications, dismissNotifications, markNotificationsOpened, myAccess, myNotifications, openedNotifications, session, subscribeNotifications,
+  type Notice, type Person,
+} from '../../src/api/connect';
+import { notificationHref } from '../../src/comms/inbox';
+import { mayHave } from '../../src/comms/mfa';
+import { clearLocalNotifications, dismissLocal, localNotifications } from '../../src/comms/localInbox';
+import { enablePush, pushStatus, type Permission } from '../../src/comms/push';
+import { clearUnread, refreshUnread } from '../../src/comms/unread';
+import { SwipeToDelete } from '../../src/comms/SwipeToDelete';
+import { Button, C, Card, H, Loading, P, s } from '../../src/ui';
+import { SCHOOL } from '../../src/school';
 
 /** The phone's own notifications (car line) are listed with ids like "local:<key>"; the rest are the school's. */
 const LOCAL = 'local:';
@@ -52,7 +56,8 @@ function PhoneStatus({ status, onChange }: { status: { permission: Permission; d
  * Everything sent to the signed-in person: the school's notifications (posts in
  * their groups, announcements, Marketplace, Volunteer, Ask the School) and the
  * ones this phone showed by itself (car line), newest first. New ones are marked;
- * swipe or tap ✕ to delete one, or clear them all.
+ * swipe or tap ✕ to delete one, or clear them all. People who send the school's
+ * notifications (push.send) start one here too (app/notifications/send.tsx).
  */
 export default function NotificationsScreen() {
   const [person, setPerson] = useState<Person | null | undefined>(undefined);
@@ -61,6 +66,8 @@ export default function NotificationsScreen() {
   const [status, setStatus] = useState<{ permission: Permission; delivered: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // Send notifications (push.send): the way in to sending one (it asks for the authenticator code there).
+  const [sender, setSender] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -89,6 +96,7 @@ export default function NotificationsScreen() {
   // A notification arriving while this page is open joins the list (from the server as it's sent, and when the
   // phone shows its push).
   useFocusEffect(useCallback(() => { load(); return subscribeNotifications(load); }, [load]));
+  useFocusEffect(useCallback(() => { myAccess().then((a) => setSender(mayHave(a, 'push.send'))).catch(() => setSender(false)); }, []));
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationReceivedListener(() => { setTimeout(load, 500); });
@@ -146,7 +154,9 @@ export default function NotificationsScreen() {
     <FlatList
       style={s.screen} contentContainerStyle={s.pad} data={items} keyExtractor={(n) => n.id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.primary} />}
-      ListHeaderComponent={<>{header}<PhoneStatus status={status} onChange={load} />
+      ListHeaderComponent={<>{header}
+        {sender && <Button label="📣 Send a notification" onPress={() => router.push('/notifications/send')} />}
+        <PhoneStatus status={status} onChange={load} />
         {items.length > 0 && <P muted>Swipe a notification sideways (or tap ✕) to delete it.</P>}</>}
       ListEmptyComponent={<Card><H>No notifications yet</H><P muted>New posts in your groups, messages from the school and updates from your apps will show up here.</P></Card>}
       renderItem={({ item: n }) => {

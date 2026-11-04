@@ -1,5 +1,5 @@
 /**
- * Alert map in the admin portal (alerts.map: directors, administrators, IT): the school's Wi-Fi
+ * Alerts → Alert map (alerts.map: directors, administrators, IT; app/alerts/map.tsx): the school's Wi-Fi
  * access points and the room or area each one is in. When someone answers a critical alert, the
  * access point their phone is on tells the senders where they are ("Room 112 · Main building").
  * Add them one at a time (on a phone, "Use this phone's access point" fills in the BSSID while
@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Text, View } from 'react-native';
 import { deleteAccessPoint, errorText, importAccessPoints, listAccessPoints, saveAccessPoint, type AccessPoint } from '../api/connect';
-import { currentAccessPoint } from '../alerts/locate';
-import { normalizeMac, parseApList, type ApRow } from '../alerts/whereabouts';
+import { currentAccessPoint } from './locate';
+import { normalizeMac, parseApList, type ApRow } from './whereabouts';
 import { Button, C, Card, Field, H, Loading, P, ask } from '../ui';
 import { SCHOOL } from '../school';
 

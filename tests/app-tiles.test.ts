@@ -23,9 +23,15 @@ test('parents, and staff on the Standard view, see the standard apps', () => {
 });
 
 test('the Staff view adds Alerts (and Admin for admins), leaves out the parent apps, and puts the staff versions first', () => {
-  assert.deepEqual(labels({ staffView: true, family: false, admin: false }), ['Alerts', 'Car Line', 'Ask the School', 'Ask the Teacher', 'Calendar']);
-  assert.deepEqual(labels({ staffView: true, family: false, admin: true }), ['Alerts', 'Car Line', 'Ask the School', 'Ask the Teacher', 'Admin', 'Calendar']);
-  assert.deepEqual(elevated({ staffView: true, family: false, admin: true }), ['Alerts', 'Car Line', 'Ask the School', 'Ask the Teacher', 'Admin']);
+  assert.deepEqual(labels({ staffView: true, family: false, admin: false }), ['Alerts', 'Car Line', 'Ask the School', 'Calendar']);
+  assert.deepEqual(labels({ staffView: true, family: false, admin: true }), ['Alerts', 'Car Line', 'Ask the School', 'Admin', 'Calendar']);
+  assert.deepEqual(elevated({ staffView: true, family: false, admin: true }), ['Alerts', 'Car Line', 'Ask the School', 'Admin']);
+});
+
+test("the students' apps are theirs alone: teachers reach the teacher side from Classes", () => {
+  for (const v of [{ staffView: true, family: false, admin: true }, { staffView: false, family: false, admin: false }, { staffView: false, family: true, admin: false }]) {
+    assert.ok(!labels(v).includes('Ask the Teacher'));
+  }
 });
 
 test('Family accounts keep their closed set', () => {

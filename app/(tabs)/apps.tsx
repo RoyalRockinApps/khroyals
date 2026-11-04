@@ -30,11 +30,12 @@ const ALL_APPS: App[] = [
   { label: 'Sub Days', icon: 'briefcase', color: SCHOOL.theme.dark, href: '/sub', subOnly: true, sub: true },
   { label: 'Alerts', icon: 'warning', color: '#B42318', href: '/alerts', staffOnly: true },
   { label: 'Car Line', image: TILES.carline, icon: 'car', color: SCHOOL.theme.dark, href: '/carline', staffVersion: true, student: false },
+  // Teachers' classes: roll, assignments, messages from students, subs and check-out lists.
+  { label: 'Classes', icon: 'easel', color: SCHOOL.theme.dark, href: '/attendance', staffOnly: true },
   { label: 'Student', image: TILES.student, icon: 'school', color: SCHOOL.theme.dark, href: '/student', family: false, inStaffView: false },
-  { label: 'Calendar', image: TILES.calendar, icon: 'calendar', color: SCHOOL.theme.dark, href: '/calendar', sub: true },
-  { label: 'My Calendar', icon: 'calendar-number', color: SCHOOL.theme.dark, href: '/my-calendar', staffOnly: true },
+  // In staff view it opens on My calendar (School / Mine at the top).
+  { label: 'Calendar', image: TILES.calendar, icon: 'calendar', color: SCHOOL.theme.dark, href: '/calendar', sub: true, staffVersion: true },
   { label: 'Lunch Visits', icon: 'restaurant', color: SCHOOL.theme.dark, href: '/lunch', student: false },
-  { label: 'Attendance', icon: 'clipboard', color: SCHOOL.theme.dark, href: '/attendance', staffOnly: true },
   { label: 'News', image: TILES.news, icon: 'newspaper', color: SCHOOL.theme.dark, href: '/news', sub: true, inStaffView: false },
   { label: 'Photos', icon: 'images', color: SCHOOL.theme.dark, href: '/photos' },
   { label: 'Activities', image: TILES.activities, icon: 'basketball', color: SCHOOL.theme.dark, href: '/activities' },

@@ -13,6 +13,8 @@ import {
 } from '../../src/api/connect';
 import { isPastDay } from '../../src/calendar/past';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
+import { needsCodeFor } from '../../src/comms/mfa';
+import { VerifyCard } from '../../src/comms/MfaGate';
 import { STATUSES, matches, triageOrder, type Filter } from '../../src/feedback/kinds';
 import { FeedbackCard, Pills } from '../../src/feedback/ui';
 import { longDay } from '../../src/myCalendar/when';
@@ -55,7 +57,7 @@ export default function FeedbackHome() {
   );
 
   const triage = !!access?.permissions.includes('feedback.triage');
-  const needsCode = !triage && !!access && (access.tier !== null || access.granted.includes('feedback.triage')) && access.mfaRequired && !access.mfaVerified;
+  const needsCode = needsCodeFor(access, 'feedback.triage');
   const tabs: [Tab, string][] = triage ? [['mine', 'Mine'], ['triage', 'Triage'], ['workshops', 'Workshops']] : [['mine', 'Mine']];
   const shown: Tab = tabs.some(([k]) => k === tab) ? tab : 'mine';
   const mine = list.filter((f) => f.authorId === me.id);
@@ -65,11 +67,7 @@ export default function FeedbackHome() {
       {header}
       {tabs.length > 1 && <Pills options={tabs.map(([key, label]) => ({ key, label }))} value={shown} onChange={(t) => { setTab(t); past.hide(); }} />}
       {!!data.error && <Card><P muted>{data.error}</P></Card>}
-      {needsCode && (
-        <Card onPress={() => router.push('/admin')}>
-          <P muted>You triage feedback: verify with your authenticator app in the Admin portal to see everyone’s reports. ›</P>
-        </Card>
-      )}
+      {needsCode && <VerifyCard why="Admins who triage feedback see everyone’s reports here." onVerified={load} />}
 
       {shown === 'mine' && (<>
         <View style={{ flexDirection: 'row', gap: 8 }}>
