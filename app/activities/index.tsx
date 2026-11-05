@@ -12,7 +12,7 @@ import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 're
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  canBuyTickets, listSports, myAccess, mySports, mySportSchedule, myTickets, session, sportSchedule, subscribeSports,
+  canBuyTickets, canManageSport, listSports, myAccess, mySports, mySportSchedule, myTickets, session, sportSchedule, subscribeSports,
   type Access, type MySport, type Person, type Sport, type SportEvent, type SportSeason,
 } from '../../src/api/connect';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
@@ -148,6 +148,8 @@ export default function ActivitiesHome() {
   const why = (id: string) => mine.find((m) => m.sportId === id);
   const open = (id: string) => router.push(`/activities/${id}`);
   const kind = filter === 'all' ? '' : `${categoryInfo(filter).label.toLowerCase()} `;
+  // Coaches and directors (and activity managers) add games, practices, rehearsals and meetings from here.
+  const coached = data.sports.filter((sp) => canManageSport(sp, access, me));
 
   // Yours first (registered, then followed), then ones you opened lately.
   const yours = [
@@ -213,6 +215,10 @@ export default function ActivitiesHome() {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#fff" />
             </Pressable>
+          )}
+          {coached.length > 0 && (
+            <Button label="+ Add an event" onPress={() => router.push(coached.length === 1
+              ? { pathname: '/activities/event', params: { sport: coached[0].id } } : '/activities/event')} />
           )}
           <CategoryPills value={filter} onChange={setFilter} />
 

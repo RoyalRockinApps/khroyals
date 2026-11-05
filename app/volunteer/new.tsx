@@ -8,10 +8,11 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { isVolunteerLead, listVolunteerEvents, volunteerPost, type VolunteerEvent } from '../../src/api/connect';
+import { listVolunteerEvents, volunteerPost, type VolunteerEvent } from '../../src/api/connect';
 import { isDate, isTime } from '../../src/forms/dates';
 import { isPast, todayIso } from '../../src/volunteer/format';
 import { EventChips } from '../../src/volunteer/parts';
+import { PostGate } from '../../src/volunteer/canPost';
 import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
 import { Button, C, Card, Field, P, s } from '../../src/ui';
 import { DateField, TimeField } from '../../src/forms/DateTimeField';
@@ -20,7 +21,7 @@ import { DateField, TimeField } from '../../src/forms/DateTimeField';
 export default function NewOpportunity() {
   return (
     <VolunteerGate title="New opportunity">
-      {(me) => (isVolunteerLead(me) ? <Form /> : <View style={[s.screen, s.pad]}><Card><P muted>Only Volunteer Leaders can post opportunities.</P></Card></View>)}
+      {(me) => <PostGate me={me} why="Only Volunteer Leaders and coaches can post opportunities."><Form /></PostGate>}
     </VolunteerGate>
   );
 }

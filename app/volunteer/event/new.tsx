@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { errorText, isVolunteerLead, listVolunteerEvents, volunteerEventSave, type VolunteerEvent } from '../../../src/api/connect';
+import { errorText, listVolunteerEvents, volunteerEventSave, type VolunteerEvent } from '../../../src/api/connect';
+import { PostGate } from '../../../src/volunteer/canPost';
 import { DateField } from '../../../src/forms/DateTimeField';
 import { EventAlbumSwitch, makeAlbumFor } from '../../../src/gallery/EventAlbumSwitch';
 import { isDate } from '../../../src/forms/dates';
@@ -17,8 +18,7 @@ export default function EventForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   return (
     <VolunteerGate title={id ? 'Change event' : 'New event'}>
-      {(me) => (!isVolunteerLead(me) ? <View style={[s.screen, s.pad]}><Card><P muted>Only Volunteer Leaders can start events.</P></Card></View>
-        : id ? <Edit id={id} /> : <Form />)}
+      {(me) => <PostGate me={me} why="Only Volunteer Leaders and coaches can start events.">{id ? <Edit id={id} /> : <Form />}</PostGate>}
     </VolunteerGate>
   );
 }

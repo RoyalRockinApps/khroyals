@@ -352,7 +352,8 @@ Every step notifies the other side through the inbox (`notifications.audience =
 told why. Students can't use it.
 
 **Volunteer** (Apps → Volunteer). Volunteer Leaders (parents or staff the office
-chooses in Admin portal → People) post opportunities with a description, date,
+chooses in Admin portal → People) and the coaches and directors of activities post
+opportunities (concession stand helpers for a game, drivers to an away meet) with a description, date,
 optional times, place and an optional number of spots. Parents and staff tap
 **Say Yes!** until it's full; the opportunity joins their *My sign-ups* list and
 they can **Remove me** (the leader is told). A people icon shows everyone the count
@@ -434,7 +435,8 @@ signed in sees what's **happening now**, seasons **coming up** with dates,
 eligible grades, details, an info link and sign-up dates, and each activity's
 **schedule**: games, practices, tryouts and tournaments for sports; rehearsals,
 auditions and performances for theater and music; meetings, competitions and exhibits
-for art and clubs; home/away and cancellations. People with an approved account tap an
+for art and clubs; home/away and cancellations. An activity's coaches and directors add
+events to its schedule with *+ Add an event* (on the Activities home, or the activity's page). People with an approved account tap an
 activity's ★ button to **follow** it, and parents **sign up** their children during a
 season's sign-up window; its coach or director approves, and only then is the child
 registered. The Activities home has a search (🔍) and two carousels: **Your activities**

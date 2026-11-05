@@ -112,6 +112,16 @@ export default function SportPage() {
       ))}
 
       <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted, letterSpacing: 0.5, marginTop: 8 }}>SCHEDULE</Text>
+      {manage && (
+        <View style={s.row}>
+          <View style={{ flex: 2 }}>
+            <Button label="+ Add an event" onPress={() => router.push({ pathname: '/activities/event', params: { sport: sport.id } })} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button label="+ Season" kind="ghost" onPress={() => router.push({ pathname: '/activities/season', params: { sport: sport.id } })} />
+          </View>
+        </View>
+      )}
       <PastToggle count={schedule.past.length} shown={past.shown} onToggle={past.toggle} />
       {[...(past.shown ? schedule.past : []), ...schedule.upcoming].map((e) => {
         const people = rsvp.peopleFor(e);
@@ -276,9 +286,6 @@ function ManagePanel({ sport, seasons, regs, isManager, onChange }: {
         ))}
         {registered.length > 0 && <P muted>Registered ({registered.length}): {registered.map((r) => name(r.studentId)).join(', ')}</P>}
       </Card>
-
-      <Button label="+ Add to the schedule" onPress={() => router.push({ pathname: '/activities/event', params: { sport: sport.id } })} />
-      <Button label="+ New season" kind="ghost" onPress={() => router.push({ pathname: '/activities/season', params: { sport: sport.id } })} />
 
       {isManager && (
         <Card style={{ gap: 8 }}>

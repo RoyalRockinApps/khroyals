@@ -1,6 +1,7 @@
 /**
  * Volunteer: upcoming opportunities (people's time, and item requests with how much is
- * pledged), the ones you said yes to or pledged for, and (for leaders) the ones you lead.
+ * pledged), the ones you said yes to or pledged for, and (for leaders) the ones you lead. Volunteer Leaders and
+ * coaches (an activity's coaches and directors) post opportunities and start events.
  * Opportunities that are part of an event (Harvest Fest) sit inside its card, which opens
  * the event; the rest follow under "Other opportunities". On a day you're volunteering, its
  * check-in (scan the leader's QR code) is at the top. Volunteer Leaders and directors open the volunteer analytics from here,
@@ -19,6 +20,7 @@ import { schoolToday } from '../../src/calendar/past';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
 import { runsOn } from '../../src/volunteer/attendance';
 import { MyCheckIn } from '../../src/volunteer/CheckIn';
+import { useCanPost } from '../../src/volunteer/canPost';
 import { Cheer } from '../../src/volunteer/Cheer';
 import { daysLabel, isPast, nameOf, whenLabel } from '../../src/volunteer/format';
 import { OpportunityCard, progress } from '../../src/volunteer/OpportunityCard';
@@ -43,7 +45,8 @@ function Opportunities({ me }: { me: Person }) {
   const [director, setDirector] = useState(false);   // sees the analytics too (after verifying with their authenticator app)
   const [busy, setBusy] = useState<string | null>(null);   // the invite being answered
   const [cheer, setCheer] = useState<string | null>(null);   // celebrated after Say Yes!
-  const lead = isVolunteerLead(me);
+  const lead = isVolunteerLead(me);   // analytics too
+  const posts = !!useCanPost(me);      // Volunteer Leaders and coaches post opportunities and events
 
   const load = useCallback(() => listVolunteer().then(setData)
     .catch(() => setData({ opportunities: [], signups: [], events: [], attendance: [], invites: [] })), []);
@@ -91,7 +94,7 @@ function Opportunities({ me }: { me: Person }) {
   const events = tab !== 'open' ? []
     : data.events.filter((e) => (kinds && kind !== 'all' ? inside(e).length > 0 : !isPast(e) || inside(e).length > 0));
   const shown = ofKind(showPast.shown ? [...lists[tab], ...past] : lists[tab]).filter((o) => tab !== 'open' || !eventOf(o));
-  const tabs: Tab[] = lead ? ['open', 'mine', 'leading'] : ['open', 'mine'];
+  const tabs: Tab[] = posts || all.leading.length ? ['open', 'mine', 'leading'] : ['open', 'mine'];
   const empty: Record<Tab, string> = {
     open: 'No opportunities right now. Check back soon!',
     mine: 'When you Say Yes! to an opportunity, or pledge items, it shows up here.',
@@ -114,7 +117,7 @@ function Opportunities({ me }: { me: Person }) {
           ))}
           {asked.length > 0 && <SectionTitle icon="mail-outline" title={`Invitations (${asked.length})`} tint={GREEN} />}
           {asked.map(({ i, o }) => <InviteCard key={o.id} o={o} invite={i} busy={busy === o.id} onAnswer={(yes) => answer(o, yes)} />)}
-          {lead && (
+          {posts && (
             <View style={s.row}>
               <View style={{ flex: 1 }}><Button label="+ Event" kind="ghost" onPress={() => router.push('/volunteer/event/new')} /></View>
               <View style={{ flex: 1 }}><Button label="+ Opportunity" onPress={() => router.push('/volunteer/new')} /></View>

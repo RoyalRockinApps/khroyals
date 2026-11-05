@@ -12,9 +12,10 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  errorText, eventAlbumId, isSchoolStaff, isVolunteerLead, listVolunteer, makeEventAlbum, myAccess, subscribeVolunteer, volunteerEventDelete, volunteerEventReorder,
+  errorText, eventAlbumId, isSchoolStaff, listVolunteer, makeEventAlbum, myAccess, subscribeVolunteer, volunteerEventDelete, volunteerEventReorder,
   type Opportunity, type Person, type Signup, type VolunteerEvent, type VolunteerInvite,
 } from '../../../src/api/connect';
+import { useCanPost } from '../../../src/volunteer/canPost';
 import { PastToggle, usePastToggle } from '../../../src/calendar/PastToggle';
 import { GOLD, NAVY } from '../../../src/sports/ui';
 import { detailSections, durationLabel, inEventOrder, moved, sectionIcon, startsLabel } from '../../../src/volunteer/details';
@@ -53,7 +54,7 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
   if (!e) return <View style={[s.screen, s.pad]}><Card><P muted>{"This event isn't available."}</P></Card></View>;
 
   const started = e.leadId === me.id;
-  const lead = isVolunteerLead(me);
+  const lead = !!useCanPost(me);   // Volunteer Leaders and coaches add opportunities to any open event
   const ofEvent = data.opportunities.filter((o) => o.eventId === e.id && o.status === 'open');
   const coming = inEventOrder(ofEvent.filter((o) => !isPast(o)));
   const past = ofEvent.filter(isPast);

@@ -2,14 +2,17 @@ import { isDate } from '../../src/forms/dates';
 /**
  * Add or edit a schedule item (coaches/directors and activity managers): games and practices
  * for sports, rehearsals, auditions and performances for theater and music, meetings and
- * competitions for clubs. Everyone involved is told when it's added, moved or cancelled.
+ * competitions for clubs. Everyone involved is told when it's added, moved or cancelled. Opened
+ * from the Activities home (no `sport`), it first asks which of the activities you run it's for.
  */
 import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import {
-  cancelSportEvent, deleteSportEvent, listSports, saveSportEvent, sportSchedule, type SportEvent, type SportEventKind, type SportSeason,
+  canManageSport, cancelSportEvent, deleteSportEvent, listSports, me, myAccess, saveSportEvent, sportSchedule,
+  type Sport, type SportEvent, type SportEventKind, type SportSeason,
 } from '../../src/api/connect';
+import { SportRow } from '../../src/sports/ui';
 import { categoryInfo, hasHomeAway, KIND_LABELS, titleHint, type Category } from '../../src/sports/categories';
 import { activeSeasons, parseTime, schoolToday, timeLabel } from '../../src/sports/seasons';
 import { Button, C, Card, Field, Loading, P, s } from '../../src/ui';
@@ -26,7 +29,32 @@ const localDate = (iso: string) => { const d = new Date(iso); return `${d.getFul
 const localTime = (iso: string) => toTimeString(new Date(iso));
 
 export default function EditSportEvent() {
-  const { sport, id } = useLocalSearchParams<{ sport: string; id?: string }>();
+  const { sport } = useLocalSearchParams<{ sport?: string }>();
+  return sport ? <EventForm sport={sport} /> : <PickActivity />;
+}
+
+/** Which activity it's for: the ones this person coaches or directs (all of them for activity managers). */
+function PickActivity() {
+  const [mine, setMine] = useState<Sport[] | null>(null);
+  useEffect(() => {
+    Promise.all([listSports(), myAccess().catch(() => null)])
+      .then(([{ sports }, access]) => setMine(sports.filter((sp) => canManageSport(sp, access, me()))))
+      .catch(() => setMine([]));
+  }, []);
+  const header = <Stack.Screen options={{ title: 'Add an event' }} />;
+  if (!mine) return <>{header}<Loading /></>;
+  return (
+    <ScrollView style={s.screen} contentContainerStyle={s.pad}>
+      {header}
+      <P muted>Which activity is it for?</P>
+      {mine.length === 0 && <Card><P muted>Only an activity's coaches and directors add to its schedule.</P></Card>}
+      {mine.map((sp) => <SportRow key={sp.id} sport={sp} line={categoryInfo(sp.category).label} onPress={() => router.setParams({ sport: sp.id })} />)}
+    </ScrollView>
+  );
+}
+
+function EventForm({ sport }: { sport: string }) {
+  const { id } = useLocalSearchParams<{ id?: string }>();
   const [seasons, setSeasons] = useState<SportSeason[] | null>(null);
   const [category, setCategory] = useState<Category>('sports');
   const [existing, setExisting] = useState<SportEvent | null>(null);
@@ -62,7 +90,13 @@ export default function EditSportEvent() {
   }, [sport, id]);
   if (!seasons) return <Loading />;
   if (!seasons.length) return (
-    <View style={[s.screen, s.pad]}><Stack.Screen options={{ title: 'Schedule' }} /><Card><P>Add a season first, from the activity's page.</P></Card></View>
+    <View style={[s.screen, s.pad]}>
+      <Stack.Screen options={{ title: 'Add an event' }} />
+      <Card style={{ gap: 10 }}>
+        <P>Events go in a season, and this activity has none coming up. Add its season first (when it runs and when sign-ups open).</P>
+        <Button label="+ New season" onPress={() => router.replace({ pathname: '/activities/season', params: { sport } })} />
+      </Card>
+    </View>
   );
 
   const startsAt = toIso(date, start);
@@ -88,7 +122,7 @@ export default function EditSportEvent() {
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: id ? 'Edit schedule' : 'Add to the schedule' }} />
+      <Stack.Screen options={{ title: id ? 'Edit event' : 'Add an event' }} />
       <Card style={{ gap: 12 }}>
         {seasons.length > 1 && (
           <View style={{ gap: 6 }}>

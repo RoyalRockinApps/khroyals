@@ -4195,6 +4195,37 @@ test('the bell counts new notifications until the bell page opens them', async (
   await asSuper();
 });
 
+test("volunteer coaches: an activity's coaches post opportunities and start events like Volunteer Leaders", async () => {
+  await asSuper();
+  const sport = (await one(`insert into sports (name) values ('Cross country') returning id`)).id;
+  const post = `select * from volunteer_post('Water table helpers', 'Hand out water at the finish.', app.school_today() + 6)`;
+  const start = `select volunteer_event_save(null, 'Home meet', '', app.school_today() + 6) as id`;
+
+  // A teacher who isn't a Volunteer Leader can't, until she coaches an activity.
+  await as('u-sci');
+  await rejects(post, /Only Volunteer Leaders and coaches can post/);
+  await rejects(start, /Only Volunteer Leaders and coaches can start events/);
+  await asSuper();
+  await db.exec(`insert into sport_coaches (sport_id, user_id) values ('${sport}', ${id('u-sci')}), ('${sport}', ${id('u-p02')})`);
+  await as('u-sci');
+  const ev = (await one(start)).id;
+  const opp = await one(`select * from volunteer_post('Water table helpers', 'Hand out water at the finish.', app.school_today() + 6,
+    null, '08:00', '11:00', 'Finish line', 4, 'help', null, null, '${ev}')`);
+  assert.equal(opp.event_id, ev);
+  // She leads what she posted: invites and check-in are hers.
+  assert.equal((await one(`select volunteer_invite('${opp.id}', array[${id('u-p03')}]) as n`)).n, 1);
+  assert.match((await one(`select volunteer_check_in_code('${opp.id}') as c`)).c, /\S/);
+  // Volunteer analytics stay with Volunteer Leaders and directors.
+  await rejects(`select * from volunteer_stats()`, /Volunteer Leaders and directors/);
+
+  // Coaching only counts for staff: a parent on an activity's coaches doesn't post.
+  await as('u-p02');
+  await rejects(post, /Only Volunteer Leaders and coaches/);
+
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities where id = '${opp.id}'; delete from volunteer_events where id = '${ev}'; delete from sports where id = '${sport}'`);
+});
+
 test("staff today: the Planner's count of what's waiting on a teacher or the office", async () => {
   // Next Monday, so the day's roll and reports are the test's own.
   const monday = `(app.school_today() + (8 - extract(isodow from app.school_today()))::int)`;

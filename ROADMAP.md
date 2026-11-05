@@ -210,6 +210,7 @@ Working in the app and on the server today.
 | Alerts | Location with answers | Staff agree once; answers then carry GPS and the Wi-Fi access point, placed on the Alert map (in Alerts) for senders, who tap a person to see it and open it in Maps; erased after the alert |
 | Alerts | Critical alerts | Templates for weather, lockdown, hold; staff answer "I'm safe" / "I need help"; live roll call and all clear |
 | Activities | Sports, theater, music, art, clubs | Seasons, schedules, follow, sign-ups with coach approval |
+| Activities | Coaches add events and post volunteer help | Coaches and directors add events from the Activities home or their activity's page, and post opportunities and start events in Volunteer like Volunteer Leaders |
 | Activities | Events and RSVPs | Countdown carousel, directions, Going / Not going, attendance for coaches, team photos |
 | Marketplace | Buy and sell | Terms gate, photos, Dibs or Offer with one counter, deal card |
 | Volunteer | Opportunities, item requests and events | Leaders post, "Say Yes!" sign-ups with spot limits, item requests people pledge toward with quantity progress, chat per opportunity, events (Harvest Fest) holding their opportunities on one card, in the leader's order |

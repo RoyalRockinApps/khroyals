@@ -236,14 +236,17 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   in both `src/sports/categories.ts` and the database checks, so change them together.
   Coaching or directing an activity (`sport_coaches`, staff only) isn't an admin power;
   it lets them run that activity's seasons, schedule and sign-ups
-  (`app.can_manage_sport`). Adding activities and their coaches needs `sports.manage`.
+  (`app.can_manage_sport`; *+ Add an event* on the Activities home and on the activity's page, `app/activities/event.tsx`,
+  which asks which activity when opened from home). Coaches also post in Volunteer (`app.is_coach`, below). Adding activities and their coaches needs `sports.manage`.
   Sign-ups only count once approved (`sport_registrations.status = 'registered'`).
   "Are you going?" answers (`sport_event_rsvps`, `sport_rsvp`) are only for registered
   participants, given by their parents (`app.my_students()`, so never Family accounts) or
   themselves; only the activity's leaders see attendance.
 - **Volunteer events** (`volunteer_events`; `volunteer_opportunities.event_id`): an event (Harvest Fest) is one
-  card in the Volunteer app holding its opportunities. Any Volunteer Leader starts one (`volunteer_event_save`) and
-  posts into any open event (`volunteer_post` with `p_event`); an opportunity's leader moves it (`volunteer_set_event`).
+  card in the Volunteer app holding its opportunities. Any Volunteer Leader or coach (`app.posts_volunteer`: Volunteer Leaders,
+  and staff on an activity's `sport_coaches`; `useCanPost` in `src/volunteer/canPost.tsx`) starts one (`volunteer_event_save`),
+  posts opportunities (`volunteer_post`) and leads what they post; analytics stay with Volunteer Leaders and directors. They
+  post into any open event (`volunteer_post` with `p_event`); an opportunity's leader moves it (`volunteer_set_event`).
   Only the event's starter (or `groups.manage`) puts its opportunities in order (`volunteer_event_reorder`, `position`;
   unplaced ones follow by date, `inEventOrder`) or removes it (`volunteer_event_delete`), which keeps its opportunities.
 - **Volunteer invites** (`volunteer_invites`; `src/volunteer/InvitePanel.tsx`, `src/volunteer/invites.ts`): help opportunities only.
