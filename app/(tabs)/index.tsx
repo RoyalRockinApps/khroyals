@@ -3,7 +3,7 @@ import { AppState, Linking, Pressable, ScrollView, Text, View } from 'react-nati
 import { router, useFocusEffect, useNavigation, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  canVolunteer, carlineConfig, checkAssignment, childAssignments, isFamily, isSchoolStaff, listAssignments, listSports, listVolunteer,
+  canVolunteer, carlineConfig, checkAssignment, childAssignments, isFamily, isSchoolStaff, isSubstitute, listAssignments, listSports, listVolunteer,
   listAlbums, listDressDays, live, me, myCalendar, myChildren, myForms, myPickupChildren, mySportSchedule, onAuthChange, session, sportRegistrations, staffToday, subscribeAssignments,
   type Assignment, type DressDay, type GalleryAlbum, type Person,
 } from '../../src/api/connect';
@@ -12,6 +12,7 @@ import { schoolToday } from '../../src/calendar/past';
 import { AlbumCard } from '../../src/gallery/AlbumCard';
 import { DayPager } from '../../src/info/DayPager';
 import { needsYou, type NeedRow } from '../../src/info/needsYou';
+import { CheckInCard } from '../../src/onsite/CheckInCard';
 import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
 import { useStaffView } from '../../src/staffView';
 import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
@@ -25,7 +26,8 @@ import { dateRange } from '../../src/site/calendar';
  * Planner: today's date in the header, a greeting, the next two weeks one day at a time
  * (swipe, or tap a day in the strip; it opens on today): the uniform, assignments, a
  * card for each of a parent's children, and the day's events, activities, volunteer
- * sign-ups and car line hours. Teachers and staff (on the Staff view) first get Needs you today: what's
+ * sign-ups and car line hours. Teachers and staff (on the Staff view) and substitutes first get Checking in at school
+ * (src/onsite/CheckInCard.tsx), then Needs you today: what's
  * waiting on them across the apps (staff_today), each opening its screen. Then the school calendar's next two weeks, the school's newsletter
  * (Royal News) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
  * in Ask the School.)
@@ -42,6 +44,7 @@ export default function Home() {
   const dress = useDressDays(today);
   const photos = useLatestPhotos(person);
   const needs = useNeedsYou(person);
+  const staffView = useStaffView(person);
   const events = data?.cal.events;
   const plans = useMemo(() => events
     ? twoWeeks(today).map((d) => planDay(d, today, events, info, person?.schoolRole === 'student' ? [person.grade] : [], dress))
@@ -64,6 +67,7 @@ export default function Home() {
     <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 22 }]}>
       <Text style={{ fontSize: 28, ...FONT_STYLE.heading, color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
 
+      {(staffView || isSubstitute(person)) && <CheckInCard />}
       {needs.length > 0 && <NeedsYou rows={needs} />}
 
       <DayPager plans={plans} index={index} onIndex={setIndex} render={(p) => <TodaySection plan={p} onToggle={toggle} />} />

@@ -235,6 +235,10 @@ Working in the app and on the server today.
 | Planner | Dress-up days | Staff add Spirit Week themes (per day, optionally by grade); the Planner shows them above the uniform |
 | Admin portal | Delete accounts | Holders of Delete accounts (directors by default) remove someone's login, profile, posts and comments; never yourself or a director; admins need Manage admins too |
 | Admin portal | Students | Add children, approve family requests |
+| Admin portal | On-Site Attendance | The dashboard's top card: everyone at school now (staff, faculty, visitors, students), where the students are, and after dismissal who isn't sent home yet; the office's screen lists names, checks staff in and out, and runs the visitor desk |
+| Staff | Checking in at school | Teachers, staff and substitutes check in on their Planner when they arrive (only at school) and out when they leave |
+| Staff | Going home | The class roll's Going home view: how each student left (car line, office, check-out lists and extended care fill in by themselves; the teacher marks Walked, Drove, Bus or Other) |
+| Staff | Extended care | The office sets which students stay which days and who runs it; extended care staff release each child from a daily check-out list, only to someone on the pickup list |
 | Staff | Classes | One app for a teacher's classes: each class's roll and assignments, messages from students (Ask the Teacher), substitutes and check-out lists; the office's every-class roll, check in and out, and reported absences at the top |
 | Admin tools | In their apps | Sending a notification is on the bell page, routing questions in Ask the School (All questions), the Alert map in Alerts; each asks for the authenticator code right there, and the Admin portal (people and access) lists the ones an admin holds |
 | Builds | Web, Android and iPad | Web app on GitHub Pages and an Android APK built on every push; on iPads and tablets pages sit in a centered column with five Main Page tiles across |

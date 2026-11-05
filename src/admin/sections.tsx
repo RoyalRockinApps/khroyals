@@ -421,6 +421,8 @@ export const ELSEWHERE: { perm: string; label: string; where: string; href: Href
   { perm: 'alerts.map', label: 'Alert map', where: 'Alerts', href: '/alerts/map', icon: 'wifi-outline' },
   { perm: 'questions.manage', label: 'Route questions', where: 'Ask the School → All questions', href: '/questions', icon: 'git-branch-outline' },
   { perm: 'checkin.manage', label: 'Check students in and out', where: 'Classes', href: '/checkin', icon: 'log-in-outline' },
+  { perm: 'checkin.manage', label: 'On-site attendance and visitors', where: 'Classes', href: '/onsite', icon: 'location-outline' },
+  { perm: 'people.family', label: 'Extended care students and staff', where: 'Classes → Extended care', href: '/extended-care', icon: 'home-outline' },
   { perm: 'subs.manage', label: 'Schedule substitutes', where: 'Classes → Substitutes', href: '/subs', icon: 'swap-horizontal-outline' },
   { perm: 'messages.review', label: 'Student messages', where: 'Classes → Messages', href: '/teachers', icon: 'chatbubbles-outline' },
   { perm: 'lunch.manage', label: 'Lunch times and rules', where: 'Lunch Visits', href: '/lunch/settings', icon: 'restaurant-outline' },

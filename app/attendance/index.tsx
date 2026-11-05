@@ -4,7 +4,8 @@
  * early check-outs) and its assignments; messages from their students (Ask the Teacher); substitutes;
  * and check-out lists for field trips and Activities events. Students keep Ask the Teacher and
  * Assignments as their own apps; this is the teacher side of both. The office (checkin.manage) also
- * gets every class's roll and Check in & out, where it records late arrivals and early pickups.
+ * gets every class's roll, Check in & out, where it records late arrivals and early pickups, and On-Site Attendance
+ * (who's at school now, and the visitor desk). The office and extended care staff get Extended care.
  */
 import { useCallback, useState, type ComponentProps } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -21,7 +22,7 @@ import { mayHave } from '../../src/comms/mfa';
 import { Card, C, H, Loading, P, s } from '../../src/ui';
 
 type Data = {
-  classes: ClassRollSummary[]; office: boolean; subs: boolean; messages: boolean;
+  classes: ClassRollSummary[]; office: boolean; subs: boolean; messages: boolean; extendedCare: boolean;
   assignments: Assignment[]; conversations: TeacherConversation[];
 };
 
@@ -66,6 +67,7 @@ export default function Classes() {
     ]);
     setData({
       classes, office: !!a?.permissions.includes('checkin.manage'), subs: teaches || !!a?.permissions.includes('subs.manage'), messages,
+      extendedCare: !!p?.extendedCare || mayHave(a, 'people.family') || mayHave(a, 'checkin.manage'),
       assignments: assignments.filter((x) => x.ownerId === p!.id && x.rosterId && !(x.dueOn && isPastDay(x.dueOn))),
       conversations: [...conversations],
     });
@@ -87,6 +89,8 @@ export default function Classes() {
       <Row icon="bed-outline" title="Absences reported by parents" href="/forms/excused-absence"
         sub={office ? 'Every student’s, a day at a time; mark each seen' : 'Your students’, a day at a time'} />
       {office && <Row icon="log-in-outline" title="Check a student in or out" sub="Late arrivals and early pickups, and today's list" href="/checkin" />}
+      {office && <Row icon="location-outline" title="On-Site Attendance" sub="Who’s at school now, and the visitor desk" href="/onsite" />}
+      {data.extendedCare && <Row icon="home-outline" title="Extended care" sub="Today’s check-out, and who stays which days" href="/extended-care" />}
 
       {(classes.length > 0 || !office) && <H>Your classes</H>}
       {classes.length === 0

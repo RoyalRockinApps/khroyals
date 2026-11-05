@@ -209,6 +209,21 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   child's teachers are told. Staff see the day's visitors with each child's allergies (`lunch_visitors`). `lunch.manage`
   (directors, administrators, office; an admin power) sets lunch times, closed days and rules (`lunch_window_save`,
   `lunch_close_day`, `lunch_set_rules`) and cancels visits (`lunch_visit_cancel`; the visitor is told).
+- **On-Site Attendance** (`campus_checks`, `campus_visitors`, `extended_care`, `dismissals`, `profiles.extended_care_duty`;
+  the Admin portal's top card `src/onsite/OnSiteCard.tsx`, `app/onsite.tsx`, `app/extended-care`): who is at school now, for
+  `checkin.manage` only (`on_site_today` counts, `on_site_list` names). Faculty (teachers, substitutes) and staff (staff,
+  admins; `app.campus_role`) check themselves in from the Planner (`src/onsite/CheckInCard.tsx`, `campus_check`: check-in
+  only within `campus_radius_m` of the car line's spot, `app.require_on_campus`) and out; the office does it for them
+  (`campus_check_for`) and signs visitors in and out (`visitor_sign_in`, today's booked lunch visitors one tap). A student is
+  here once marked present or late or checked in by the office, and gone home (`app.gone_home`) once picked up in the car
+  line, checked out by the office, released from a check-out list, or marked by a teacher who takes the class's roll
+  (`dismissal_mark`: walked, drove, bus, other; parents told). After `dismissal_time` (`app.dismissal_at`; the gear on the
+  On-Site screen), a student still here is at an activity (`app.staying_for`: a registered event today still going on), in
+  extended care, or **not sent home yet**. **Extended care**: the office (`people.family` or `checkin.manage`,
+  `app.manages_extended_care`) sets each student's weekdays (`extended_care_set`) and its staff (`extended_care_set_staff`;
+  staff only, not an admin power); they run a daily check-out list (`checkout_lists.extended_care`, `extended_care_list`,
+  `app.manages_checkout`), so a child goes only to someone on their pickup list. Dismissal ways are in both
+  `src/onsite/labels.ts` and the database check (`tests/onsite.test.ts`). Counts on the card, names only on the office's screen.
 - **Class attendance** (`class_attendance`; the Classes app, `app/attendance`, which also holds the event check-out lists): a
   section's lead teacher marks each student present, late or absent (`class_attendance_mark`, today or the last two
   weeks); `checkin.manage` holders take any section's and see every one (`attendance_overview`). `app.takes_roll`
@@ -362,8 +377,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   `errorText()` so a dropped connection reads as one.
 - Admin powers only count in an authenticator-verified session (`aal2`).
   Tests simulate this with `as(user, true)`.
-- **The Admin portal is people and access only**, and opens on a dashboard (`app/admin/index.tsx`): tiles for
-  what needs attention (`staff_today`'s admin counts), people by role (one bar, each role's count beside its color),
+- **The Admin portal is people and access only**, and opens on a dashboard (`app/admin/index.tsx`): On-Site Attendance
+  on top (below), tiles for what needs attention (`staff_today`'s admin counts),
   its sections (People, Students, Classes, Admins & roles, Activity log; each its own screen, `app/admin/[section].tsx`,
   listed in `SECTIONS` in `src/admin/sections.tsx` with the permission that opens it), recent activity, and the tools in
   other apps. An admin tool that belongs to an app goes in that app (sending a notification on the bell page,

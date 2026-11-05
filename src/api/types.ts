@@ -15,7 +15,8 @@ export type Abilities = {
 /** `hidden`: the person hid it from their list (null when they aren't a member). */
 export type GroupView = { group: Group; myRole: GroupRole | null; posts: Post[]; abilities: Abilities; hidden?: boolean | null };
 
-export type Person = User & { email?: string | null; pending?: boolean; carlineDuty?: boolean; volunteerLead?: boolean };
+/** `extendedCare`: runs extended care (the office marks extended care staff). */
+export type Person = User & { email?: string | null; pending?: boolean; carlineDuty?: boolean; volunteerLead?: boolean; extendedCare?: boolean };
 
 /** A dress-up day (Spirit Week): a theme students may wear that day, for some grades or (null) everyone. */
 export type DressDay = {
@@ -273,9 +274,25 @@ export type RollStudent = {
   id: string; name: string; grade: number | null; mark: AttendanceMark | null; markedBy: string | null; state: AttendanceMark | null; left: boolean; checks: RollCheck[];
   /** What a parent reported for the day (Absences). */
   reported?: { kind: 'absent' | 'late' | 'early'; reason: string; at: string | null; note: string; by: string } | null;
+  /** How they went home today, once they have; and why they're staying after school (an activity, extended care). */
+  home?: GoneHome | null;
+  staying?: Staying | null;
 };
-/** `otherDays`: false for a sub, who sees and takes today's roll only. */
-export type ClassRoll = { id: string; name: string; teacher: string | null; day: string; canMark: boolean; otherDays?: boolean; students: RollStudent[] };
+/** `otherDays`: false for a sub, who sees and takes today's roll only. `canDismiss`: today, so students can be marked gone home. */
+export type ClassRoll = {
+  id: string; name: string; teacher: string | null; day: string; canMark: boolean; otherDays?: boolean; students: RollStudent[];
+  canDismiss?: boolean; dismissal?: string;
+};
+
+/** How a student went home (src/onsite/labels.ts): the car line, the office, a check-out list, extended care, or their teacher's mark. */
+export type DismissalHow = 'walked' | 'drove' | 'bus' | 'other';
+export type GoneHome = {
+  how: 'carline' | 'office' | 'list' | 'extended_care' | DismissalHow; at: string;
+  /** Who took them, who recorded it, and the check-out list's name. */
+  person: string | null; by: string | null; title: string | null;
+};
+/** Why a student is still at school after dismissal. */
+export type Staying = { kind: 'activity' | 'extended_care'; title: string; away?: boolean };
 
 /** A sub day (src/api/subs.ts): who covers which classes, on which days and hours. `plans` is null for the sub until they're on duty. */
 export type SubDay = {

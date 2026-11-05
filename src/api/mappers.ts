@@ -9,12 +9,14 @@ import { attachmentsSchema, familyDetailsSchema, groupSettingsSchema, pickupVehi
 import { QUESTION_TOPICS } from './types';
 import { VEHICLE_COLORS, VEHICLE_KINDS } from '../carline/vehicles';
 
-type ProfileRow = Pick<Tables<'profiles'>, 'id' | 'first_name' | 'last_name' | 'school_role' | 'grade' | 'carline_duty' | 'volunteer_lead'> & { email?: string | null };
+type ProfileRow = Pick<Tables<'profiles'>, 'id' | 'first_name' | 'last_name' | 'school_role' | 'grade' | 'carline_duty' | 'volunteer_lead'>
+  & { email?: string | null; extended_care_duty?: boolean | null };
 
 export const toPerson = (p: ProfileRow, avatar = ''): Person => ({
   id: p.id, firstName: p.first_name ?? '', lastName: p.last_name ?? '', schoolRole: p.school_role === null ? 'student' : schoolRole.parse(p.school_role),
   avatar, grade: p.grade ?? undefined,
   email: p.email, pending: p.school_role == null, carlineDuty: !!p.carline_duty, volunteerLead: !!p.volunteer_lead,
+  extendedCare: !!p.extended_care_duty,
 });
 
 export const toGroup = (g: Tables<'groups'>): Group => ({

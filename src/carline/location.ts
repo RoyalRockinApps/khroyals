@@ -1,7 +1,6 @@
 /**
- * Where the parent is right now, for announcing arrival. The server compares it
- * with the pickup spot and radius the school set; the location isn't stored
- * (only the distance, for staff).
+ * Where the parent is right now, for announcing arrival (and a teacher or staff member, checking in at school).
+ * The server compares it with the school's spot and radius; the location isn't stored (only the distance).
  */
 import * as Location from 'expo-location';
 import type { Spot } from '../api/connect';
@@ -9,10 +8,10 @@ import { SCHOOL } from '../school';
 
 export class LocationError extends Error {}
 
-export async function currentSpot(): Promise<Spot> {
+export async function currentSpot(why = 'so the school can confirm you\'re at pickup'): Promise<Spot> {
   const perm = await Location.requestForegroundPermissionsAsync();
   if (perm.status !== 'granted') {
-    throw new LocationError(`Allow location for ${SCHOOL.appName} so the school can confirm you're at pickup.`);
+    throw new LocationError(`Allow location for ${SCHOOL.appName} ${why}.`);
   }
   try {
     const p = await Promise.race([

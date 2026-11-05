@@ -4292,6 +4292,203 @@ test("staff today: the Planner's count of what's waiting on a teacher or the off
                  delete from volunteer_opportunities where id = '${shift.id}'; delete from sub_assignments where id = '${sub.id}'`);
 });
 
+test('on-site attendance: staff check in at school, the office signs visitors in, and students are followed until they go home', async () => {
+  await asSuper();
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [ava, liv, s03, s04, rosa, p02, eng, sci, couns] = await Promise.all(
+    ['u-s01', 'u-s02', 'u-s03', 'u-s04', 'u-p01', 'u-p02', 'u-eng', 'u-sci', 'u-couns'].map(uid));
+  const sec = 'eng10-p3';
+  const before = (await one(`select value from app.settings where key = 'dismissal_time'`)).value;
+  const weekday = (await one(`select extract(isodow from app.school_today())::int <= 5 as w`)).w as boolean;
+  /** Before or after today's dismissal, whatever the clock says. */
+  const dismissed = async (yes: boolean) => {
+    await asSuper();
+    await db.exec(`update app.settings set value = '${yes ? '00:00' : '23:59'}' where key = 'dismissal_time'`);
+  };
+  const today = async () => { await as('u-admin', true); return (await one(`select on_site_today() as t`)).t; };
+  // A clean day for the class's students (earlier tests may have sent one home through the car line).
+  const kids = [ava, liv, s03, s04].map((x) => `'${x}'`).join(', ');
+  await db.exec(`delete from carline_pickups where student_id in (${kids}); delete from school_checks where student_id in (${kids});
+    delete from class_attendance where student_id in (${kids}); delete from absence_reports where student_id in (${kids});
+    delete from checkout_list_students where student_id in (${kids})`);
+
+  // Teachers and staff check themselves in, at school only; checking in twice changes nothing.
+  await as('u-p01');
+  await rejects(`select campus_check('in', ${AT}, 10)`, /teachers and staff/);
+  assert.equal((await one(`select my_campus_status() as s`)).s.role, null);
+  await as('u-eng');
+  assert.equal((await one(`select my_campus_status() as s`)).s.role, 'faculty');
+  await rejects(`select campus_check('in')`, /Turn on location/);
+  await rejects(`select campus_check('in', 34.80, -86.6177, 10)`, /about 5\.1 miles from school/);
+  await rejects(`select campus_check('sideways', ${AT}, 10)`, /check in or check out/);
+  assert.equal((await one(`select campus_check('in', ${AT}, 10) as s`)).s.here, true);
+  assert.equal((await one(`select campus_check('in', ${AT}, 10) as s`)).s.checks.length, 1);
+  await as('u-couns');
+  assert.equal((await one(`select campus_check('in', ${AT}, 10) as s`)).s.role, 'staff');
+  const out = (await one(`select campus_check('out') as s`)).s;
+  assert.deepEqual([out.here, out.checks.length], [false, 2]);
+  assert.equal((await rows(`select 1 from campus_checks`)).length, 2, 'their own checks only');
+
+  // The office checks a teacher in for them.
+  await as('u-sci');
+  await rejects(`select campus_check_for('${eng}', 'out')`, /permission/);
+  await as('u-admin');
+  await rejects(`select campus_check_for('${sci}', 'in')`, /MFA_REQUIRED/);
+  await as('u-admin', true);
+  await rejects(`select campus_check_for('${ava}', 'in')`, /teacher or staff/);
+  await one(`select campus_check_for('${sci}', 'in')`);
+  await as('u-sci');
+  assert.equal((await one(`select my_campus_status() as s`)).s.checks[0].byOffice, true);
+
+  // Visitors: the office signs them in and out; today's lunch visitors wait to be signed in.
+  await asSuper();
+  const lunchWindow = (await one(`insert into lunch_windows (name, weekdays, start_time, end_time, grade_from, grade_to, capacity)
+    values ('Test lunch', '{1,2,3,4,5}', '11:30', '12:00', 0, 12, 10) returning id`)).id;
+  const lunch = (await one(`insert into lunch_visits (window_id, day, student_id, visitor_id, guests, allergy_ack_at)
+    values ('${lunchWindow}', app.school_today(), '${ava}', '${rosa}', 1, now()) returning id`)).id;
+  await as('u-sci');
+  await rejects(`select visitor_sign_in('Pat Doe')`, /permission/);
+  await rejects(`select visitors_today()`, /permission/);
+  await as('u-admin', true);
+  await rejects(`select visitor_sign_in('  ')`, /visitor's name/);
+  await rejects(`select visitor_sign_in('Pat Doe', '', 11)`, /Up to 10/);
+  const plumber = (await one(`select visitor_sign_in('Pat Doe', 'Fixing the sink', 1) as id`)).id;
+  let visitors = (await one(`select visitors_today() as v`)).v;
+  assert.deepEqual(visitors.expected.map((e: any) => [e.id, e.guests, e.start]), [[lunch, 1, '11:30']]);
+  await one(`select visitor_sign_in(null, '', 0, '${lunch}')`);
+  await rejects(`select visitor_sign_in(null, '', 0, '${lunch}')`, /already signed in/);
+  await one(`select visitor_sign_out('${plumber}')`);
+  await rejects(`select visitor_sign_out('${plumber}')`, /already signed out/);
+  visitors = (await one(`select visitors_today() as v`)).v;
+  assert.equal(visitors.expected.length, 0);
+  assert.deepEqual(visitors.visitors.map((v: any) => [v.purpose, !!v.out]), [['Lunch with Ava', false], ['Fixing the sink', true]], 'still here first');
+  await as('u-p01');
+  assert.equal((await rows(`select 1 from campus_visitors`)).length, 0, 'the visitor log is the office\'s');
+
+  // Students: here once their teacher takes roll.
+  await dismissed(false);
+  await as('u-eng');
+  await one(`select class_attendance_mark('${sec}', app.school_today(), array['${ava}', '${liv}', '${s03}']::uuid[], 'present')`);
+  await one(`select class_attendance_mark('${sec}', app.school_today(), array['${s04}']::uuid[], 'absent')`);
+  let t = await today();
+  assert.deepEqual([t.faculty.here, t.staff.here, t.visitors.here, t.visitors.today], [2, 0, 2, 4]);
+  assert.ok(t.faculty.total >= 3 && t.staff.total >= 4);
+  assert.deepEqual([t.afterDismissal, t.students.here, t.students.class, t.students.absent, t.students.home],
+    [false, 3, 3, 1, 0]);
+  assert.equal(t.students.unmarked, t.students.total - 4);
+  await as('u-sci');
+  await rejects(`select on_site_today()`, /permission/);
+
+  // Extended care: the office says who stays and on which days.
+  await as('u-sci');
+  await rejects(`select extended_care_set('${liv}', array[1, 2, 3, 4, 5])`, /permission/);
+  await as('u-admin', true);
+  await rejects(`select extended_care_set('${rosa}', array[1])`, /Choose a student/);
+  await rejects(`select extended_care_set('${liv}', array[6])`, /school days/);
+  await one(`select extended_care_set('${liv}', array[5, 1, 2, 3, 4, 1], 'Until 6')`);
+  await one(`select extended_care_set('${s04}', array[1, 2, 3, 4, 5])`);
+  await one(`select extended_care_set('${s04}', '{}')`);
+  assert.deepEqual((await one(`select extended_care_roster() as r`)).r.map((x: any) => [x.id, x.weekdays, x.today]), [[liv, [1, 2, 3, 4, 5], weekday]]);
+  assert.deepEqual((await one(`select extended_care_search('${(await one(`select first_name from profiles where id = '${liv}'`)).first_name}') as r`)).r
+    .find((x: any) => x.id === liv).weekdays, [1, 2, 3, 4, 5]);
+  await as('u-p02');
+  assert.equal((await rows(`select 1 from extended_care`)).length, 1, 'parents see their own child\'s');
+  await as('u-p01');
+  assert.equal((await rows(`select 1 from extended_care`)).length, 0);
+
+  // An activity event today, still going after dismissal, for s03.
+  await asSuper();
+  const sport = (await one(`insert into sports (name) values ('Robotics club (on-site test)') returning id`)).id;
+  const season = (await one(`insert into sport_seasons (sport_id, name, starts_on, ends_on) values ('${sport}', 'Fall', app.school_today() - 30, app.school_today() + 30) returning id`)).id;
+  await db.exec(`insert into sport_events (season_id, title, starts_at, ends_at)
+      values ('${season}', 'Build night', date_trunc('day', now() at time zone 'America/Chicago') at time zone 'America/Chicago' + interval '1 minute',
+              date_trunc('day', now() at time zone 'America/Chicago') at time zone 'America/Chicago' + interval '23 hours 58 minutes');
+    insert into sport_registrations (season_id, student_id, status) values ('${season}', '${s03}', 'registered')`);
+
+  // After dismissal: at an activity, in extended care, or not sent home yet.
+  await dismissed(true);
+  t = await today();
+  assert.deepEqual([t.afterDismissal, t.students.class, t.students.activities, t.students.extendedCare, t.students.notHome],
+    weekday ? [true, 0, 1, 1, 1] : [true, 0, 1, 0, 2]);
+
+  // A teacher marks how a student went home; the parents hear. Only students in the class, only the class's teacher.
+  await as('u-sci');
+  await rejects(`select dismissal_mark('${sec}', array['${ava}']::uuid[], 'walked')`, /Only the class's teacher/);
+  await as('u-eng');
+  await rejects(`select dismissal_mark('${sec}', array['${rosa}']::uuid[], 'walked')`, /isn't in this class/);
+  await rejects(`select dismissal_mark('${sec}', array['${ava}']::uuid[], 'flew')`, /how they went home/);
+  await one(`select dismissal_mark('${sec}', array['${ava}']::uuid[], 'walked')`);
+  const roll = (await one(`select class_attendance_roll('${sec}') as r`)).r;
+  const st = (sid: string) => roll.students.find((s: any) => s.id === sid);
+  assert.equal(roll.canDismiss, true);
+  assert.equal(roll.dismissal, '00:00');
+  assert.deepEqual([st(ava).home.how, st(ava).home.by], ['walked', 'Jennifer Taylor']);
+  assert.equal(st(s03).staying.kind, 'activity');
+  assert.match(st(s03).staying.title, /Robotics club \(on-site test\): Build night/);
+  assert.equal(st(liv).staying?.kind, weekday ? 'extended_care' : undefined);
+  assert.equal(st(liv).home, null);
+  await asSuper();
+  const note = await one(`select title, body from notifications where user_id = '${rosa}' and data ? 'dismissal'`);
+  assert.match(note.title, /went home/);
+  assert.match(note.body, /Walked · .* · marked by Jennifer Taylor/);
+  await as('u-p01');
+  assert.equal((await rows(`select 1 from dismissals where student_id = '${ava}'`)).length, 1);
+  await as('u-p02');
+  assert.equal((await rows(`select 1 from dismissals`)).length, 0);
+  // Taking it back.
+  await as('u-eng');
+  await one(`select dismissal_mark('${sec}', array['${ava}']::uuid[], null)`);
+  assert.equal((await one(`select class_attendance_roll('${sec}') as r`)).r.students.find((s: any) => s.id === ava).home, null);
+  await one(`select dismissal_mark('${sec}', array['${ava}']::uuid[], 'bus')`);
+
+  // Extended care staff run today's list, releasing each child only to someone on their pickup list.
+  await as('u-couns');
+  await rejects(`select extended_care_list()`, /permission/);
+  await rejects(`select extended_care_roster()`, /permission/);
+  await as('u-admin', true);
+  await rejects(`select extended_care_set_staff('${rosa}', true)`, /teachers or staff/);
+  await one(`select extended_care_set_staff('${couns}', true)`);
+  assert.ok((await one(`select extended_care_staff_list() as s`)).s.find((x: any) => x.id === couns).on);
+  await as('u-couns');
+  assert.equal((await one(`select extended_care_roster() as r`)).r.length, 1);
+  const care = (await one(`select extended_care_list() as id`)).id;
+  assert.equal((await one(`select extended_care_list() as id`)).id, care, 'one list a day');
+  const list = (await one(`select checkout_list('${care}') as l`)).l;
+  assert.ok(!list.canDelete, 'only the office removes it');
+  assert.deepEqual(list.students.map((s: any) => s.id), weekday ? [liv] : []);
+  if (weekday) {
+    await rejects(`select checkout_release('${care}', '${liv}', '${rosa}')`, /isn't on .*pickup list/);
+    await one(`select checkout_release('${care}', '${liv}', '${p02}')`);
+    await as('u-eng');
+    const home = (await one(`select class_attendance_roll('${sec}') as r`)).r.students.find((s: any) => s.id === liv).home;
+    assert.deepEqual([home.how, home.title], ['extended_care', 'Extended care']);
+  }
+
+  // The office sees who: teachers and staff expected today, and each student with where they stand.
+  await as('u-admin', true);
+  const who = (await one(`select on_site_list() as w`)).w;
+  assert.deepEqual(who.people.filter((p: any) => p.here).map((p: any) => p.id).sort(), [eng, sci].sort());
+  assert.ok(who.people.find((p: any) => p.id === couns).out);
+  const ws = (sid: string) => who.students.find((s: any) => s.id === sid);
+  assert.deepEqual([ws(ava).bucket, ws(ava).home.how], ['home', 'bus']);
+  assert.deepEqual([ws(s03).bucket, ws(s04).bucket], ['activities', 'absent']);
+  assert.equal(ws(liv).bucket, weekday ? 'home' : 'notHome');
+  t = await today();
+  assert.equal(t.students.home, weekday ? 2 : 1);
+
+  // The office sets the dismissal time.
+  await rejects(`select on_site_set_dismissal('05:00')`, /between 11 AM and 6 PM/);
+  await one(`select on_site_set_dismissal('15:10')`);
+  await asSuper();
+  assert.equal((await one(`select value from app.settings where key = 'dismissal_time'`)).value, '15:10');
+
+  await db.exec(`update app.settings set value = '${before}' where key = 'dismissal_time';
+    update profiles set extended_care_duty = false; delete from extended_care; delete from dismissals; delete from campus_checks;
+    delete from campus_visitors; delete from lunch_windows where id = '${lunchWindow}'; delete from checkout_lists where extended_care;
+    delete from class_attendance where section_id = '${sec}'; delete from sports where id = '${sport}';
+    delete from notifications where data ? 'dismissal' or data ? 'checkoutListId' or data ? 'classAttendance'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

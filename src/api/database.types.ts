@@ -1953,6 +1953,7 @@ export type Database = {
           admin_tier: string | null
           avatar_url: string | null
           carline_duty: boolean
+          extended_care_duty: boolean
           class_of: number | null
           created_at: string
           first_name: string
@@ -1968,6 +1969,7 @@ export type Database = {
           admin_tier?: string | null
           avatar_url?: string | null
           carline_duty?: boolean
+          extended_care_duty?: boolean
           class_of?: number | null
           created_at?: string
           first_name?: string
@@ -1983,6 +1985,7 @@ export type Database = {
           admin_tier?: string | null
           avatar_url?: string | null
           carline_duty?: boolean
+          extended_care_duty?: boolean
           class_of?: number | null
           created_at?: string
           first_name?: string
@@ -4642,6 +4645,23 @@ export type Database = {
       student_login_request: { Args: { p_email: string; p_student: string }; Returns: Json }
       student_course: { Args: { p_course: string }; Returns: Json }
       staff_today: { Args: { p_day?: string }; Returns: Json }
+      campus_check: { Args: { p_accuracy?: number; p_kind: string; p_lat?: number; p_lng?: number }; Returns: Json }
+      campus_check_for: { Args: { p_kind: string; p_person: string }; Returns: undefined }
+      dismissal_mark: { Args: { p_how: string | null; p_note?: string; p_section: string; p_students: string[] }; Returns: undefined }
+      extended_care_list: { Args: never; Returns: string }
+      extended_care_roster: { Args: never; Returns: Json }
+      extended_care_search: { Args: { p_query: string }; Returns: Json }
+      extended_care_set: { Args: { p_note?: string; p_student: string; p_weekdays: number[] }; Returns: undefined }
+      extended_care_set_staff: { Args: { p_on: boolean; p_user: string }; Returns: undefined }
+      extended_care_staff_list: { Args: never; Returns: Json }
+      my_campus_status: { Args: never; Returns: Json }
+      on_site_list: { Args: never; Returns: Json }
+      on_site_set_dismissal: { Args: { p_time: string }; Returns: undefined }
+      on_site_today: { Args: never; Returns: Json }
+      visitor_remove: { Args: { p_id: string }; Returns: undefined }
+      visitor_sign_in: { Args: { p_guests?: number; p_lunch_visit?: string; p_name?: string; p_purpose?: string }; Returns: string }
+      visitor_sign_out: { Args: { p_id: string }; Returns: undefined }
+      visitors_today: { Args: never; Returns: Json }
       student_record: { Args: { p_student?: string }; Returns: Json }
       sis_import: { Args: { p: Json }; Returns: Json }
       student_login_status: { Args: { p_student: string }; Returns: Json }

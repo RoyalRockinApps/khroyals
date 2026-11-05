@@ -1,7 +1,9 @@
 /**
- * Admin portal: a dashboard. What needs attention (accounts waiting for approval, family requests, questions to
+ * Admin portal: a dashboard. On top, On-Site Attendance for today (checkin.manage): who is at school now (staff,
+ * faculty, visitors and students, one bar with each group's count) and where the students are, opening the On-Site
+ * screen (/onsite). Then what needs attention (accounts waiting for approval, family requests, questions to
  * route, new feedback, absence reports to mark seen: a tile each with its count, opening where it's dealt with),
- * people by role (one bar of the whole, with each role's count beside its color), the portal's sections as tiles
+ * the portal's sections as tiles
  * (People, Students, Classes, Admins & roles, Activity log: each its own screen, app/admin/[section].tsx), the
  * latest activity, and the admin's tools in other apps. Only what this admin's permissions open, and the whole
  * portal sits behind authenticator-app verification (MfaGate); the database enforces the same rules.
@@ -11,25 +13,20 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { Stack, router, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  adminListPeople, adminListSections, listAudit, me, staffToday,
-  type Access, type AdminSection, type PeopleFilter, type StaffToday,
+  adminListPeople, adminListSections, listAudit, me, onSiteToday, staffToday,
+  type Access, type AdminSection, type OnSiteToday, type PeopleFilter, type StaffToday,
 } from '../../src/api/connect';
 import { ELSEWHERE, SECTIONS, actionLabel, personName } from '../../src/admin/sections';
 import { MfaGate } from '../../src/comms/MfaGate';
+import { OnSiteCard } from '../../src/onsite/OnSiteCard';
+import { onSiteTitle } from '../../src/onsite/labels';
 import { C, Card, Loading, P, s, useContentWidth } from '../../src/ui';
 
 type Icon = ComponentProps<typeof Ionicons>['name'];
 const AMBER = '#B45309';
 const GOOD = '#15803D';
 
-/** Each role's color in the people bar (validated as a set: dataviz palette, light surface). */
-const ROLES: { key: PeopleFilter | 'substitutes'; label: string; color: string }[] = [
-  { key: 'staff', label: 'Staff', color: '#2a78d6' },
-  { key: 'parents', label: 'Parents', color: '#eb6834' },
-  { key: 'family', label: 'Family', color: '#1baf7a' },
-  { key: 'students', label: 'Students', color: '#eda100' },
-  { key: 'substitutes', label: 'Substitutes', color: '#e87ba4' },
-];
+/** People counts for the section tiles' notes. */
 const COUNTED: PeopleFilter[] = ['all', 'pending', 'staff', 'parents', 'family', 'students', 'admins'];
 
 /** What needs attention, by the staff_today key that counts it and the permission that shows it. */
@@ -41,7 +38,9 @@ const NEEDS: { key: keyof StaffToday; perm: string; label: string; href: Href }[
   { key: 'absencesToSee', perm: 'checkin.manage', label: 'Absence reports to mark seen', href: '/forms/excused-absence' },
 ];
 
-type Dash = { today: StaffToday; people: Partial<Record<PeopleFilter, number>> | null; classes: AdminSection[] | null; activity: any[] | null };
+type Dash = {
+  today: StaffToday; onsite: OnSiteToday | null; people: Partial<Record<PeopleFilter, number>> | null; classes: AdminSection[] | null; activity: any[] | null;
+};
 
 /** "Just now", "5 min ago", "3 h ago", "2 d ago", then the date. */
 function ago(iso: string) {
@@ -92,41 +91,6 @@ function NeedTile({ value, label, href }: { value: number; label: string; href: 
   );
 }
 
-/** Everyone with an account, by role: one thin bar of the whole, and each role's count by its color (the bar's key). */
-function PeopleCard({ counts }: { counts: Partial<Record<PeopleFilter, number>> }) {
-  const n = (k: PeopleFilter) => counts[k] ?? 0;
-  const approved = Math.max(0, n('all') - n('pending'));
-  const known = n('staff') + n('parents') + n('family') + n('students');
-  const value = (k: (typeof ROLES)[number]['key']) => (k === 'substitutes' ? Math.max(0, approved - known) : n(k));
-  const parts = ROLES.map((r) => ({ ...r, value: value(r.key) })).filter((r) => r.value > 0 || r.key !== 'substitutes');
-  const shown = parts.filter((p) => p.value > 0);
-  return (
-    <Card style={{ gap: 12 }}>
-      <View style={[s.row, { alignItems: 'baseline', gap: 8 }]}>
-        <Text style={{ fontSize: 28, fontWeight: '700', color: C.ink }}>{approved.toLocaleString()}</Text>
-        <Text style={{ flex: 1, fontSize: 15, color: C.muted, fontWeight: '600' }}>{approved === 1 ? 'person on the app' : 'people on the app'}</Text>
-      </View>
-      {approved > 0 && (
-        <View accessible accessibilityLabel={`People by role: ${shown.map((p) => `${p.label} ${p.value}`).join(', ')}`}
-          style={{ flexDirection: 'row', height: 8, gap: 2 }}>
-          {shown.map((p) => <View key={p.key} style={{ flex: p.value, backgroundColor: p.color, borderRadius: 4 }} />)}
-        </View>
-      )}
-      <Grid min={150}>
-        {parts.map((p) => (
-          <Pressable key={p.key} onPress={() => router.push({ pathname: '/admin/[section]', params: { section: 'people', filter: p.key === 'substitutes' ? 'all' : p.key } })}
-            accessibilityRole="button" accessibilityLabel={`${p.label}: ${p.value}. Open`}
-            style={({ pressed }) => [s.row, { gap: 8, paddingVertical: 4 }, pressed && { opacity: 0.6 }]}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.color }} />
-            <Text style={{ flex: 1, color: C.ink, fontWeight: '600' }}>{p.label}</Text>
-            <Text style={{ color: C.ink, fontWeight: '800' }}>{p.value.toLocaleString()}</Text>
-          </Pressable>
-        ))}
-      </Grid>
-    </Card>
-  );
-}
-
 /** One of the portal's sections: its icon, name, what it's for, and a count where there is one. */
 function SectionTile({ icon, title, sub, note, href }: { icon: Icon; title: string; sub: string; note?: string; href: Href }) {
   return (
@@ -148,8 +112,9 @@ function Dashboard({ access }: { access: Access }) {
   const [showTools, setShowTools] = useState(false);
   const load = useCallback(async () => {
     const has = (x: string) => access.permissions.includes(x);
-    const [today, people, classes, activity] = await Promise.all([
+    const [today, onsite, people, classes, activity] = await Promise.all([
       staffToday().catch(() => ({} as StaffToday)),
+      has('checkin.manage') ? onSiteToday().catch(() => null) : null,
       has('people.view')
         ? Promise.all(COUNTED.map(async (f) => [f, (await adminListPeople({ filter: f, limit: 1 })).total] as const))
           .then((list) => Object.fromEntries(list)).catch(() => null)
@@ -157,7 +122,7 @@ function Dashboard({ access }: { access: Access }) {
       has('people.family') ? adminListSections().catch(() => null) : null,
       has('audit.view') ? listAudit(5).catch(() => null) : null,
     ]);
-    setD({ today, people, classes, activity });
+    setD({ today, onsite, people, classes, activity });
   }, [access]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -177,14 +142,16 @@ function Dashboard({ access }: { access: Access }) {
     <ScrollView style={s.screen} contentContainerStyle={s.pad} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
       <P muted>{[access.isDirector ? 'Director' : access.roleName ?? 'Custom permissions', me()?.email].filter(Boolean).join(' · ')}</P>
       {!d ? <Loading /> : (<>
+        {d.onsite && (<>
+          <Heading right={<Text onPress={() => router.push('/onsite')} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>See who ›</Text>}>
+            {onSiteTitle(d.onsite.day)}
+          </Heading>
+          <OnSiteCard t={d.onsite} onOpen={(group) => router.push({ pathname: '/onsite', params: { group } })} />
+        </>)}
+
         {needs.length > 0 && (<>
           <Heading>Needs attention</Heading>
           <Grid>{needs.map((x) => <NeedTile key={x.key} value={d.today[x.key] ?? 0} label={x.label} href={x.href} />)}</Grid>
-        </>)}
-
-        {d.people && (<>
-          <Heading>People</Heading>
-          <PeopleCard counts={d.people} />
         </>)}
 
         {sections.length > 0 && (<>
@@ -222,7 +189,7 @@ function Dashboard({ access }: { access: Access }) {
           }>Your tools in other apps</Heading>
           {(showTools || (!needs.length && !sections.length)) && (
             <Grid>{tools.map((t) => (
-              <Pressable key={t.perm} onPress={() => router.push(t.href)} accessibilityRole="button" accessibilityLabel={`${t.label}, in ${t.where}`}
+              <Pressable key={t.label} onPress={() => router.push(t.href)} accessibilityRole="button" accessibilityLabel={`${t.label}, in ${t.where}`}
                 style={({ pressed }) => [s.card, { gap: 4, paddingVertical: 12 }, pressed && { opacity: 0.8 }]}>
                 <Ionicons name={t.icon} size={20} color={C.primary} />
                 <Text numberOfLines={2} style={{ fontWeight: '700', color: C.ink, lineHeight: 20, minHeight: 40 }}>{t.label}</Text>

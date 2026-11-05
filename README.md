@@ -184,9 +184,10 @@ server-side (`admin_list_people`). Admin tools need a code
 from an authenticator app (free TOTP, enforced in the database; switch with
 `app.settings.require_admin_mfa`). The admin portal is the app's **Admin portal**
 screen: same on web (`npx expo export --platform web`, host the `dist/` folder),
-Android and iPhone. It opens on a dashboard: tiles for what needs attention (accounts
+Android and iPhone. It opens on a dashboard: **On-Site Attendance** for today on top
+(for the office: who is at school now, below), tiles for what needs attention (accounts
 waiting for approval, family requests, questions to route, new feedback, absence reports
-to mark seen), everyone on the app by role, its sections (People, Students, Classes,
+to mark seen), its sections (People, Students, Classes,
 Admins & roles, Activity log; each opens its own screen), recent activity, and the
 admin's tools in other apps. It holds people and access only. Admin tools that belong to an app live in that app:
 sending a notification on the bell page, routing questions in Ask the School, the
@@ -397,6 +398,24 @@ take roll for a teacher who's out, and *Check a student in or out* to record lat
 arrivals and early pickups (with a reason, and only to someone on the child's pickup
 list; parents and the class's teachers are notified). Field trip and Activities event
 check-out lists sit below the classes.
+
+**On-Site Attendance** (the Admin portal's top card, *On-Site Attendance - Thursday,
+November 5*; the office, `checkin.manage`). One bar of everyone at school right now, staff,
+faculty, visitors and students, with each group's count (of how many are expected), then
+where the students are: in class; after the dismissal time, at an activity, in extended
+care or **not sent home yet** (amber until it's zero); gone home; absent; not checked in.
+*See who* (or Classes → On-Site Attendance) lists the names: students by group with how each
+went home, teachers and staff with when they came and went (the office checks someone in or
+out when they can't), and the visitor desk (sign a visitor in with who they're seeing and
+how many are with them, sign them out; today's booked lunch visitors are a tap). The
+dismissal time is behind its gear. Teachers, staff and substitutes **check in** on their
+Planner when they get to school (only at school, by location, like the car line) and check
+out when they leave. Students are checked in by their teacher's roll, and sent home by the
+car line, the office's check-out, a check-out list, extended care, or their teacher: the
+class roll's **Going home** view (where it opens after dismissal) marks the rest Walked,
+Drove, Bus or Other, and parents are told. **Extended care** (Classes → Extended care): the
+office sets which students stay on which days and who its staff are (the gear); its staff
+open today's check-out list and release each child only to someone on their pickup list.
 
 **Event tickets** (Activities). An activity's coaches and directors tap *Sell tickets* on
 an event: kinds of ticket with prices and optional limits (Adult $10, Student $5, Under 5
