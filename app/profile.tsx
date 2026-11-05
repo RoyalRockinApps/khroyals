@@ -1,6 +1,6 @@
 /**
  * My profile: photo, name, and which notifications reach this person's phone
- * (overall categories, quiet hours, and a level per group).
+ * (overall categories, quiet hours, and a level per group). Sign out, and Delete my account at the bottom.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
@@ -15,6 +15,7 @@ import { EmergencyAlertsCard } from '../src/alerts/EmergencyAlertsCard';
 import { forgetCarPass } from '../src/carline/carPass';
 import { disableAutoCheckIn } from '../src/carline/autoCheckIn';
 import { MyVehicles } from '../src/carline/MyVehicles';
+import { DeleteAccount } from '../src/comms/DeleteAccount';
 import { disablePush, enablePush } from '../src/comms/push';
 import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../src/ui';
 import { TimeField } from '../src/forms/DateTimeField';
@@ -237,6 +238,7 @@ export default function Profile() {
       )}
 
       <Button kind="ghost" label="Sign out" onPress={() => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(() => router.replace('/connect'))} />
+      {live && <DeleteAccount person={person} onDone={() => router.replace('/connect')} />}
     </ScrollView>
   );
 }

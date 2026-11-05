@@ -2,9 +2,20 @@ import { replacePhoto, removeStoredPhoto } from './storage';
 /** profile: internal API implementation. Screens import the connect facade. */
 import { jsonObject, enumValue } from './validation';
 import { live, run, sb, rpc } from './client';
-import { current, session } from './session';
+import { current, session, signOutHere } from './session';
 import type { GroupPref, MySettings } from './types';
 import { DEFAULT_SETTINGS, toSettings } from './mappers';
+
+/**
+ * Delete your own account (`confirm` must be DELETE): the login, profile and what you posted; a student whose parents
+ * are linked loses only the login. Then signs out on this device. Directors are refused (they hand the role on first).
+ */
+export async function deleteMyAccount(confirm: string): Promise<'deleted' | 'login_removed'> {
+  if (!live) throw new Error('Accounts need the school server; this build is running on demo data.');
+  const result = (await rpc('delete_my_account', { p_confirm: confirm })) as 'deleted' | 'login_removed';
+  await signOutHere();
+  return result;
+}
 
 export async function updateMyName(first: string, last: string) {
   await rpc('update_my_profile', { p_first: first, p_last: last });

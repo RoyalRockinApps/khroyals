@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { errorText, hasSignIn, live, me, onAuthChange, session, signOut, updateMyName } from './api/connect';
 import { disableAutoCheckIn } from './carline/autoCheckIn';
 import { forgetCarPass } from './carline/carPass';
+import { DeleteAccount } from './comms/DeleteAccount';
 import { SignIn } from './comms/SignIn';
 import { disablePush } from './comms/push';
 import { gateFor, type Gate } from './gate';
@@ -172,6 +173,7 @@ function Waiting({ recheck }: { recheck: (refresh?: boolean) => void }) {
       )}
       <Button kind="ghost" label="Check again" onPress={() => recheck(true)} />
       <Button kind="ghost" label="Sign out" onPress={() => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(() => recheck())} />
+      <DeleteAccount person={person} onDone={() => recheck()} />
     </Card>
   );
 }

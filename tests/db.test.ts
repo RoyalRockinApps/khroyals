@@ -4489,6 +4489,51 @@ test('on-site attendance: staff check in at school, the office signs visitors in
     delete from notifications where data ? 'dismissal' or data ? 'checkoutListId' or data ? 'classAttendance'`);
 });
 
+test('delete my account: anyone deletes their own (type DELETE); a student with parents loses only the login; directors hand the role on first', async () => {
+  await asSuper();
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [kid, parent, ap] = await Promise.all(['u-s07', 'u-p08', 'u-ap'].map(uid));
+  assert.equal((await rows(`select 1 from guardians where student_id = '${kid}' and guardian_id = '${parent}'`)).length, 1);
+
+  // Directors can't; and it takes DELETE.
+  await as('u-admin', true);
+  await rejects(`select delete_my_account('DELETE')`, /director can't delete their account/);
+  await as('u-p08');
+  await rejects(`select delete_my_account('yes')`, /Type DELETE/);
+  await rejects(`select delete_my_account(null)`, /Type DELETE/);
+
+  // A student whose parents are linked: the login goes, the student stays; their parents are told.
+  await as('u-s07');
+  assert.equal((await one(`select delete_my_account(' delete ') as r`)).r, 'login_removed');
+  await asSuper();
+  assert.deepEqual(await one(`select managed, school_role from profiles where id = '${kid}'`), { managed: true, school_role: 'student' });
+  assert.equal((await rows(`select 1 from auth.users where id = '${kid}'`)).length, 0, 'no login');
+  assert.equal((await rows(`select 1 from guardians where student_id = '${kid}'`)).length, 1, 'still with their parents');
+  assert.match((await one(`select title from notifications where user_id = '${parent}' and data ? 'children' order by created_at desc limit 1`)).title,
+    /removed their login/);
+
+  // A parent: the login, the profile and what they wrote go; their child stays at school.
+  await db.exec(`insert into posts (group_id, author_id, kind, body) values (${id('g-announce')}, '${parent}', 'message', 'Mine');
+    insert into comments (post_id, author_id, body) select id, '${parent}', 'My reply' from posts where author_id = ${id('u-admin')} limit 1;`);
+  await as('u-p08');
+  assert.equal((await one(`select delete_my_account('DELETE') as r`)).r, 'deleted');
+  await asSuper();
+  assert.equal((await rows(`select 1 from profiles where id = '${parent}'`)).length, 0, 'profile gone');
+  assert.equal((await rows(`select 1 from auth.users where id = '${parent}'`)).length, 0, 'login gone');
+  assert.equal((await rows(`select 1 from posts where author_id = '${parent}' union all select 1 from comments where author_id = '${parent}'`)).length, 0);
+  assert.equal((await rows(`select 1 from profiles where id = '${kid}'`)).length, 1, 'the child stays');
+  const logged = await one(`select actor_id, detail from audit_log where action = 'user.deleted_self' and target_id = '${parent}'`);
+  assert.equal(logged.actor_id, null, 'their own account is gone');
+  assert.equal(logged.detail.role, 'parent');
+  assert.ok(logged.detail.name && !('email' in logged.detail), 'name and role, not their email');
+
+  // An admin (not a director) deletes theirs too.
+  await as('u-ap');
+  assert.equal((await one(`select delete_my_account('DELETE') as r`)).r, 'deleted');
+  await asSuper();
+  assert.equal((await rows(`select 1 from profiles where id = '${ap}'`)).length, 0);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

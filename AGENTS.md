@@ -64,6 +64,10 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   give it to a role or person). It refuses yourself, directors and children (remove them as students),
   and admins unless the caller also has `admins.manage`. It deletes their posts (anonymous ones too) and
   comments so nothing is left looking anonymous, and logs `user.deleted` with their name and email.
+  **Deleting your own account** (Apple requires it): My profile → Delete my account, also on the Waiting for approval
+  screen (`src/comms/DeleteAccount.tsx`, `delete_my_account`, typed DELETE). It deletes the same way and logs
+  `user.deleted_self` (name and role, not the email). A student whose parents are linked loses only the login, like
+  `student_login_remove` (their parents are told); directors are refused until they hand the role on. Keep it in the app.
 - **Car line:** parents announce with their location (`carline_announce`; the server
   checks the radius — never add a check-in path without it). All staff see the board
   (`carline_board`) with pickup numbers (`pickup_numbers`: staff + the child's parents

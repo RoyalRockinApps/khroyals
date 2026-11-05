@@ -104,7 +104,6 @@ feedback comes in.
 | Check the app on iPhone Duo | — | Not started | The inner display runs it in both orientations (iPhone Duo ignores the portrait lock), and the app resizes as it folds. Built for it but never seen: needs an iPhone Duo simulator (not in Xcode 27.0) or a device. |
 | Penetration testing | — | Not started | Must pass before Full release. Run on the integrated beta build: phone apps, admin web portal, database permissions and API functions, sign-in, and the FACTS connection. Fix and retest any findings before Phase 4. |
 | Switch on Google and Apple sign-in | Ben | Not started | Built and hidden until switched on: create the Google OAuth client and turn on the Apple and Google providers in Supabase ([DEVELOPING §5](DEVELOPING.md#google-and-apple-sign-in)). Then try both on an iPhone and Android, including an existing account (it should land in the same account) and Apple's Hide My Email. |
-| Account deletion in the app | Ben | Not started | Apple requires it for any app that lets people create accounts; App Store review rejects the app without it. None exists today. |
 | Beta plan | Ben | Not started | Who's in the beta, how testers send feedback (the Feedback app is built; give someone the IT role to triage), and what has to be true to go ahead with release. |
 
 ## Phase 4 — Full release
@@ -219,6 +218,7 @@ Working in the app and on the server today.
 | Admin portal | Classes | Class sections with their teacher and students, for Ask the Teacher and Assignments |
 | Notifications | Bell page | Inbox of everything sent to you, swipe to delete, clear all |
 | Admin portal | People and roles | Directors, custom roles, single permissions, authenticator-app code required |
+| Accounts | Delete my account | Anyone deletes their own account in My profile (or while waiting for approval) by typing DELETE: login, profile, posts and comments go; a student with parents in the app loses only the login; directors hand the role on first |
 | Accounts | Student logins | Parents (or the office) give a child their own login by adding their email; the child is emailed how to sign in and keeps their classes and links |
 | Photos | Photo gallery | Staff start albums by category, for everyone or staff only; everyone who can see an album adds photos to it, and browses and searches them by school year (Apps → Photos, Latest Photos on the Planner). Teachers, staff and admins remove any photo with a reason (school guidelines, not appropriate, no photo permission, wrong album, duplicate or blurry, or a note), and the person who added it is told |
 | Photos | Grade and event albums | Every grade K2–12th gets an album a week before each school year starts; only that grade's students, their parents and staff see it, and families keep it until their account is deleted or they (or the office) take it off. Volunteer and school calendar events can get an album when they're made |

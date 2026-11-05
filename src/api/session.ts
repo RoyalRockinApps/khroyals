@@ -62,6 +62,12 @@ export async function signOut() {
   accountId = null; clearSession();
 }
 
+/** Sign out on this device only, without asking the server (once the account is deleted there). */
+export async function signOutHere() {
+  if (live) await sb().auth.signOut({ scope: 'local' }).catch(() => {});
+  accountId = null; clearSession();
+}
+
 export const onAuthChange = (cb: () => void) => {
   if (!live) return () => {};
   const { data } = sb().auth.onAuthStateChange((event, auth) => {

@@ -200,7 +200,11 @@ back.
 photo (private `avatars` bucket, signed URLs; staff with *people.roles* can remove
 one), name, and push settings — group posts, Marketplace, Volunteering, quiet
 hours, and a level per group. School-wide announcements always push. Settings only
-filter pushes (`app.wants_push`); the in-app inbox still lists everything.
+filter pushes (`app.wants_push`); the in-app inbox still lists everything. At the bottom
+(and on the Waiting for approval screen), **Delete my account**: type DELETE and the
+login, profile, posts, comments, sign-ups and settings go for good; children stay with
+the school. A student whose parents use the app loses only the login (their parents are
+told and can give one again). Directors hand the role on first.
 
 **Android Auto:** the car line on the car's screen — each child's status and an
 "I'm here" button (`modules/car-line`, using a per-phone car pass that can only do

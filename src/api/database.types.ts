@@ -4645,6 +4645,7 @@ export type Database = {
       student_login_request: { Args: { p_email: string; p_student: string }; Returns: Json }
       student_course: { Args: { p_course: string }; Returns: Json }
       staff_today: { Args: { p_day?: string }; Returns: Json }
+      delete_my_account: { Args: { p_confirm: string }; Returns: string }
       campus_check: { Args: { p_accuracy?: number; p_kind: string; p_lat?: number; p_lng?: number }; Returns: Json }
       campus_check_for: { Args: { p_kind: string; p_person: string }; Returns: undefined }
       dismissal_mark: { Args: { p_how: string | null; p_note?: string; p_section: string; p_students: string[] }; Returns: undefined }
