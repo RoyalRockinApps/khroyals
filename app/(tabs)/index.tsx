@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ComponentProps } from 'react';
-import { AppState, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect, useNavigation, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -17,8 +17,8 @@ import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
 import { useStaffView } from '../../src/staffView';
 import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
 import { TodaySection } from '../../src/info/TodaySection';
+import { RoyalNewsCard } from '../../src/news/RoyalNewsCard';
 import { ArticleCard } from '../../src/site/Blocks';
-import { SCHOOL } from '../../src/school';
 import { C, Card, FONT_STYLE, H, Loading, P, s, useLoad } from '../../src/ui';
 import { dateRange } from '../../src/site/calendar';
 
@@ -29,7 +29,7 @@ import { dateRange } from '../../src/site/calendar';
  * sign-ups and car line hours. Teachers and staff (on the Staff view) and substitutes first get Checking in at school
  * (src/onsite/CheckInCard.tsx), then Needs you today: what's
  * waiting on them across the apps (staff_today), each opening its screen. Then the school calendar's next two weeks, the school's newsletter
- * (Royal News) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
+ * (Royal News; its card is an A/B test, src/news/RoyalNewsCard.tsx, counted as seen once it scrolls into view) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
  * in Ask the School.)
  */
 export default function Home() {
@@ -45,6 +45,7 @@ export default function Home() {
   const photos = useLatestPhotos(person);
   const needs = useNeedsYou(person);
   const staffView = useStaffView(person);
+  const news = useSeenOnScroll();
   const events = data?.cal.events;
   const plans = useMemo(() => events
     ? twoWeeks(today).map((d) => planDay(d, today, events, info, person?.schoolRole === 'student' ? [person.grade] : [], dress))
@@ -64,7 +65,9 @@ export default function Home() {
   const next = nextTwoWeeks(events, today);
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 22 }]}>
+    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 22 }]} scrollEventThrottle={250}
+      onLayout={(e) => news.viewed(e.nativeEvent.layout.height)}
+      onScroll={(e) => news.viewed(e.nativeEvent.contentOffset.y + e.nativeEvent.layoutMeasurement.height)}>
       <Text style={{ fontSize: 28, ...FONT_STYLE.heading, color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
 
       {(staffView || isSubstitute(person)) && <CheckInCard />}
@@ -89,17 +92,9 @@ export default function Home() {
         <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => router.navigate('/calendar')}>Full calendar ›</Text>
       </View>
 
-      <Card onPress={() => (SCHOOL.newsUrl ? Linking.openURL(SCHOOL.newsUrl) : router.navigate('/royal-news'))}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${C.primary}1A`, alignItems: 'center', justifyContent: 'center' }}>
-          <Ionicons name="mail-open-outline" size={22} color={C.primary} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{SCHOOL.newsName}</Text>
-          <P muted>The school newsletter, sent to families by email. Read this week's and past issues.</P>
-        </View>
-        <Ionicons name={SCHOOL.newsUrl ? 'open-outline' : 'chevron-forward'} size={18} color={C.muted} />
-      </Card>
+      <View onLayout={(e) => news.placed(e.nativeEvent.layout.y)}>
+        <RoyalNewsCard visible={news.seen} />
+      </View>
 
       {photos.length > 0 && (
         <View style={{ gap: 8 }}>
@@ -169,6 +164,21 @@ function NeedsYou({ rows }: { rows: NeedRow[] }) {
       })}
     </Card>
   );
+}
+
+/**
+ * Whether a card on the Planner has come into view (its top plus a bit is above the bottom of the screen): `placed`
+ * gets its position in the page, `viewed` how far down the screen reaches. Once seen, it stays seen.
+ */
+function useSeenOnScroll() {
+  const at = useRef<number | null>(null), bottom = useRef(0);
+  const [seen, setSeen] = useState(false);
+  const check = () => { if (at.current != null && bottom.current >= at.current + 60) setSeen(true); };
+  return {
+    seen,
+    placed: (y: number) => { at.current = y; check(); },
+    viewed: (y: number) => { if (y > bottom.current) { bottom.current = y; check(); } },
+  };
 }
 
 /** The time, updated every minute (for the greeting, and the date at midnight). */

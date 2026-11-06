@@ -25,6 +25,7 @@ export {
   checkoutMyStudents, saveCheckoutList, checkoutListForEvent, deleteCheckoutList, releaseStudent, unreleaseStudent,
 } from './checkin';
 export { myClassAttendance, attendanceOverview, classRoll, markAttendance } from './attendance';
+export { myVariant, logExperiment, experimentsList, experimentResults, setExperiment, type ExperimentSummary, type ExperimentResults } from './experiments';
 export {
   myCampusStatus, campusCheck, campusCheckFor, onSiteToday, onSiteList, setDismissalTime, visitorsToday, signInVisitor, signOutVisitor,
   removeVisitor, markGoneHome, extendedCareRoster, extendedCareSearch, setExtendedCare, extendedCareStaff, setExtendedCareStaff, extendedCareList,

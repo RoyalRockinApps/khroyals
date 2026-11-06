@@ -4534,6 +4534,79 @@ test('delete my account: anyone deletes their own (type DELETE); a student with 
   assert.equal((await rows(`select 1 from profiles where id = '${ap}'`)).length, 0);
 });
 
+test('A/B tests: everyone but students gets one version, always the same; the app counts views, opens and reads; push.send sees counts only', async () => {
+  await asSuper();
+  const key = 'royal_news_card';
+  assert.deepEqual(await one(`select active, variants from experiments where key = '${key}'`), { active: false, variants: ['a', 'b'] });
+
+  // Not running: nobody's in it, and nothing is recorded.
+  await as('u-p01');
+  assert.deepEqual((await one(`select my_experiments() as e`)).e, {});
+  await one(`select experiment_log('${key}', 'seen', 'issue-1')`);
+  await rejects(`select experiment_log('${key}', 'clicked', 'issue-1')`, /Unknown event/);
+  await rejects(`select experiment_set('${key}', true)`, /permission/);
+  await rejects(`select experiment_results('${key}')`, /permission/);
+  await as('u-admin');
+  await rejects(`select experiment_set('${key}', true)`, /MFA_REQUIRED/);
+  await as('u-admin', true);
+  await one(`select experiment_set('${key}', true)`);
+
+  // Running: a version each, the same every time; students aren't in it.
+  await asSuper();
+  const split = await rows<{ legacy: string; variant: string | null }>(`select p.id::text as legacy, app.experiment_variant('${key}', p.id) as variant
+    from profiles p where p.school_role in ('parent', 'teacher', 'staff', 'admin') and not p.managed`);
+  const a = split.find((x) => x.variant === 'a'), b = split.find((x) => x.variant === 'b');
+  assert.ok(a && b, 'both versions are in use');
+  assert.equal(split.filter((x) => !x.variant).length, 0, 'every adult is in it');
+  assert.equal((await one(`select app.experiment_variant('${key}', ${id('u-s01')}) as v`)).v, null, 'students are left out');
+  await as('u-p01');
+  const mine = (await one(`select my_experiments() as e`)).e[key];
+  assert.ok(['a', 'b'].includes(mine));
+  assert.equal((await one(`select my_experiments() as e`)).e[key], mine, 'the same version every time');
+  await as('u-s01');
+  assert.deepEqual((await one(`select my_experiments() as e`)).e, {});
+  await one(`select experiment_log('${key}', 'seen', 'issue-1')`);
+
+  // Saw, opened, read: once each; an open without a view doesn't count.
+  const log = async (who: string, event: string, subject: string) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${who}', false), set_config('request.jwt.claims', json_build_object('sub', '${who}', 'aal', 'aal1')::text, false); set role authenticated;`);
+    await one(`select experiment_log('${key}', '${event}', '${subject}')`);
+  };
+  for (const e of ['seen', 'seen', 'opened', 'finished']) await log(a!.legacy, e, 'issue-1');
+  await log(a!.legacy, 'seen', 'issue-2');
+  await log(b!.legacy, 'seen', 'issue-1');
+  await log(b!.legacy, 'opened', 'issue-9');   // never saw issue-9
+  await as('u-admin', true);
+  let r = (await one(`select experiment_results('${key}') as r`)).r;
+  const v = (x: string) => r.variants.find((y: any) => y.variant === x);
+  assert.deepEqual([v('a').seen, v('a').opened, v('a').finished, v('a').people], [2, 1, 1, 1]);
+  assert.deepEqual([v('b').seen, v('b').opened, v('b').finished, v('b').people], [1, 0, 0, 1]);
+  assert.equal(r.subjects, 2);
+  assert.equal((await one(`select experiments_list() as l`)).l.find((x: any) => x.key === key).people, 2);
+
+  // People read only their own rows.
+  await asSuper();
+  await db.exec(`select set_config('request.jwt.claim.sub', '${a!.legacy}', false), set_config('request.jwt.claims', json_build_object('sub', '${a!.legacy}', 'aal', 'aal1')::text, false); set role authenticated;`);
+  assert.ok((await rows(`select user_id from experiment_events`)).every((x: any) => x.user_id === a!.legacy));
+  assert.equal((await rows(`select 1 from experiment_events`)).length, 4);
+
+  // Stopping keeps the counts; starting over clears them.
+  await as('u-admin', true);
+  await one(`select experiment_set('${key}', false)`);
+  await as('u-p01');
+  assert.deepEqual((await one(`select my_experiments() as e`)).e, {});
+  await as('u-admin', true);
+  assert.equal((await one(`select experiment_results('${key}') as r`)).r.variants[0].seen + (await one(`select experiment_results('${key}') as r`)).r.variants[1].seen, 3);
+  await one(`select experiment_set('${key}', true, true)`);
+  r = (await one(`select experiment_results('${key}') as r`)).r;
+  assert.equal(r.active, true);
+  assert.equal(r.variants.reduce((n: number, x: any) => n + x.seen, 0), 0, 'started over');
+  await one(`select experiment_set('${key}', false)`);
+  await asSuper();
+  assert.ok((await rows(`select 1 from audit_log where action in ('experiment.started', 'experiment.stopped')`)).length >= 3);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

@@ -4646,6 +4646,11 @@ export type Database = {
       student_course: { Args: { p_course: string }; Returns: Json }
       staff_today: { Args: { p_day?: string }; Returns: Json }
       delete_my_account: { Args: { p_confirm: string }; Returns: string }
+      experiment_log: { Args: { p_event: string; p_key: string; p_subject?: string }; Returns: undefined }
+      experiment_results: { Args: { p_key: string }; Returns: Json }
+      experiment_set: { Args: { p_active: boolean; p_key: string; p_reset?: boolean }; Returns: undefined }
+      experiments_list: { Args: never; Returns: Json }
+      my_experiments: { Args: never; Returns: Json }
       campus_check: { Args: { p_accuracy?: number; p_kind: string; p_lat?: number; p_lng?: number }; Returns: Json }
       campus_check_for: { Args: { p_kind: string; p_person: string }; Returns: undefined }
       dismissal_mark: { Args: { p_how: string | null; p_note?: string; p_section: string; p_students: string[] }; Returns: undefined }

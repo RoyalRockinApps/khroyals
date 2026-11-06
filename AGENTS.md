@@ -315,6 +315,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   Function fetches only `app.smore.com/n/…` pages, parses them with `smore.ts` and saves through
   `newsletter_save` as the caller) or delete one. The parser drops Smore's tracking links (they can
   carry the reader's email); keep it that way.
+- **A/B tests** (`experiments`, `experiment_events`; `src/experiments/registry.ts`, `app/experiments`, Royal News's gear): a
+  test is a row in `experiments` and an entry in the registry (what each version looks like; `tests/experiments.test.ts`
+  compares). The server picks each person's version (`app.experiment_variant`: a hash of the test and their id, so it's the
+  same on every device; never students, pending accounts or children without a login) and records saw / opened / read to
+  the end once per person and subject (`experiment_log`); opens and reads count only after a view. Screens ask
+  `myVariant(key)` and log with `logExperiment` (version A whenever it's null). `push.send` holders start, stop and read
+  the results (`experiment_results`: counts per version only, never names); `src/experiments/stats.ts` says whether a
+  difference is real (95%, at least 30 views each). The first is the Planner's Royal News card (`src/news/RoyalNewsCard.tsx`).
+  **Never test safety, consent or legal wording** (alerts, pickup and check-out, forms, sign-in).
 - **Photo gallery** (`gallery_albums`, `gallery_photos`, private `gallery` bucket): every approved
   account sees it (Family and students too; never Substitutes); any staff member starts albums
   (`gallery_album_save`). **Everyone who can see an album adds photos** (`gallery_add_photos`,

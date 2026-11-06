@@ -1,7 +1,8 @@
 /**
  * Royal News: every issue of the school's emailed newsletter, newest first, by month. Staff who
  * send notifications (push.send) write or paste an issue (app/royal-news/write.tsx), add one from
- * its Smore link, or remove one; anyone with the power who hasn't verified does so right here.
+ * its Smore link, or remove one; anyone with the power who hasn't verified does so right here. Their header gear opens the
+ * Planner card's A/B test (app/experiments/[key].tsx).
  */
 import { useCallback, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, View } from 'react-native';
@@ -10,7 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   deleteNewsletter, errorText, importNewsletter, issueDate, listNewsletters, live, myAccess, session, type NewsletterSummary,
 } from '../../src/api/connect';
-import { needsCodeFor } from '../../src/comms/mfa';
+import { ManageButton } from '../../src/ManageButton';
+import { mayHave, needsCodeFor } from '../../src/comms/mfa';
 import { VerifyCard } from '../../src/comms/MfaGate';
 import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
 import { SCHOOL } from '../../src/school';
@@ -24,6 +26,7 @@ const confirm = (title: string, msg: string, onYes: () => void) => {
 export default function RoyalNews() {
   const [issues, setIssues] = useState<NewsletterSummary[] | null>(null);
   const [canAdd, setCanAdd] = useState(false);
+  const [canTest, setCanTest] = useState(false);   // may run the Planner card's A/B test (after verifying, if need be)
   // Holds Send notifications but hasn't verified with the authenticator app in this session.
   const [needsCode, setNeedsCode] = useState(false);
   const [link, setLink] = useState('');
@@ -37,6 +40,7 @@ export default function RoyalNews() {
         const can = !!a?.permissions.includes('push.send');
         setCanAdd(can);
         setNeedsCode(needsCodeFor(a, 'push.send'));
+        setCanTest(mayHave(a, 'push.send'));
       }
     } catch (e) {
       Alert.alert(`${SCHOOL.newsName} didn't load`, errorText(e));
@@ -60,7 +64,10 @@ export default function RoyalNews() {
   const remove = (n: NewsletterSummary) => confirm('Delete this issue?', `${n.title}, ${issueDate(n.sentOn)}`,
     () => deleteNewsletter(n.id).then(load).catch((e) => Alert.alert('Not deleted', errorText(e))));
 
-  const header = <Stack.Screen options={{ title: SCHOOL.newsName }} />;
+  const header = <Stack.Screen options={{ title: SCHOOL.newsName, headerRight: () => (
+    <ManageButton app={SCHOOL.newsName} items={canTest ? [{ icon: 'flask-outline', label: 'A/B test: the Planner card',
+      sub: `Which ${SCHOOL.newsName} card gets more people reading`, href: { pathname: '/experiments/[key]', params: { key: 'royal_news_card' } } }] : []} />
+  ) }} />;
   if (!issues) return <>{header}<Loading /></>;
   const byMonth = new Map<string, NewsletterSummary[]>();
   issues.forEach((n) => byMonth.set(month(n.sentOn), [...(byMonth.get(month(n.sentOn)) ?? []), n]));

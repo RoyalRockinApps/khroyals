@@ -1,8 +1,8 @@
-/** One Royal News issue: its sections, items (with bold text and links) and pictures. */
+/** One Royal News issue: its sections, items (with bold text and links) and pictures. Reaching the end counts for the Planner card's A/B test. */
 import { useEffect, useState } from 'react';
 import { Image, Linking, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { getNewsletter, isWritten, issueDate, live, myAccess, type NewsBlock, type Span } from '../../src/api/connect';
+import { getNewsletter, isWritten, issueDate, live, logExperiment, myAccess, type NewsBlock, type Span } from '../../src/api/connect';
 import { ReadingScroll } from '../../src/Reading';
 import { C, Card, Loading, P, s, useLoad } from '../../src/ui';
 import { SCHOOL } from '../../src/school';
@@ -19,7 +19,8 @@ export default function Issue() {
   if (!issue) return <View style={[s.screen, s.pad]}>{header}<P>That issue isn't here anymore.</P></View>;
 
   return (
-    <ReadingScroll doneLabel={`Back to ${SCHOOL.newsName}`} doneHref="/royal-news" contentStyle={{ gap: 12 }}>
+    <ReadingScroll doneLabel={`Back to ${SCHOOL.newsName}`} doneHref="/royal-news" contentStyle={{ gap: 12 }}
+      onEnd={() => { logExperiment('royal_news_card', 'finished', issue.id); }}>
       {header}
       <View style={{ alignItems: 'center', gap: 2, paddingVertical: 6 }}>
         <Text style={{ fontSize: 28, fontWeight: '900', color: C.primary }} accessibilityRole="header">{issue.title}</Text>

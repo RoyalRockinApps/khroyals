@@ -499,6 +499,18 @@ calendar format (`supabase/functions/calendar-feed/ics.ts`). **Students' names n
 event in Calendar and My calendar also has *Add to calendar* (Google, Outlook, Yahoo, and Apple for school
 and activity events, `calendar_event`), a one-time copy (`src/calendar/addTo.ts`).
 
+**A/B tests** (Royal News → the gear, or Admin portal → *A/B tests*; staff with Send
+notifications). Different groups of people see different versions of one part of the app,
+and the counts show which works better. The first is the **Royal News card on the
+Planner**: A is the card as it was (opens the archive); B shows the latest issue's title
+and date with a New badge in its first week (opens that issue). Everyone with an account
+except students is in a running test, about half on each version, and keeps the same
+version on every device. The app counts, once per person and issue, who saw the card
+(scrolled into view), opened it and read the issue to the end. The results screen shows
+each version's counts and rates and says whether one is really ahead (95% sure, with at
+least 30 people per version) or it could still be chance. Start, stop or start over
+there; it starts switched off. Counts only, never names.
+
 **Feedback** (Apps → Feedback, or My profile → *Send feedback*). Anyone with an approved
 account reports a problem or suggests an idea: what it is, where in the app, a title and
 details; the phone and app version go along (`feedback_send`). They see their own reports
