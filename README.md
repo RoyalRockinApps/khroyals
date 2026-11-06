@@ -499,6 +499,15 @@ calendar format (`supabase/functions/calendar-feed/ics.ts`). **Students' names n
 event in Calendar and My calendar also has *Add to calendar* (Google, Outlook, Yahoo, and Apple for school
 and activity events, `calendar_event`), a one-time copy (`src/calendar/addTo.ts`).
 
+**App usage** (Admin portal → App usage; admins with the Activity log). Which apps
+people actually open and how often, over the last 7, 30 or 90 days: people active
+today, this week and this month; active people each day; each role's active people
+out of its accounts; and every app's people, opens and days used per person (with
+people by role), most used first, then the apps nobody opened. The app counts each
+person once per app per day, with each time they went into it; students are counted
+too, as totals. Counts only: nobody's own use is shown, and records are erased after
+400 days.
+
 **A/B tests** (Royal News → the gear, or Admin portal → *A/B tests*; staff with Send
 notifications). Different groups of people see different versions of one part of the app,
 and the counts show which works better. The first is the **Royal News card on the

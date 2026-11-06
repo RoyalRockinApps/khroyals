@@ -4651,6 +4651,8 @@ export type Database = {
       experiment_set: { Args: { p_active: boolean; p_key: string; p_reset?: boolean }; Returns: undefined }
       experiments_list: { Args: never; Returns: Json }
       my_experiments: { Args: never; Returns: Json }
+      usage_log: { Args: { p_app: string }; Returns: undefined }
+      usage_summary: { Args: { p_days?: number }; Returns: Json }
       campus_check: { Args: { p_accuracy?: number; p_kind: string; p_lat?: number; p_lng?: number }; Returns: Json }
       campus_check_for: { Args: { p_kind: string; p_person: string }; Returns: undefined }
       dismissal_mark: { Args: { p_how: string | null; p_note?: string; p_section: string; p_students: string[] }; Returns: undefined }

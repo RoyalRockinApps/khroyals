@@ -4607,6 +4607,63 @@ test('A/B tests: everyone but students gets one version, always the same; the ap
   assert.ok((await rows(`select 1 from audit_log where action in ('experiment.started', 'experiment.stopped')`)).length >= 3);
 });
 
+test('app usage: approved accounts count each app once a day with how many opens; audit.view sees totals only', async () => {
+  await asSuper();
+  await db.exec('delete from app_usage');
+  const log = async (who: string, appKey: string, times = 1) => { await as(who); for (let i = 0; i < times; i++) await one(`select usage_log('${appKey}')`); };
+
+  await log('u-p01', 'carline', 3);
+  await log('u-p01', 'planner');
+  await log('u-p02', 'carline');
+  await log('u-s01', 'student', 2);
+  await log('u-eng', 'classes');
+  await as('u-p01');
+  await rejects(`select usage_log('Car Line')`, /Unknown app/);
+  await rejects(`select usage_log(null)`, /Unknown app/);
+  assert.deepEqual((await rows(`select app, opens from app_usage order by app`)), [{ app: 'carline', opens: 3 }, { app: 'planner', opens: 1 }],
+    'people read only their own rows');
+
+  // Accounts waiting for approval aren't counted.
+  await asSuper();
+  await db.exec(`update profiles set school_role = null where id = ${id('u-p03')}`);
+  await log('u-p03', 'planner');
+  await asSuper();
+  assert.equal((await rows(`select 1 from app_usage where user_id = ${id('u-p03')}`)).length, 0);
+  await db.exec(`update profiles set school_role = 'parent' where id = ${id('u-p03')};
+    insert into app_usage (day, user_id, app, role, opens) values (app.school_today() - 10, ${id('u-p02')}, 'volunteer', 'parent', 2),
+      (app.school_today() - 500, ${id('u-p02')}, 'volunteer', 'parent', 1)`);
+
+  // Totals for the office.
+  await as('u-p01');
+  await rejects(`select usage_summary(30)`, /permission/);
+  await as('u-admin');
+  await rejects(`select usage_summary(30)`, /MFA_REQUIRED/);
+  await as('u-admin', true);
+  const week = (await one(`select usage_summary(7) as s`)).s;
+  assert.equal(week.days, 7);
+  assert.deepEqual([week.active.today, week.active.week, week.active.month, week.active.period], [4, 4, 4, 4], 'the one older use is someone also here today');
+  assert.deepEqual(week.byRole, { parent: 2, student: 1, teacher: 1 });
+  const app = (k: string, s = week) => s.apps.find((a: any) => a.app === k);
+  assert.deepEqual([app('carline').people, app('carline').opens, app('carline').days, app('carline').roles], [2, 4, 2, { parent: 2 }]);
+  assert.equal(week.apps[0].app, 'carline', 'most used first');
+  assert.equal(app('volunteer'), undefined, '10 days ago is outside the week');
+  assert.equal(week.daily.length, 7);
+  assert.equal(week.daily[6].people, 4, 'today');
+  assert.ok(week.accounts.parent >= 2 && week.accounts.student >= 1);
+  const month = (await one(`select usage_summary(30) as s`)).s;
+  assert.equal(app('volunteer', month).people, 1);
+  assert.equal((await one(`select usage_summary(9999) as s`)).s.days, 400, 'at most 400 days');
+
+  // Opens stop at 500 a day; rows older than 400 days are erased.
+  await asSuper();
+  await db.exec(`update app_usage set opens = 500 where user_id = ${id('u-p01')} and app = 'planner'`);
+  await log('u-p01', 'planner');
+  await asSuper();
+  assert.equal((await one(`select opens from app_usage where user_id = ${id('u-p01')} and app = 'planner'`)).opens, 500);
+  assert.equal((await one(`select app.purge_app_usage() as n`)).n, 1);
+  await db.exec('delete from app_usage');
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

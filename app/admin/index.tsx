@@ -13,7 +13,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { Stack, router, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  adminListPeople, adminListSections, listAudit, me, onSiteToday, staffToday,
+  adminListPeople, adminListSections, listAudit, me, onSiteToday, staffToday, usageSummary,
   type Access, type AdminSection, type OnSiteToday, type PeopleFilter, type StaffToday,
 } from '../../src/api/connect';
 import { ELSEWHERE, SECTIONS, actionLabel, personName } from '../../src/admin/sections';
@@ -40,6 +40,8 @@ const NEEDS: { key: keyof StaffToday; perm: string; label: string; href: Href }[
 
 type Dash = {
   today: StaffToday; onsite: OnSiteToday | null; people: Partial<Record<PeopleFilter, number>> | null; classes: AdminSection[] | null; activity: any[] | null;
+  /** People who used the app in the last 7 days, for the App usage tile. */
+  week: number | null;
 };
 
 /** "Just now", "5 min ago", "3 h ago", "2 d ago", then the date. */
@@ -112,7 +114,7 @@ function Dashboard({ access }: { access: Access }) {
   const [showTools, setShowTools] = useState(false);
   const load = useCallback(async () => {
     const has = (x: string) => access.permissions.includes(x);
-    const [today, onsite, people, classes, activity] = await Promise.all([
+    const [today, onsite, people, classes, activity, week] = await Promise.all([
       staffToday().catch(() => ({} as StaffToday)),
       has('checkin.manage') ? onSiteToday().catch(() => null) : null,
       has('people.view')
@@ -121,8 +123,9 @@ function Dashboard({ access }: { access: Access }) {
         : null,
       has('people.family') ? adminListSections().catch(() => null) : null,
       has('audit.view') ? listAudit(5).catch(() => null) : null,
+      has('audit.view') ? usageSummary(7).then((u) => u?.active.week ?? null).catch(() => null) : null,
     ]);
-    setD({ today, onsite, people, classes, activity });
+    setD({ today, onsite, people, classes, activity, week });
   }, [access]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -135,6 +138,7 @@ function Dashboard({ access }: { access: Access }) {
     if (key === 'students' && p?.students != null) return count(p.students, 'student');
     if (key === 'classes' && d?.classes) return count(d.classes.length, 'class', 'classes');
     if (key === 'admins' && p?.admins != null) return `${p.admins.toLocaleString()} with admin access`;
+    if (key === 'usage' && d?.week != null) return `${count(d.week, 'person', 'people')} this week`;
     return undefined;
   };
 

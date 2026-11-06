@@ -324,6 +324,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   the results (`experiment_results`: counts per version only, never names); `src/experiments/stats.ts` says whether a
   difference is real (95%, at least 30 views each). The first is the Planner's Royal News card (`src/news/RoyalNewsCard.tsx`).
   **Never test safety, consent or legal wording** (alerts, pickup and check-out, forms, sign-in).
+- **App usage** (`app_usage`; Admin portal → App usage, `src/admin/UsageSection.tsx`; `audit.view`): the root layout's
+  `UsageTracker` reports each app someone moves into, and coming back after 5 minutes away (`usage_log`: one row per
+  approved person, app and day, counting opens; students too). `usage_summary` gives counts only (active people, by role,
+  per day, per app); never what one person opened. Rows are erased after 400 days (`app.purge_app_usage`). **Every new
+  top-level route goes in an app** in `src/usage/apps.ts` (`tests/usage.test.ts` fails otherwise).
 - **Photo gallery** (`gallery_albums`, `gallery_photos`, private `gallery` bucket): every approved
   account sees it (Family and students too; never Substitutes); any staff member starts albums
   (`gallery_album_save`). **Everyone who can see an album adds photos** (`gallery_add_photos`,

@@ -435,12 +435,13 @@ export const ELSEWHERE: { perm: string; label: string; where: string; href: Href
 ];
 
 /** The portal's own sections: the dashboard's tiles, each its own screen (/admin/<key>), for the permission that opens it. */
-export const SECTIONS: { key: 'people' | 'students' | 'classes' | 'admins' | 'activity'; title: string; sub: string; icon: Icon; perm: string }[] = [
+export const SECTIONS: { key: 'people' | 'students' | 'classes' | 'admins' | 'activity' | 'usage'; title: string; sub: string; icon: Icon; perm: string }[] = [
   { key: 'people', title: 'People', sub: 'Approve accounts, roles and families', icon: 'people-outline', perm: 'people.view' },
   { key: 'students', title: 'Students', sub: 'Children, family requests, logins', icon: 'school-outline', perm: 'people.family' },
   { key: 'classes', title: 'Classes', sub: 'Sections, teachers and students', icon: 'easel-outline', perm: 'people.family' },
   { key: 'admins', title: 'Admins & roles', sub: 'Directors, roles and permissions', icon: 'key-outline', perm: 'admins.manage' },
   { key: 'activity', title: 'Activity log', sub: 'Who changed what, and when', icon: 'time-outline', perm: 'audit.view' },
+  { key: 'usage', title: 'App usage', sub: 'Which apps people use, and how often', icon: 'stats-chart-outline', perm: 'audit.view' },
 ];
 
 /** People, with the admin roles its cards name (`filter`: start on one, like Needs approval). */

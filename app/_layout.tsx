@@ -11,6 +11,7 @@ import { offerDndAccess } from '../src/alerts/loudness';
 import { syncCarPass } from '../src/carline/carPass';
 import { enablePush, handleNotificationTaps } from '../src/comms/push';
 import { edgeLayout } from '../src/ScreenEdge';
+import { UsageTracker } from '../src/usage/UsageTracker';
 import { useFonts } from 'expo-font';
 import { FONT_FILES } from '@school/fonts';
 import { C, FONT_STYLE } from '../src/ui';
@@ -82,6 +83,8 @@ export default function Root() {
           active critical alert covers the app until they answer it. */}
       <LocationConsent />
       <AlertTakeover />
+      {/* Which apps people open, for the Admin portal's App usage (counts only). */}
+      <UsageTracker />
       {(!open || leaving) && <AccountGate gate={leaving ?? gate} recheck={recheck} linking={path === '/auth'}
         leaving={!!leaving} onGone={() => setLeaving(null)} />}
     </View>
