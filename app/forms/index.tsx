@@ -10,6 +10,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { errorText, isSchoolStaff, myForms, sentForms, type MyForm, type Person, type SentForm } from '../../src/api/connect';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
+import { Folder } from '../../src/schoolForms/Folder';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
 import { OFFICE_FORMS, type OfficeForm } from '../../src/schoolForms/office';
 import { GREEN, Progress, dueText } from '../../src/schoolForms/parts';
@@ -18,7 +19,7 @@ import { SectionTitle } from '../../src/volunteer/parts';
 import { Button, C, Card, Loading, P, s } from '../../src/ui';
 
 export default function Forms() {
-  return <FormsGate title="Forms">{(me) => <List me={me} />}</FormsGate>;
+  return <FormsGate title="Folder">{(me) => <List me={me} />}</FormsGate>;
 }
 
 /** Every child signed for, or the form is closed. */
@@ -72,10 +73,9 @@ function List({ me }: { me: Person }) {
   const done = data.mine.filter(finished);
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
+      <Folder forms={todo} />
       <SectionTitle icon="mail-outline" title="Forms to Send to Office" />
       {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.parents} />)}
-      <SectionTitle icon="create-outline" title={todo.length ? `To sign (${todo.length})` : 'From the school'} />
-      {todo.map((f) => <FormRow key={f.id} f={f} />)}
       {todo.length === 0 && (
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="checkmark-done-circle" size={28} color={GREEN} />

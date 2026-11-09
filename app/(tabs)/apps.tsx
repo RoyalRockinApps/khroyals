@@ -41,7 +41,7 @@ const ALL_APPS: App[] = [
   { label: 'Activities', image: TILES.activities, icon: 'basketball', color: SCHOOL.theme.dark, href: '/activities' },
   { label: 'Marketplace', image: TILES.market, icon: 'pricetags', color: SCHOOL.theme.dark, href: '/market', family: false, student: false, inStaffView: false },
   { label: 'Volunteer', image: TILES.volunteer, icon: 'hand-left', color: SCHOOL.theme.dark, href: '/volunteer', student: false, inStaffView: false },
-  { label: 'Forms', icon: 'document-text', color: SCHOOL.theme.dark, href: '/forms', family: false, student: false, staffVersion: true },
+  { label: 'Folder', icon: 'folder-open', color: SCHOOL.theme.dark, href: '/forms', family: false, student: false, staffVersion: true },
   { label: 'Handbook', image: TILES.handbook, icon: 'book', color: SCHOOL.theme.dark, href: '/handbook', sub: true, inStaffView: false },
   { label: 'Ask the School', image: TILES.questions, icon: 'help-circle', color: SCHOOL.theme.dark, href: '/questions', family: false, student: false, staffVersion: true },
   { label: 'Ask the Teacher', image: TILES.teachers, icon: 'chatbubbles', color: SCHOOL.theme.dark, href: '/teachers', family: false, studentApp: true },
