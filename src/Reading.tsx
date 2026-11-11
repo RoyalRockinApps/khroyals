@@ -11,8 +11,10 @@ import { router, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { C, s } from './ui';
 
-export function ReadingScroll({ children, doneLabel = 'Done reading', doneHref = '/', contentStyle, onEnd }: {
+export function ReadingScroll({ children, doneLabel = 'Done reading', doneHref = '/', contentStyle, onEnd, background }: {
   children: ReactNode; doneLabel?: string; doneHref?: Href; contentStyle?: StyleProp<ViewStyle>; onEnd?: () => void;
+  /** The page's color, when it isn't the usual. */
+  background?: string;
 }) {
   const ref = useRef<ScrollView>(null);
   const [down, setDown] = useState(false);
@@ -22,7 +24,8 @@ export function ReadingScroll({ children, doneLabel = 'Done reading', doneHref =
   return (
     <View style={{ flex: 1 }}>
       {/* Room under the Done button for the floating Top button. */}
-      <ScrollView ref={ref} style={s.screen} contentContainerStyle={[s.pad, contentStyle, { paddingBottom: 80 }]} scrollEventThrottle={100}
+      <ScrollView ref={ref} style={[s.screen, background ? { backgroundColor: background } : null]}
+        contentContainerStyle={[s.pad, contentStyle, { paddingBottom: 80 }]} scrollEventThrottle={100}
         onScroll={(e) => {
           const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
           setDown(contentOffset.y > 500);

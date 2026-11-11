@@ -319,7 +319,9 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   shapes the text into blocks; `newsletter_write`, `source_url` = `app:<id>`, changeable later) or add one by pasting its Smore link (the `import-newsletter` Edge
   Function fetches only `app.smore.com/n/…` pages, parses them with `smore.ts` and saves through
   `newsletter_save` as the caller) or delete one. The parser drops Smore's tracking links (they can
-  carry the reader's email); keep it that way.
+  carry the reader's email); keep it that way. An issue reads like the school's Smore newsletter (`src/news/IssueView.tsx`:
+  a ruled white sheet, a brush-script masthead, red italic section headings, centered text); its page color and accent
+  are each school's `theme.newsletter`.
 - **A/B tests** (`experiments`, `experiment_events`; `src/experiments/registry.ts`, `app/experiments`, Royal News's gear): a
   test is a row in `experiments` and an entry in the registry (what each version looks like; `tests/experiments.test.ts`
   compares). The server picks each person's version (`app.experiment_variant`: a hash of the test and their id, so it's the

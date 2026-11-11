@@ -21,5 +21,6 @@ export const SCHOOL: School = {
     newsOverlay: 'rgba(0, 18, 77, 0.6)',
     fonts: null,
     uppercaseHeadings: false,
+    newsletter: { page: '#D6E7F5', accent: '#EE3B30' },
   },
 };

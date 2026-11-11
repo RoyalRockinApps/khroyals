@@ -39,5 +39,8 @@ export type School = {
     fonts: { heading: string; title: string } | null;
     /** Website headings in capitals (levels 1–2). */
     uppercaseHeadings: boolean;
+    /** A newsletter issue's look, like the school's Smore newsletter: the page behind the ruled sheet, and the color of
+     *  its masthead, date and section headings. */
+    newsletter: { page: string; accent: string };
   };
 };

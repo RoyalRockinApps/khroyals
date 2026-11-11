@@ -21,5 +21,6 @@ export const SCHOOL: School = {
     newsOverlay: 'rgba(34, 34, 34, 0.62)',
     fonts: { heading: 'Jost_700Bold', title: 'Jost_600SemiBold' },
     uppercaseHeadings: true,
+    newsletter: { page: '#F3E4E6', accent: '#B01C2E' },
   },
 };
