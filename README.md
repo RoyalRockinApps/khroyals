@@ -343,6 +343,16 @@ hours live in `app.settings` (`carline_latitude`, `carline_longitude`,
 E-Learning days on the school calendar are skipped. The zone starts at the school's
 street address; move it to the car line entrance.
 
+**Folder** (Main Page → Folder, the Forms app; parents). A bi-fold folder in the school's
+colors: the cover, with the school's shield and how many forms there are to sign, lifts
+from its right edge and swings open to the left. Inside, the papers are a stack, with the
+newsletter's latest issue (the one the Planner links to) always on top first, then the
+forms to sign; the papers behind peek out above it, with a count. Swipe sideways (or tap
+the arrows) to go through them, tap one to read or sign it, and swipe a form up (or tap
+Remove) to take it out of your folder after confirming. Signed, expired and removed forms
+leave the folder and wait under *Done & removed* for 30 days; a removed form still open
+can be put back. Removing only hides it for you: the school still sees whether it's signed.
+
 **Marketplace** (Apps → Marketplace). Parents and staff buy and sell uniforms and
 school-related items after accepting the Marketplace terms (text and version in
 `app.settings`: `market_terms`, `market_terms_version`; bump the version to ask

@@ -1,15 +1,21 @@
 /**
- * Forms: permission slips, releases and acknowledgments. Parents see the Forms to Send to Office (Excused Absence),
- * then the forms that went to their children, the ones still to sign first. In the Main Page's Staff view, faculty and
+ * Forms (the Folder on the Main Page): permission slips, releases and acknowledgments. Parents get their Folder
+ * (src/schoolForms/Folder.tsx): the newsletter's latest issue first, then the forms still to sign, as a stack of papers.
+ * Signed, expired and removed forms leave the folder and stay under Done & removed for 30 days (a removed one can be
+ * put back). Then the Forms to Send to Office (Excused Absence). In the Main Page's Staff view, faculty and
  * staff see what parents sent the office (their students' absences, or everyone's for the office) and the forms
  * they've sent, with how many have signed, and send new ones.
  */
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { errorText, isSchoolStaff, myForms, sentForms, type MyForm, type Person, type SentForm } from '../../src/api/connect';
-import { PAST_STYLE, PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
+import {
+  errorText, isSchoolStaff, listNewsletters, myForms, removeForm, sentForms, type MyForm, type NewsletterSummary, type Person, type SentForm,
+} from '../../src/api/connect';
+import { PAST_STYLE } from '../../src/calendar/PastToggle';
+import { schoolToday } from '../../src/calendar/past';
+import { pastForms } from '../../src/schoolForms/folderLists';
 import { Folder } from '../../src/schoolForms/Folder';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
 import { OFFICE_FORMS, type OfficeForm } from '../../src/schoolForms/office';
@@ -22,23 +28,28 @@ export default function Forms() {
   return <FormsGate title="Folder">{(me) => <List me={me} />}</FormsGate>;
 }
 
-/** Every child signed for, or the form is closed. */
-const finished = (f: MyForm) => f.status === 'closed' || f.children.every((c) => c.response);
-
 function List({ me }: { me: Person }) {
   const staffView = useStaffView(me);
-  const [data, setData] = useState<{ mine: MyForm[]; sent: SentForm[] } | null>(null);
+  const [data, setData] = useState<{ mine: MyForm[]; sent: SentForm[]; news: NewsletterSummary | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const showDone = usePastToggle();
+  const [showPast, setShowPast] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [mine, sent] = await Promise.all([staffView ? [] : myForms(), staffView ? sentForms() : []]);
-      setData({ mine, sent }); setError(null);
+      const [mine, sent, news] = await Promise.all([staffView ? [] : myForms(), staffView ? sentForms() : [],
+        staffView ? [] : listNewsletters().catch(() => [])]);
+      setData({ mine, sent, news: news[0] ?? null }); setError(null);
     } catch (e) {
       setError(errorText(e));
     }
   }, [staffView]);
+  const take = async (f: MyForm, removed: boolean) => {
+    // Out of view straight away; back if the school's server says no.
+    setData((d) => d && { ...d, mine: d.mine.map((x) => (x.id === f.id ? { ...x, removedAt: removed ? new Date().toISOString() : null } : x)) });
+    try { await removeForm(f.id, removed); } catch (e) { Alert.alert('Folder', errorText(e)); }
+    load();
+  };
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   if (error && !data) return <View style={[s.screen, s.pad]}><Card><P muted>{error}</P><Button label="Try again" onPress={load} /></Card></View>;
@@ -69,14 +80,24 @@ function List({ me }: { me: Person }) {
     );
   }
 
-  const todo = data.mine.filter((f) => !finished(f));
-  const done = data.mine.filter(finished);
+  const { inFolder, past } = pastForms(data.mine, schoolToday());
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.pad}>
-      <Folder forms={todo} />
+    <ScrollView style={s.screen} contentContainerStyle={s.pad} scrollEnabled={!dragging}>
+      <Folder news={data.news} forms={inFolder} onRemove={(f) => take(f, true)} onDragging={setDragging} />
+      <Pressable onPress={() => setShowPast(!showPast)} accessibilityRole="button" accessibilityState={{ expanded: showPast }}
+        style={({ pressed }) => [s.card, s.row, { gap: 10 }, pressed && { opacity: 0.85 }]}>
+        <Ionicons name="archive-outline" size={22} color={C.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>Done & removed ({past.length})</Text>
+          <Text style={{ color: C.muted }}>Signed, expired and removed forms from the last 30 days</Text>
+        </View>
+        <Ionicons name={showPast ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+      </Pressable>
+      {showPast && past.length === 0 && <P muted>Nothing from the last 30 days.</P>}
+      {showPast && past.map((x) => <PastRow key={x.form.id} x={x} onPutBack={() => take(x.form, false)} />)}
       <SectionTitle icon="mail-outline" title="Forms to Send to Office" />
       {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.parents} />)}
-      {todo.length === 0 && (
+      {inFolder.length === 0 && (
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="checkmark-done-circle" size={28} color={GREEN} />
           <View style={{ flex: 1 }}>
@@ -85,8 +106,6 @@ function List({ me }: { me: Person }) {
           </View>
         </Card>
       )}
-      <PastToggle count={done.length} shown={showDone.shown} onToggle={showDone.toggle} noun="signed forms" />
-      {showDone.shown && done.map((f) => <FormRow key={f.id} f={f} />)}
       {isSchoolStaff(me) && <P muted>To send a form, switch the Main Page to Staff.</P>}
     </ScrollView>
   );
@@ -109,18 +128,22 @@ function OfficeRow({ f, sub }: { f: OfficeForm; sub: string }) {
   );
 }
 
-/** A form for a parent: its title, due date, and each child's status. */
-function FormRow({ f }: { f: MyForm }) {
-  const open = !finished(f);
+/** A form out of the Folder: why (signed, expired or removed) and when, each child's status, and Put back for a removed one still open. */
+function PastRow({ x, onPutBack }: { x: ReturnType<typeof pastForms>['past'][number]; onPutBack: () => void }) {
+  const f = x.form;
+  const icon = x.why === 'signed' ? 'checkmark-circle' : x.why === 'removed' ? 'trash-outline' : 'time-outline';
+  const color = x.why === 'signed' ? GREEN : x.why === 'removed' ? C.danger : C.muted;
   return (
     <Pressable onPress={() => router.push(`/forms/${f.id}`)} accessibilityRole="button"
-      style={({ pressed }) => [s.card, { gap: 6 }, !open && PAST_STYLE, pressed && { opacity: 0.85 }]}>
+      style={({ pressed }) => [s.card, { gap: 6 }, PAST_STYLE, pressed && { opacity: 0.85 }]}>
       <View style={s.row}>
-        <Ionicons name={open ? 'create-outline' : 'checkmark-circle'} size={22} color={open ? C.accent : GREEN} />
+        <Ionicons name={icon} size={22} color={color} />
         <Text style={{ flex: 1, fontSize: 16, fontWeight: '800', color: C.ink }}>{f.title}</Text>
-        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        {x.canPutBack
+          ? <Text onPress={onPutBack} accessibilityRole="button" style={{ color: C.primary, fontWeight: '700' }}>Put back</Text>
+          : <Ionicons name="chevron-forward" size={18} color={C.muted} />}
       </View>
-      <Text style={{ color: C.muted }}>{[f.sentTo, dueText(f)].filter(Boolean).join(' · ')}</Text>
+      <Text style={{ color: C.muted }}>{[x.label, f.sentTo].filter(Boolean).join(' · ')}</Text>
       <View style={[s.row, { flexWrap: 'wrap', gap: 10 }]}>
         {f.children.map((c) => (
           <Text key={c.studentId} style={{ fontWeight: '700', color: c.response ? (c.response.agreed ? GREEN : C.danger) : C.accent }}>

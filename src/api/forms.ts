@@ -9,6 +9,12 @@ export async function myForms(): Promise<MyForm[]> {
   return (await rpc('my_forms')) as unknown as MyForm[];
 }
 
+/** A parent takes a form out of their Folder (or puts it back with `removed` false), for themselves only. */
+export async function removeForm(formId: string, removed = true) {
+  if (!live) throw new Error('Forms need the school server; this build is running on demo data.');
+  await rpc('form_remove', { p_form: formId, p_removed: removed });
+}
+
 /** For a sender: the forms they sent (every form, with Send forms), newest first. */
 export async function sentForms(): Promise<SentForm[]> {
   if (!live || !current) return [];

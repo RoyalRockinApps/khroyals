@@ -4664,6 +4664,31 @@ test('app usage: approved accounts count each app once a day with how many opens
   await db.exec('delete from app_usage');
 });
 
+test('the Folder: a parent takes a form out of their own folder and can put it back; the school still sees it unsigned', async () => {
+  await asSuper();
+  const form = (await one(`insert into forms (author_id, title, due_on, audience) values (${id('u-eng')}, 'Zoo trip', app.school_today() + 7, 'school') returning id`)).id;
+  await db.exec(`insert into form_recipients (form_id, student_id) values ('${form}', ${id('u-s01')})`);
+  const mine = async () => (await one(`select my_forms() as f`)).f.find((f: any) => f.id === form);
+
+  await as('u-p01');
+  assert.equal((await mine()).removedAt, null);
+  await one(`select form_remove('${form}')`);
+  assert.ok((await mine()).removedAt, 'out of their folder');
+  assert.equal((await rows(`select 1 from form_removals`)).length, 1, 'their own row');
+  await one(`select form_remove('${form}', false)`);
+  assert.equal((await mine()).removedAt, null, 'put back');
+  await one(`select form_remove('${form}')`);
+
+  // Someone the form didn't go to can't; others don't see the removal; the form is still unsigned for the school.
+  await as('u-p02');
+  await rejects(`select form_remove('${form}')`, /isn't in your folder/);
+  assert.equal((await rows(`select 1 from form_removals`)).length, 0);
+  await asSuper();
+  assert.equal((await rows(`select 1 from form_responses where form_id = '${form}'`)).length, 0);
+  await db.exec(`delete from forms where id = '${form}'`);
+  assert.equal((await rows(`select 1 from form_removals where form_id = '${form}'`)).length, 0, 'goes with the form');
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

@@ -244,6 +244,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   A form's fee (`forms.fee_cents`) is paid outside the app; senders record each child's payment
   (`form_record_payment`: amount, method, where it was handed in, date) and parents see their own.
   The methods are listed in both `src/schoolForms/payments.ts` and the database check.
+  **The Folder** (the Forms app's top for parents, `src/schoolForms/Folder.tsx`): a bi-fold folder in the school's colors
+  whose papers are a stack, the newsletter's latest issue always first. Signed, expired (past due or closed) and removed
+  forms leave it and stay under Done & removed for 30 days (`src/schoolForms/folderLists.ts`, `tests/folder.test.ts`).
+  A parent removes a form (swipe it up, or Remove, after confirming) for themselves only (`form_removals`, `form_remove`;
+  `my_forms` → `removedAt`) and can put it back; the school still sees whether it was signed.
 - **Car line vehicles** (`vehicles`, `carline_pickups.vehicle`): the types and colors are
   listed in both `src/carline/vehicles.ts` and the database checks, so change them together.
   A pickup stores a snapshot of the vehicle, so editing or deleting one never rewrites the line.

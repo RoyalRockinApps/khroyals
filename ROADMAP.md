@@ -218,7 +218,7 @@ Working in the app and on the server today.
 | Calendar | Subscribe and Add to calendar | Everyone subscribes once in Google, Outlook, Yahoo or Apple Calendar to a private, self-updating link (school calendar, own events, children's activities); single events add with one tap. No student names leave the app |
 | Everyone | Feedback | Anyone approved reports a problem or suggests an idea (where in the app, details, phone and app version) and sees the status and the team's reply; the IT role triages (status, priority, reply) and groups reports into student workshops |
 | Admin portal | Classes | Class sections with their teacher and students, for Ask the Teacher and Assignments |
-| Folder | Assigned documents | Main Page Folder opens with an animated cover; swipe paper documents and tap to read and sign full screen |
+| Folder | Assigned documents | A bi-fold folder in the school's colors that opens to the left; the newsletter's latest issue first, then the forms to sign, as a stack of papers; swipe through them, tap to read and sign, swipe up or Remove to take a form out; signed, expired and removed forms stay under Done & removed for 30 days |
 | Notifications | Bell page | Inbox of everything sent to you, swipe to delete, clear all |
 | Admin portal | People and roles | Directors, custom roles, single permissions, authenticator-app code required |
 | Accounts | Delete my account | Anyone deletes their own account in My profile (or while waiting for approval) by typing DELETE: login, profile, posts and comments go; a student with parents in the app loses only the login; directors hand the role on first |

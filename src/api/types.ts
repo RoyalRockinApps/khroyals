@@ -483,7 +483,11 @@ export type SchoolForm = {
   feeCents: number | null;
 };
 /** For a parent: a form and each of their children it went to. */
-export type MyForm = SchoolForm & { children: { studentId: string; name: string; response: FormSignature | null; payment: FormPayment | null }[] };
+export type MyForm = SchoolForm & {
+  children: { studentId: string; name: string; response: FormSignature | null; payment: FormPayment | null }[];
+  /** When this parent took it out of their Folder (it's back with null). */
+  removedAt?: string | null;
+};
 /** For a sender: a form they sent, with counts. */
 export type SentForm = SchoolForm & { students: number; agreed: number; declined: number; paid: number; collectedCents: number };
 /** For a sender: every student a form went to and their signature (or none yet). */

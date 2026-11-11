@@ -4646,6 +4646,7 @@ export type Database = {
       student_course: { Args: { p_course: string }; Returns: Json }
       staff_today: { Args: { p_day?: string }; Returns: Json }
       delete_my_account: { Args: { p_confirm: string }; Returns: string }
+      form_remove: { Args: { p_form: string; p_removed?: boolean }; Returns: undefined }
       experiment_log: { Args: { p_event: string; p_key: string; p_subject?: string }; Returns: undefined }
       experiment_results: { Args: { p_key: string }; Returns: Json }
       experiment_set: { Args: { p_active: boolean; p_key: string; p_reset?: boolean }; Returns: undefined }

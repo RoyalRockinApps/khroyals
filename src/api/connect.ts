@@ -48,7 +48,7 @@ export { myTeachers, teacherConversations, myClassStudents, teacherThread, teach
 export { listFeedback, sendFeedback, triageFeedback, listWorkshops, saveWorkshop, deleteWorkshop } from './feedback';
 export { myCalendar, studentEvents, savePersonalEvent, deletePersonalEvent, planStudentEvent } from './myCalendar';
 export { listAssignments, childAssignments, addAssignment, deleteAssignment, checkAssignment, mySections, subscribeAssignments } from './assignments';
-export { myForms, sentForms, formStatus, sendForm, signForm, remindForm, closeForm, recordPayment, clearPayment } from './forms';
+export { removeForm, myForms, sentForms, formStatus, sendForm, signForm, remindForm, closeForm, recordPayment, clearPayment } from './forms';
 export { adminListSections, adminSectionStudents, adminSaveSection, adminSectionMember, adminDeleteSection } from './classes';
 export { listAbsences, reportAbsence, cancelAbsence, markAbsenceSeen, type AbsenceReport } from './absences';
 export { lunchWindows, saveLunchWindow, deleteLunchWindow, lunchClosedDays, closeLunchDay, lunchRules, setLunchRules, lunchKids, lunchSlots, lunchAllergyNotes, bookLunchVisit, cancelLunchVisit, myLunchVisits, lunchVisitors, type LunchWindow, type LunchSlot, type LunchKid, type MyLunchVisit, type LunchVisitor } from './lunch';
