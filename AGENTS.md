@@ -359,6 +359,9 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   a removal stays (`removed_at`). A grade album's news goes only to its people. **Event albums**
   (`volunteer_event_id` / `calendar_event_id`, one per event): made with a Volunteer event or a school
   calendar event when its maker switches it on (`gallery_event_album`), for everyone.
+- **Hooks go above every early return** (`if (!data) return <Loading />`). A hook below one runs only once the data is
+  in, and React crashes the app when a screen's hook count changes (a Volunteer event's screen did). `tests/hooks.test.ts`
+  runs ESLint's rules-of-hooks over `app/` and `src/` (the lint script isn't clean, so it's the only lint rule tests enforce).
 - **Dates and times are picked, never typed.** Use `DateField` / `TimeField`
   (`src/forms/DateTimeField.tsx`): a calendar for dates, a time wheel for times, the
   browser's pickers on the web. Values are always `YYYY-MM-DD` and 24-hour `HH:MM`

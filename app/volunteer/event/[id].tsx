@@ -39,6 +39,9 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
   const [order, setOrder] = useState<string[] | null>(null);   // the opportunities' ids, while the leader puts them in order
   const showPast = usePastToggle();
   const bottomInset = useBottomInset();
+  // Volunteer Leaders and coaches add opportunities to any open event. A hook: keep it above the early returns below,
+  // or the screen has more hooks once it loads than while loading, and React crashes the app.
+  const lead = !!useCanPost(me);
 
   const [album, setAlbum] = useState<string | null>(null);
   const [office, setOffice] = useState(false);   // groups.manage: shows any event's check-in code
@@ -54,7 +57,6 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
   if (!e) return <View style={[s.screen, s.pad]}><Card><P muted>{"This event isn't available."}</P></Card></View>;
 
   const started = e.leadId === me.id;
-  const lead = !!useCanPost(me);   // Volunteer Leaders and coaches add opportunities to any open event
   const ofEvent = data.opportunities.filter((o) => o.eventId === e.id && o.status === 'open');
   const coming = inEventOrder(ofEvent.filter((o) => !isPast(o)));
   const past = ofEvent.filter(isPast);
