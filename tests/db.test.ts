@@ -4689,6 +4689,148 @@ test('the Folder: a parent takes a form out of their own folder and can put it b
   assert.equal((await rows(`select 1 from form_removals where form_id = '${form}'`)).length, 0, 'goes with the form');
 });
 
+test('the Folder: teachers post class bulletins and write notes to a family; only those parents read them', async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;   // in Jennifer's English 10 – Period 3; Rosa's daughter
+  const mine = async () => (await one(`select my_folder_notes() as n`)).n as any[];
+  const told = async () => (await rows(`select title from my_notifications() where data ? 'folderNoteId'`)).map((n) => n.title);
+
+  // Only a class's own teacher posts to it, and writes to its families; parents don't.
+  await as('u-sci');
+  await rejects(`select folder_bulletin_send(array['eng10-p3'], 'Field trip', 'Bring a lunch.')`, /classes you teach/);
+  await rejects(`select folder_bulletin_send(array['club-03'], 'Robots', 'Bring a laptop.')`, /Pick one of your classes/);
+  await rejects(`select folder_note_send('${ava}', '', 'Great week!')`, /students in your classes/);
+  await as('u-p01');
+  await rejects(`select folder_bulletin_send(array['eng10-p3'], 'Field trip', 'Bring a lunch.')`, /Teachers post/);
+  await as('u-eng');
+  await rejects(`select folder_bulletin_send(array[]::text[], 'Field trip', 'Bring a lunch.')`, /at least one/);
+  await rejects(`select folder_bulletin_send(array['eng10-p3'], ' ', 'Bring a lunch.')`, /title/);
+  await rejects(`select folder_note_send('${ava}', '', '   ')`, /Write what/);
+  const bulletin = (await one(`select folder_bulletin_send(array['eng10-p3'], 'Poetry week', 'Each student reads a poem on Friday.') as id`)).id;
+  const note = (await one(`select folder_note_send('${ava}', '', 'Ava led the discussion today.') as id`)).id;
+
+  // Rosa gets both and is told about each; Wei (another child in the class) only the bulletin; a family outside it nothing.
+  await as('u-p01');
+  assert.deepEqual((await mine()).map((n) => [n.kind, n.title, n.children, n.classes]),
+    [['note', '', ['Ava'], []], ['bulletin', 'Poetry week', ['Ava'], ['English 10 – Period 3']]]);
+  assert.deepEqual((await told()).sort(), ['✉️ A note about Ava', '📌 Poetry week']);
+  await as('u-p02');
+  assert.deepEqual((await mine()).map((n) => n.kind), ['bulletin']);
+  await rejects(`select folder_note_read('${note}')`, /isn't in your folder/);
+  assert.equal((await rows(`select 1 from folder_notes where id = '${note}'`)).length, 0, 'the note is hidden from other families');
+  await as('u-p07');
+  assert.deepEqual(await mine(), []);
+
+  // Rosa opens the note and takes the bulletin out of her own folder, then puts it back.
+  await as('u-p01');
+  await one(`select folder_note_read('${note}')`);
+  await one(`select folder_note_remove('${bulletin}')`);
+  let rosa = await mine();
+  assert.ok(rosa.find((n) => n.id === note).readAt, 'opened');
+  assert.ok(rosa.find((n) => n.id === bulletin).removedAt, 'out of her folder');
+  await one(`select folder_note_remove('${bulletin}', false)`);
+  rosa = await mine();
+  assert.equal(rosa.find((n) => n.id === bulletin).removedAt, null, 'put back');
+
+  // Jennifer sees who it went to and how many parents opened each; only she deletes, and it leaves every folder.
+  await as('u-eng');
+  const sent = (await one(`select sent_folder_notes() as n`)).n as any[];
+  assert.deepEqual(sent.map((n) => [n.kind, n.read]), [['note', 1], ['bulletin', 0]]);
+  assert.match(sent[0].to, /^Ava .+'s parents$/);
+  assert.equal(sent[1].to, 'English 10 – Period 3');
+  assert.ok(sent[1].parents >= 5, 'every parent in the class');
+  await as('u-sci');
+  await rejects(`select folder_note_delete('${note}')`, /isn't yours/);
+  await as('u-eng');
+  await one(`select folder_note_delete('${note}')`);
+  await as('u-p01');
+  assert.deepEqual((await mine()).map((n) => n.kind), ['bulletin']);
+  await asSuper();
+  await db.exec(`delete from folder_notes`);
+});
+
+test("doctor's notes: a parent attaches the official excuse to an absence; only the parents and the office open it", async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [ava, rosa, wei] = [await uid('u-s01'), await uid('u-p01'), await uid('u-p02')];
+  const put = (who: string, path: string) => `insert into storage.objects (bucket_id, name, owner) values ('absence-notes', '${path}', '${who}')`;
+  const files = async () => (await rows(`select name from storage.objects where bucket_id = 'absence-notes'`)).length;
+  const listed = async () => (await rows(`select doctor_note, doctor_note_at from absence_list(app.school_today(), 1)`))[0];
+
+  // Rosa uploads into her own folder only, then attaches it to her report; nobody else attaches to it.
+  await as('u-p01');
+  const report = (await one(`select * from absence_report('${ava}', 'absent', app.school_today(), null, null, 'sick', '')`)).id;
+  const path = `${rosa}/${report}/note.jpg`;
+  await rejects(`select absence_attach_note('${report}', '${path}')`, /Upload the doctor's note first/);
+  await rejects(put(rosa, `${wei}/${report}/note.jpg`), /row-level security/);
+  await db.exec(put(rosa, path));
+  await as('u-p02');
+  await rejects(`select absence_attach_note('${report}', '${path}')`, /isn't yours/);
+  await as('u-p01');
+  assert.equal((await one(`select absence_attach_note('${report}', '${path}') as old`)).old, null);
+  assert.equal((await listed()).doctor_note, path);
+
+  // The office (an administrator; u-ap is gone by now) is told and opens it; her teacher sees there is one but can't open the file; another family sees nothing.
+  await asSuper();
+  const office = (await rows(`select user_id from notifications where title like '🩺 Doctor''s note: Ava%'`)).map((n) => n.user_id);
+  assert.ok(office.includes(await uid('u-admin')), 'the office is told');
+  await as('u-admin', true);
+  assert.equal((await listed()).doctor_note, path);
+  assert.equal(await files(), 1);
+  await as('u-eng');
+  const teacher = await listed();
+  assert.equal(teacher.doctor_note, null);
+  assert.ok(teacher.doctor_note_at, 'teachers see that there is one');
+  assert.equal(await files(), 0);
+  await as('u-p02');
+  assert.equal(await files(), 0);
+
+  // Replacing it gives back the old file to remove; taking it off clears it.
+  await as('u-p01');
+  const pdf = `${rosa}/${report}/note.pdf`;
+  await db.exec(put(rosa, pdf));
+  assert.equal((await one(`select absence_attach_note('${report}', '${pdf}') as old`)).old, path);
+  assert.equal((await one(`select absence_attach_note('${report}', null) as old`)).old, pdf);
+  assert.equal((await listed()).doctor_note_at, null);
+  await asSuper();
+  await db.exec(`delete from absence_reports; delete from storage.objects where bucket_id = 'absence-notes'`);
+});
+
+test("notes to teachers: a parent writes to one of their child's teachers, who reads it; nobody else sees it", async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [ava, eng, sci] = [await uid('u-s01'), await uid('u-eng'), await uid('u-sci')];
+  const list = async () => (await one(`select parent_notes_list() as l`)).l as any[];
+
+  // Rosa picks from Ava's teachers only; Wei, who isn't Ava's parent, can't write about her.
+  await as('u-p01');
+  const kid = (await one(`select parent_note_teachers() as t`)).t.find((k: any) => k.studentId === ava);
+  const jen = kid.teachers.find((t: any) => t.id === eng);
+  assert.ok(jen.classes.includes('English 10 – Period 3'), JSON.stringify(kid));
+  assert.ok(!kid.teachers.some((t: any) => t.id === sci), 'not a teacher of hers');
+  await rejects(`select parent_note_send('${ava}', '${sci}', 'Hello')`, /one of your child's teachers/);
+  await rejects(`select parent_note_send('${ava}', '${eng}', '   ')`, /Write what/);
+  const note = (await one(`select parent_note_send('${ava}', '${eng}', 'Ava has a dentist visit Thursday morning.') as id`)).id;
+  await as('u-p02');
+  await rejects(`select parent_note_send('${ava}', '${eng}', 'Hello')`, /Only a child's parents/);
+  assert.deepEqual(await list(), []);
+  assert.equal((await rows(`select 1 from parent_notes`)).length, 0, 'hidden from other families');
+  await as('u-sci');
+  await rejects(`select parent_note_read('${note}')`, /isn't to you/);
+  assert.deepEqual(await list(), []);
+
+  // Jennifer is told and reads it; Rosa sees it was seen.
+  await asSuper();
+  assert.equal((await rows(`select 1 from notifications where user_id = '${eng}' and data->>'parentNoteId' = '${note}'`)).length, 1);
+  await as('u-eng');
+  assert.deepEqual((await list()).map((n) => [n.mine, n.body, n.readAt, n.classes]),
+    [[false, 'Ava has a dentist visit Thursday morning.', null, ['English 10 – Period 3']]]);
+  await one(`select parent_note_read('${note}')`);
+  await as('u-p01');
+  const [sent] = await list();
+  assert.equal(sent.mine, true);
+  assert.ok(sent.readAt, 'seen');
+  await asSuper();
+  await db.exec(`delete from parent_notes`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

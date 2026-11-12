@@ -169,14 +169,14 @@ Working in the app and on the server today.
 | Accounts | My children | Parents edit photo, bio, birthday, allergies, health notes; grades move up every July 1 |
 | Accounts | Family accounts | Grandparents and relatives get car line, Volunteer, Activities; kept out of groups, Marketplace, Student, Ask the School |
 | School site | Website content in-app | All 23 pages, 55 news posts, home page and videos imported from khroyals.com |
-| School site | News | News carousel and articles (Apps → News) |
+| School site | News | News articles (Apps → News) |
 | School site | Calendar | 2026–27 dates, "Show past events" toggle, group calendars |
 | School site | Share tab | QR code, share sheet and link to khroyals.com |
 | School site | Handbook | Page-by-page reader with search and highlighting, works signed out |
 | Royals Connect | Groups | Chat, Discussion Board, Announcements and Q&A styles, each action's "who can" set separately |
 | Royals Connect | Moderation | Lock, approval queues, slow mode, quiet hours, mutes, pinning, audit log |
 | Forms | Permission slips, releases and acknowledgments | Teachers send to their classes, coaches to their activities' sign-ups and the office to grades or the school; parents sign once per child (either parent counts), senders see who has signed and send reminders, and record fees paid |
-| Forms | Excused Absence (Forms to Send to Office) | Parents report absent, late or leaving early with a reason from the Forms app; the office and teachers are told, see it on the roll and under Sent to the office, and the office marks it seen |
+| Forms | Excused Absence (Forms to Send to Office) | Parents report absent, late or leaving early with a reason from the Forms app; the office and teachers are told, see it on the roll and under Sent to the office, and the office marks it seen; parents attach a doctor's note (photo or PDF) that only they and the office open |
 | Families | Lunch visits | Parents and linked family book a lunch time with their child after reading the allergy notes and rules; the office sets times, capacity and closed days; staff see who's coming |
 | Admin portal | App usage | Which apps people open and how often (7, 30 or 90 days): active people today, this week and this month, by role and per day, and every app's people, opens and days used; counts only |
 | Royal News | A/B tests | Two versions of the Planner's Royal News button, about half of people on each; counts who saw, opened and read to the end, and says when one is really ahead; started and stopped by staff with Send notifications. Built to reuse for other tests |
@@ -218,7 +218,9 @@ Working in the app and on the server today.
 | Calendar | Subscribe and Add to calendar | Everyone subscribes once in Google, Outlook, Yahoo or Apple Calendar to a private, self-updating link (school calendar, own events, children's activities); single events add with one tap. No student names leave the app |
 | Everyone | Feedback | Anyone approved reports a problem or suggests an idea (where in the app, details, phone and app version) and sees the status and the team's reply; the IT role triages (status, priority, reply) and groups reports into student workshops |
 | Admin portal | Classes | Class sections with their teacher and students, for Ask the Teacher and Assignments |
-| Folder | Assigned documents | A bi-fold folder in the school's colors that opens to the left; the newsletter's latest issue first, then the forms to sign, as a stack of papers; swipe through them, tap to read and sign, swipe up or Remove to take a form out; signed, expired and removed forms stay under Done & removed for 30 days |
+| Folder | Assigned documents | A bi-fold folder in the school's colors at the top of the Main Page, closed until tapped; it opens to the left over a blurred page and closes with a tap outside; the newsletter's latest issue first, then teachers' notes and class bulletins, then the forms to sign, as a stack of papers; swipe through them, tap to read and sign, swipe up or Remove to take one out; signed, expired and removed papers stay under Done & removed for 30 days |
+| Folder | Class bulletins and teacher notes | Teachers post bulletins to their classes and write notes to one student's parents, from Classes; they land in those parents' Folders, and teachers see how many have read each |
+| Folder | Notes to teachers | The open Class Folder's + writes a note to one of the child's teachers (or opens Excused Absence); the teacher reads it under From parents, the parent sees Seen, and Reply answers into the Folder |
 | Notifications | Bell page | Inbox of everything sent to you, swipe to delete, clear all |
 | Admin portal | People and roles | Directors, custom roles, single permissions, authenticator-app code required |
 | Accounts | Delete my account | Anyone deletes their own account in My profile (or while waiting for approval) by typing DELETE: login, profile, posts and comments go; a student with parents in the app loses only the login; directors hand the role on first |

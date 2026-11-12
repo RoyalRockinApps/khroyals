@@ -15466,6 +15466,383 @@ grant execute on function public.form_remove(uuid, boolean) to authenticated, se
 
 insert into app.applied_migrations (name) values ('20261111000072_folder_removals.sql') on conflict do nothing;
 
+-- ===== 20261112000073_folder_notes.sql =====
+-- Class bulletins and teachers' notes, in parents' Folders. A teacher posts a bulletin to class sections they lead
+-- (forms.send holders to any section), or writes a note to one student's parents (a teacher of one of the student's
+-- sections, app.teaches). Only those students' parents (guardians, never Family accounts) read them, and the author;
+-- each parent is told once. A parent's opening one marks it read for them, and they take it out of their own Folder
+-- (folder_note_remove) or put it back. The author sees how many parents have read it, and deletes it.
+
+create table public.folder_notes (
+  id         uuid primary key default gen_random_uuid(),
+  author_id  uuid not null references public.profiles (id) on delete cascade,
+  kind       text not null check (kind in ('bulletin', 'note')),
+  student_id uuid references public.profiles (id) on delete cascade,   -- a note: the child it's about
+  title      text not null default '' check (char_length(title) <= 120),
+  body       text not null check (char_length(body) between 1 and 4000),
+  created_at timestamptz not null default now(),
+  check ((kind = 'note') = (student_id is not null))
+);
+create index on public.folder_notes (student_id);
+create index on public.folder_notes (author_id, created_at desc);
+
+/** A bulletin's classes. */
+create table public.folder_note_sections (
+  note_id    uuid not null references public.folder_notes (id) on delete cascade,
+  section_id text not null references public.rosters (id) on delete cascade,
+  primary key (note_id, section_id)
+);
+create index on public.folder_note_sections (section_id);
+
+/** Each parent's own: when they opened it, and when they took it out of their Folder. */
+create table public.folder_note_readers (
+  note_id    uuid not null references public.folder_notes (id) on delete cascade,
+  user_id    uuid not null references public.profiles (id) on delete cascade,
+  read_at    timestamptz,
+  removed_at timestamptz,
+  primary key (note_id, user_id)
+);
+create index on public.folder_note_readers (user_id);
+
+/** The students a bulletin or note is for: a note's child, or the students in a bulletin's classes now. */
+create function app.folder_note_students(n uuid) returns setof uuid
+language sql stable security definer set search_path = public as $$
+  select student_id from folder_notes where id = n and student_id is not null
+  union
+  select m.profile_id from folder_note_sections s
+    join rosters r on r.id = s.section_id and r.kind = 'section'
+    join roster_members m on m.roster_id = r.id
+    join profiles p on p.id = m.profile_id and p.school_role = 'student'
+  where s.note_id = n
+$$;
+
+/** The parents it goes to (never Family accounts). */
+create function app.folder_note_parents(n uuid) returns setof uuid
+language sql stable security definer set search_path = public as $$
+  select distinct g.guardian_id from guardians g
+  where g.student_id in (select app.folder_note_students(n)) and not app.is_family(g.guardian_id)
+$$;
+
+/** Whether this person is one of its parents. */
+create function app.gets_folder_note(n uuid, u uuid default auth.uid()) returns boolean
+language sql stable security definer set search_path = public as $$
+  select u in (select app.folder_note_parents(n))
+$$;
+
+alter table public.folder_notes enable row level security;
+alter table public.folder_note_sections enable row level security;
+alter table public.folder_note_readers enable row level security;
+create policy "its author and its parents" on public.folder_notes for select to authenticated
+  using (author_id = auth.uid() or app.gets_folder_note(id));
+create policy "its author and its parents" on public.folder_note_sections for select to authenticated
+  using (exists (select 1 from folder_notes n where n.id = note_id and (n.author_id = auth.uid() or app.gets_folder_note(n.id))));
+create policy "their own, and the author" on public.folder_note_readers for select to authenticated
+  using (user_id = auth.uid() or exists (select 1 from folder_notes n where n.id = note_id and n.author_id = auth.uid()));
+grant select on public.folder_notes, public.folder_note_sections, public.folder_note_readers to authenticated;
+revoke insert, update, delete on public.folder_notes, public.folder_note_sections, public.folder_note_readers from anon, authenticated;
+grant all on public.folder_notes, public.folder_note_sections, public.folder_note_readers to service_role;
+
+create function app.folder_note_clean(p_title text, p_body text, need_title boolean) returns text[]
+language plpgsql immutable as $$
+declare t text := trim(coalesce(p_title, '')); b text := trim(coalesce(p_body, ''));
+begin
+  if need_title and t = '' then raise exception 'Give the bulletin a title.'; end if;
+  if char_length(t) > 120 then raise exception 'Keep the title to 120 characters.'; end if;
+  if b = '' then raise exception 'Write what you want to say.'; end if;
+  if char_length(b) > 4000 then raise exception 'Keep it to 4,000 characters.'; end if;
+  return array[t, b];
+end $$;
+
+/** A teacher posts a bulletin to class sections they lead; every parent of their students is told once. */
+create function public.folder_bulletin_send(p_sections text[], p_title text, p_body text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare n uuid; sec text; clean text[]; u uuid; names text;
+begin
+  if not app.is_staff() then raise exception 'Teachers post class bulletins.' using errcode = '42501'; end if;
+  if coalesce(cardinality(p_sections), 0) = 0 then raise exception 'Pick at least one of your classes.'; end if;
+  foreach sec in array p_sections loop
+    if not exists (select 1 from rosters where id = sec and kind = 'section') then raise exception 'Pick one of your classes.'; end if;
+    if not exists (select 1 from rosters where id = sec and lead_id = auth.uid()) and not app.has_permission('forms.send') then
+      raise exception 'You can post bulletins to the classes you teach.' using errcode = '42501';
+    end if;
+  end loop;
+  clean := app.folder_note_clean(p_title, p_body, true);
+  insert into folder_notes (author_id, kind, title, body) values (auth.uid(), 'bulletin', clean[1], clean[2]) returning id into n;
+  insert into folder_note_sections (note_id, section_id) select distinct n, x from unnest(p_sections) x;
+  if not exists (select 1 from app.folder_note_students(n)) then raise exception 'There are no students in those classes yet.'; end if;
+  select string_agg(name, ', ' order by name) into names from rosters where id = any (p_sections);
+  for u in select app.folder_note_parents(n) loop
+    if u <> auth.uid() then
+      perform app.notify_user(u, '📌 ' || clean[1], 'Class bulletin from ' || app.checkin_name(auth.uid()) || ' · ' || names,
+        jsonb_build_object('folderNoteId', n));
+    end if;
+  end loop;
+  return n;
+end $$;
+
+/** A teacher writes a note to one of their students' parents; each parent is told (the note itself stays in the app). */
+create function public.folder_note_send(p_student uuid, p_title text, p_body text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare n uuid; clean text[]; u uuid; child text;
+begin
+  if not app.is_staff() or not app.teaches(auth.uid(), p_student) then
+    raise exception 'You can write to the parents of students in your classes.' using errcode = '42501';
+  end if;
+  clean := app.folder_note_clean(p_title, p_body, false);
+  insert into folder_notes (author_id, kind, student_id, title, body) values (auth.uid(), 'note', p_student, clean[1], clean[2]) returning id into n;
+  if not exists (select 1 from app.folder_note_parents(n)) then raise exception 'No parent is linked to this student yet.'; end if;
+  select first_name into child from profiles where id = p_student;
+  for u in select app.folder_note_parents(n) loop
+    if u <> auth.uid() then
+      perform app.notify_user(u, '✉️ A note about ' || child, 'From ' || app.checkin_name(auth.uid()) || coalesce(': ' || nullif(clean[1], ''), ''),
+        jsonb_build_object('folderNoteId', n));
+    end if;
+  end loop;
+  return n;
+end $$;
+
+/** The author deletes their bulletin or note: it leaves every Folder. */
+create function public.folder_note_delete(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from folder_notes where id = p_id and author_id = auth.uid();
+  if not found then raise exception 'That isn''t yours to delete.' using errcode = '42501'; end if;
+end $$;
+
+/** A parent opened it. */
+create function public.folder_note_read(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not app.gets_folder_note(p_id) then raise exception 'That isn''t in your folder.' using errcode = '42501'; end if;
+  insert into folder_note_readers (note_id, user_id, read_at) values (p_id, auth.uid(), now())
+  on conflict (note_id, user_id) do update set read_at = coalesce(folder_note_readers.read_at, excluded.read_at);
+end $$;
+
+/** A parent takes it out of their own Folder (or puts it back with p_removed false). */
+create function public.folder_note_remove(p_id uuid, p_removed boolean default true) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not app.gets_folder_note(p_id) then raise exception 'That isn''t in your folder.' using errcode = '42501'; end if;
+  insert into folder_note_readers (note_id, user_id, removed_at) values (p_id, auth.uid(), case when p_removed then now() end)
+  on conflict (note_id, user_id) do update set removed_at = excluded.removed_at;
+end $$;
+
+/** Who wrote it, as parents see it. */
+create function app.folder_note_from(n public.folder_notes) returns text
+language sql stable security definer set search_path = public as $$ select app.checkin_name(n.author_id) $$;
+
+/**
+ * A parent's bulletins and notes from the last 60 days, newest first: what it says, who wrote it, which of their
+ * children it's for (and a bulletin's classes), and when they opened it or took it out of their Folder.
+ */
+create function public.my_folder_notes() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', n.id, 'kind', n.kind, 'title', n.title, 'body', n.body, 'from', app.folder_note_from(n), 'sentAt', n.created_at,
+    'children', (select coalesce(jsonb_agg(p.first_name order by p.first_name), '[]') from profiles p
+                 where p.id in (select app.folder_note_students(n.id)) and app.is_guardian_of(p.id)),
+    'classes', (select coalesce(jsonb_agg(r.name order by r.name), '[]') from folder_note_sections s join rosters r on r.id = s.section_id
+                where s.note_id = n.id),
+    'readAt', x.read_at, 'removedAt', x.removed_at) order by n.created_at desc), '[]')
+  from folder_notes n left join folder_note_readers x on x.note_id = n.id and x.user_id = auth.uid()
+  where n.created_at > now() - interval '60 days' and app.gets_folder_note(n.id)
+$$;
+
+/** A teacher's own bulletins and notes from the last 90 days, newest first, with how many parents have opened each. */
+create function public.sent_folder_notes() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', n.id, 'kind', n.kind, 'title', n.title, 'body', n.body, 'sentAt', n.created_at,
+    'to', case when n.kind = 'note' then (select trim(first_name || ' ' || last_name) from profiles where id = n.student_id) || '''s parents'
+               else (select string_agg(r.name, ', ' order by r.name) from folder_note_sections s join rosters r on r.id = s.section_id where s.note_id = n.id) end,
+    'parents', (select count(*) from app.folder_note_parents(n.id)),
+    'read', (select count(*) from folder_note_readers x where x.note_id = n.id and x.read_at is not null
+               and x.user_id in (select app.folder_note_parents(n.id)))) order by n.created_at desc), '[]')
+  from folder_notes n
+  where n.author_id = auth.uid() and n.created_at > now() - interval '90 days'
+$$;
+
+revoke all on function public.folder_bulletin_send(text[], text, text), public.folder_note_send(uuid, text, text),
+  public.folder_note_delete(uuid), public.folder_note_read(uuid), public.folder_note_remove(uuid, boolean),
+  public.my_folder_notes(), public.sent_folder_notes() from public, anon;
+grant execute on function public.folder_bulletin_send(text[], text, text), public.folder_note_send(uuid, text, text),
+  public.folder_note_delete(uuid), public.folder_note_read(uuid), public.folder_note_remove(uuid, boolean),
+  public.my_folder_notes(), public.sent_folder_notes() to authenticated, service_role;
+
+insert into app.applied_migrations (name) values ('20261112000073_folder_notes.sql') on conflict do nothing;
+
+-- ===== 20261112000074_doctor_notes.sql =====
+-- A doctor's note for a reported absence: the child's parents attach a photo or PDF of the official excuse (when
+-- they report it, or up to 30 days after the absence ends), replace it or take it off. The file is in the private
+-- 'absence-notes' bucket under the uploader's own folder. It's medical, so only the child's parents and the office
+-- (checkin.manage) open it; the child's teachers only see that there is one. The office is told when one arrives.
+
+alter table public.absence_reports
+  add column doctor_note    text,          -- 'absence-notes' bucket: "<uploader id>/<report id>/<file>"
+  add column doctor_note_at timestamptz;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('absence-notes', 'absence-notes', false, 10485760, array['image/jpeg', 'image/png', 'application/pdf'])
+on conflict (id) do nothing;
+
+/** Who opens a child's doctor's notes: their parents (never Family accounts) and the office. */
+create function app.reads_doctor_notes(s uuid, u uuid default auth.uid()) returns boolean
+language sql stable security definer set search_path = public as $$
+  select (app.is_guardian_of(s, u) and not app.is_family(u)) or app.has_permission('checkin.manage', u)
+$$;
+
+create policy "absence notes: parents upload to their own folder" on storage.objects for insert to authenticated
+  with check (bucket_id = 'absence-notes' and (storage.foldername(name))[1] = auth.uid()::text and not app.is_family());
+create policy "absence notes: the child's parents and the office" on storage.objects for select to authenticated
+  using (bucket_id = 'absence-notes' and ((storage.foldername(name))[1] = auth.uid()::text
+    or exists (select 1 from public.absence_reports r where r.doctor_note = objects.name and app.reads_doctor_notes(r.student_id))));
+create policy "absence notes: the uploader removes theirs" on storage.objects for delete to authenticated
+  using (bucket_id = 'absence-notes' and (storage.foldername(name))[1] = auth.uid()::text);
+
+/**
+ * A parent attaches a doctor's note they uploaded to a report (or takes it off with null). Returns the file it
+ * replaces, if any, so the app can remove it. The office is told when a note arrives.
+ */
+create function public.absence_attach_note(p_id uuid, p_path text) returns text
+language plpgsql security definer set search_path = public as $$
+declare r absence_reports%rowtype; old text; u uuid;
+begin
+  select * into r from absence_reports where id = p_id;
+  if not found or not app.is_guardian_of(r.student_id) or app.is_family() then
+    raise exception 'That report isn''t yours to change.' using errcode = '42501';
+  end if;
+  if r.status = 'cancelled' then raise exception 'That report was called off.'; end if;
+  if p_path is not null then
+    if r.ends_on < app.school_today() - 30 then raise exception 'Add a doctor''s note within 30 days of the absence.'; end if;
+    if split_part(p_path, '/', 1) <> auth.uid()::text or split_part(p_path, '/', 2) <> p_id::text
+       or not exists (select 1 from storage.objects where bucket_id = 'absence-notes' and name = p_path) then
+      raise exception 'Upload the doctor''s note first.';
+    end if;
+  end if;
+  old := r.doctor_note;
+  update absence_reports set doctor_note = p_path, doctor_note_at = case when p_path is null then null else now() end where id = p_id;
+  if p_path is not null then
+    for u in select app.office_team() loop
+      if u <> auth.uid() then
+        perform app.notify_user(u, '🩺 Doctor''s note: ' || app.absence_line(r), 'From ' || app.checkin_name(auth.uid()),
+          jsonb_build_object('absenceId', r.id));
+      end if;
+    end loop;
+  end if;
+  return nullif(old, p_path);
+end $$;
+
+-- The list says whether there's a doctor's note, and gives its file only to those who may open it.
+drop function public.absence_list(date, int);
+create function public.absence_list(p_from date default null, p_days int default 1)
+returns table (id uuid, student_id uuid, student text, grade int, kind text, starts_on date, ends_on date, at_time text,
+               reason text, note text, status text, reported_by text, created_at timestamptz, seen_by text, seen_at timestamptz, classes text,
+               doctor_note text, doctor_note_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select r.id, r.student_id, trim(p.first_name || ' ' || p.last_name), p.grade, r.kind, r.starts_on, r.ends_on, to_char(r.at_time, 'HH24:MI'),
+         r.reason, r.note, r.status, app.checkin_name(r.reported_by), r.created_at,
+         case when r.seen_by is not null then app.checkin_name(r.seen_by) end, r.seen_at,
+         (select string_agg(ro.name, ', ' order by ro.name) from rosters ro join roster_members m on m.roster_id = ro.id
+           where ro.kind = 'section' and m.profile_id = r.student_id),
+         case when app.reads_doctor_notes(r.student_id) then r.doctor_note end, r.doctor_note_at
+  from absence_reports r join profiles p on p.id = r.student_id
+  where app.reads_absences(r.student_id)
+    and r.ends_on >= coalesce(p_from, app.school_today())
+    and r.starts_on <= coalesce(p_from, app.school_today()) + greatest(coalesce(p_days, 1), 1) - 1
+  order by r.starts_on, p.last_name, p.first_name, r.created_at
+$$;
+
+revoke all on function public.absence_attach_note(uuid, text), public.absence_list(date, int) from public, anon;
+grant execute on function public.absence_attach_note(uuid, text), public.absence_list(date, int) to authenticated, service_role;
+
+insert into app.applied_migrations (name) values ('20261112000074_doctor_notes.sql') on conflict do nothing;
+
+-- ===== 20261112000075_parent_notes.sql =====
+-- Notes from parents to teachers, from the Class Folder's + button. A child's parent (a guardian, never a Family
+-- account) writes to one of the teachers of the child's class sections (app.teachers_of) about that child; the teacher
+-- is told, reads it (which the parent sees as Seen) and can answer with a note of their own into the parents' Folder
+-- (folder_note_send). Only the parent who wrote it and that teacher read it.
+
+create table public.parent_notes (
+  id         uuid primary key default gen_random_uuid(),
+  author_id  uuid not null references public.profiles (id) on delete cascade,
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  teacher_id uuid not null references public.profiles (id) on delete cascade,
+  body       text not null check (char_length(body) between 1 and 2000),
+  created_at timestamptz not null default now(),
+  read_at    timestamptz
+);
+create index on public.parent_notes (teacher_id, created_at desc);
+create index on public.parent_notes (author_id, created_at desc);
+
+alter table public.parent_notes enable row level security;
+create policy "the parent who wrote it and its teacher" on public.parent_notes for select to authenticated
+  using (author_id = auth.uid() or teacher_id = auth.uid());
+grant select on public.parent_notes to authenticated;
+revoke insert, update, delete on public.parent_notes from anon, authenticated;
+grant all on public.parent_notes to service_role;
+
+/** For a parent: each of their children with the teachers of the child's classes, to pick whom to write to. */
+create function public.parent_note_teachers() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object('studentId', s.id, 'name', s.first_name,
+    'teachers', (select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'name', app.checkin_name(t.id),
+        'classes', (select coalesce(jsonb_agg(r.name order by r.name), '[]') from rosters r join roster_members m on m.roster_id = r.id
+                    where r.kind = 'section' and r.lead_id = t.id and m.profile_id = s.id)) order by app.checkin_name(t.id)), '[]')
+      from profiles t where t.id in (select app.teachers_of(s.id)))) order by s.first_name), '[]')
+  from profiles s
+  where not app.is_family() and app.is_guardian_of(s.id) and s.school_role = 'student'
+$$;
+
+/** A parent writes to one of their child's teachers; the teacher is told. Returns the note's id. */
+create function public.parent_note_send(p_student uuid, p_teacher uuid, p_body text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare n uuid; b text := trim(coalesce(p_body, '')); child text;
+begin
+  if app.is_family() or not app.is_guardian_of(p_student) then
+    raise exception 'Only a child''s parents write to their teachers.' using errcode = '42501';
+  end if;
+  if not app.teaches(p_teacher, p_student) then raise exception 'Pick one of your child''s teachers.'; end if;
+  if b = '' then raise exception 'Write what you want to say.'; end if;
+  if char_length(b) > 2000 then raise exception 'Keep it to 2,000 characters.'; end if;
+  insert into parent_notes (author_id, student_id, teacher_id, body) values (auth.uid(), p_student, p_teacher, b) returning id into n;
+  select first_name into child from profiles where id = p_student;
+  perform app.notify_user(p_teacher, '✉️ A note about ' || child, 'From ' || app.checkin_name(auth.uid()), jsonb_build_object('parentNoteId', n));
+  return n;
+end $$;
+
+/** The teacher opened it (the parent sees it was seen). */
+create function public.parent_note_read(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update parent_notes set read_at = coalesce(read_at, now()) where id = p_id and teacher_id = auth.uid();
+  if not found then raise exception 'That note isn''t to you.' using errcode = '42501'; end if;
+end $$;
+
+/**
+ * Notes from the last 90 days, newest first: to a teacher, the ones written to them; to a parent, the ones they wrote.
+ * Each with the child, who wrote it and whom to, and when the teacher saw it.
+ */
+create function public.parent_notes_list() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', n.id, 'body', n.body, 'sentAt', n.created_at, 'readAt', n.read_at, 'mine', n.author_id = auth.uid(),
+    'studentId', n.student_id, 'student', app.checkin_name(n.student_id),
+    'from', app.checkin_name(n.author_id), 'to', app.checkin_name(n.teacher_id),
+    'classes', (select coalesce(jsonb_agg(r.name order by r.name), '[]') from rosters r join roster_members m on m.roster_id = r.id
+                where r.kind = 'section' and r.lead_id = n.teacher_id and m.profile_id = n.student_id))
+    order by n.created_at desc), '[]')
+  from parent_notes n
+  where (n.author_id = auth.uid() or n.teacher_id = auth.uid()) and n.created_at > now() - interval '90 days'
+$$;
+
+revoke all on function public.parent_note_teachers(), public.parent_note_send(uuid, uuid, text), public.parent_note_read(uuid),
+  public.parent_notes_list() from public, anon;
+grant execute on function public.parent_note_teachers(), public.parent_note_send(uuid, uuid, text), public.parent_note_read(uuid),
+  public.parent_notes_list() to authenticated, service_role;
+
+insert into app.applied_migrations (name) values ('20261112000075_parent_notes.sql') on conflict do nothing;
+
 -- ===== seed =====
 -- Generated by scripts/gen_seed.py — demo data for Royals Connect + the 2026–27 school calendar.
 begin;

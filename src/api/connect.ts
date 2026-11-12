@@ -50,5 +50,9 @@ export { myCalendar, studentEvents, savePersonalEvent, deletePersonalEvent, plan
 export { listAssignments, childAssignments, addAssignment, deleteAssignment, checkAssignment, mySections, subscribeAssignments } from './assignments';
 export { removeForm, myForms, sentForms, formStatus, sendForm, signForm, remindForm, closeForm, recordPayment, clearPayment } from './forms';
 export { adminListSections, adminSectionStudents, adminSaveSection, adminSectionMember, adminDeleteSection } from './classes';
-export { listAbsences, reportAbsence, cancelAbsence, markAbsenceSeen, type AbsenceReport } from './absences';
+export { listAbsences, reportAbsence, cancelAbsence, markAbsenceSeen, attachDoctorNote, removeDoctorNote, doctorNoteUrl, type AbsenceReport, type DoctorNoteFile } from './absences';
+export {
+  myFolderNotes, sentFolderNotes, sendBulletin, sendFolderNote, deleteFolderNote, readFolderNote, removeFolderNote, parentNoteTeachers, sendParentNote,
+  readParentNote, parentNotes, type FolderNote, type FolderNoteKind, type SentFolderNote, type ParentNote, type ChildTeachers,
+} from './folderNotes';
 export { lunchWindows, saveLunchWindow, deleteLunchWindow, lunchClosedDays, closeLunchDay, lunchRules, setLunchRules, lunchKids, lunchSlots, lunchAllergyNotes, bookLunchVisit, cancelLunchVisit, myLunchVisits, lunchVisitors, type LunchWindow, type LunchSlot, type LunchKid, type MyLunchVisit, type LunchVisitor } from './lunch';

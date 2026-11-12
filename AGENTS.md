@@ -204,7 +204,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`checkin.manage`, `app.office_team`) and the teachers of the child's sections are told and read them
   (`app.reads_absences`, `absence_list`); the office marks one seen and the parents hear back (`absence_seen`). The class
   roll shows the day's report (`class_attendance_roll` → `reported`). Kinds and reasons are in both
-  `src/absences/labels.ts` and the database checks (`tests/absences.test.ts`).
+  `src/absences/labels.ts` and the database checks (`tests/absences.test.ts`). **Doctor's notes**: the parents attach a
+  photo or PDF of the official excuse when reporting or up to 30 days after (`absence_attach_note`; the private
+  `absence-notes` bucket, under the uploader's own folder, 10 MB; `src/absences/doctorNote.ts` picks it). It's medical, so
+  only the child's parents and the office open it (`app.reads_doctor_notes`; `absence_list` → `doctor_note`); teachers only
+  see that there is one (`doctor_note_at`). The office is told when one arrives.
 - **Lunch visits** (`lunch_windows`, `lunch_closed_days`, `lunch_visits`; `app/lunch`, Apps → Lunch Visits): open to Family
   accounts on purpose (grandparents visit). Parents and the family the office linked (`app.lunch_kids`) book a lunch time for
   their child's grade on an open day (`lunch_slots`, `lunch_visit_book`: weekday, not `app.lunch_closed`, within the window's
@@ -244,11 +248,29 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   A form's fee (`forms.fee_cents`) is paid outside the app; senders record each child's payment
   (`form_record_payment`: amount, method, where it was handed in, date) and parents see their own.
   The methods are listed in both `src/schoolForms/payments.ts` and the database check.
-  **The Folder** (the Forms app's top for parents, `src/schoolForms/Folder.tsx`): a bi-fold folder in the school's colors
-  whose papers are a stack, the newsletter's latest issue always first. Signed, expired (past due or closed) and removed
-  forms leave it and stay under Done & removed for 30 days (`src/schoolForms/folderLists.ts`, `tests/folder.test.ts`).
-  A parent removes a form (swipe it up, or Remove, after confirming) for themselves only (`form_removals`, `form_remove`;
-  `my_forms` → `removedAt`) and can put it back; the school still sees whether it was signed.
+  **The Folder** (`src/schoolForms/Folder.tsx`) sits closed at the top of the Main Page for parents, and for staff with
+  children here on the Standard view (`src/schoolForms/MainFolder.tsx`); tapping it blurs the page (Android dims it: a
+  Modal can't blur what's behind it there), brings it up and swings it open, and a tap outside closes it. The Folder tile
+  is the senders' side, in Staff view only; `app/forms` keeps Done & removed and the Forms to Send to Office. The open
+  folder fills the screen's height; a × on its pocket's bottom left closes it, and a + on the bottom right offers a note
+  to a teacher or an Excused Absence. Its papers
+  are a stack: the newsletter's latest issue always first, then teachers' notes and class bulletins, then forms to sign.
+  Signed, expired (past due or closed) and removed forms leave it and stay under Done & removed for 30 days
+  (`src/schoolForms/folderLists.ts`, `tests/folder.test.ts`). A parent removes a form (swipe it up, or Remove, after
+  confirming) for themselves only (`form_removals`, `form_remove`; `my_forms` → `removedAt`) and can put it back; the
+  school still sees whether it was signed.
+- **Class bulletins and teachers' notes** (`folder_notes`, `folder_note_sections`, `folder_note_readers`; Classes →
+  Bulletins & notes, `app/forms/notes.tsx`, `app/forms/write.tsx`, `app/forms/note/[id].tsx`): a section's lead teacher
+  (or `forms.send`) posts a bulletin to their classes (`folder_bulletin_send`), and a teacher of a student's sections writes
+  a note to that student's parents (`folder_note_send`, `app.teaches`). Only those students' parents read them
+  (`app.folder_note_parents`: guardians, never Family accounts; students never), in their Folder for two weeks
+  (`my_folder_notes`); opening one marks it read (`folder_note_read`) and they remove it for themselves (`folder_note_remove`).
+  The author sees how many parents opened each (`sent_folder_notes`) and deletes it (`folder_note_delete`).
+  **Notes to teachers** (`parent_notes`; the open Class Folder's + button → Note to a teacher, `app/forms/to-teacher.tsx`;
+  teachers read them under Bulletins & notes → From parents, `app/forms/from-parent/[id].tsx`): a child's parent (never
+  Family accounts) writes to one of the teachers of the child's sections (`parent_note_teachers`, `parent_note_send`,
+  `app.teaches`); the teacher is told, and opening it shows the parent Seen (`parent_note_read`). Only that parent and
+  that teacher read it (`parent_notes_list`). The teacher answers with a note into the parents' Folder (Reply).
 - **Car line vehicles** (`vehicles`, `carline_pickups.vehicle`): the types and colors are
   listed in both `src/carline/vehicles.ts` and the database checks, so change them together.
   A pickup stores a snapshot of the vehicle, so editing or deleting one never rewrites the line.

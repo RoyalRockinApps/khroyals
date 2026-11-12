@@ -3078,6 +3078,8 @@ export type Database = {
           at_time: string
           classes: string
           created_at: string
+          doctor_note: string | null
+          doctor_note_at: string | null
           ends_on: string
           grade: number
           id: string
@@ -4647,6 +4649,18 @@ export type Database = {
       staff_today: { Args: { p_day?: string }; Returns: Json }
       delete_my_account: { Args: { p_confirm: string }; Returns: string }
       form_remove: { Args: { p_form: string; p_removed?: boolean }; Returns: undefined }
+      folder_bulletin_send: { Args: { p_body: string; p_sections: string[]; p_title: string }; Returns: string }
+      folder_note_send: { Args: { p_body: string; p_student: string; p_title: string }; Returns: string }
+      folder_note_delete: { Args: { p_id: string }; Returns: undefined }
+      folder_note_read: { Args: { p_id: string }; Returns: undefined }
+      folder_note_remove: { Args: { p_id: string; p_removed?: boolean }; Returns: undefined }
+      my_folder_notes: { Args: never; Returns: Json }
+      sent_folder_notes: { Args: never; Returns: Json }
+      absence_attach_note: { Args: { p_id: string; p_path: string | null }; Returns: string | null }
+      parent_note_teachers: { Args: never; Returns: Json }
+      parent_note_send: { Args: { p_body: string; p_student: string; p_teacher: string }; Returns: string }
+      parent_note_read: { Args: { p_id: string }; Returns: undefined }
+      parent_notes_list: { Args: never; Returns: Json }
       experiment_log: { Args: { p_event: string; p_key: string; p_subject?: string }; Returns: undefined }
       experiment_results: { Args: { p_key: string }; Returns: Json }
       experiment_set: { Args: { p_active: boolean; p_key: string; p_reset?: boolean }; Returns: undefined }

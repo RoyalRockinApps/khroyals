@@ -343,15 +343,28 @@ hours live in `app.settings` (`carline_latitude`, `carline_longitude`,
 E-Learning days on the school calendar are skipped. The zone starts at the school's
 street address; move it to the car line entrance.
 
-**Folder** (Main Page → Folder, the Forms app; parents). A bi-fold folder in the school's
-colors: the cover, with the school's shield and how many forms there are to sign, lifts
-from its right edge and swings open to the left. Inside, the papers are a stack, with the
-newsletter's latest issue (the one the Planner links to) always on top first, then the
-forms to sign; the papers behind peek out above it, with a count. Swipe sideways (or tap
-the arrows) to go through them, tap one to read or sign it, and swipe a form up (or tap
-Remove) to take it out of your folder after confirming. Signed, expired and removed forms
-leave the folder and wait under *Done & removed* for 30 days; a removed form still open
-can be put back. Removing only hides it for you: the school still sees whether it's signed.
+**Folder** (the top of the Main Page; parents, and staff with children here on Standard).
+A bi-fold folder in the school's colors, closed, saying what's new inside. Tap it: the page
+behind blurs, the folder comes up, and its cover, with the school's shield, lifts from its
+right edge and swings open to the left, as tall as the screen allows; tap anywhere outside
+it (or the **×** on its bottom left corner) and it swings shut and goes back. The **+** on its
+bottom right corner writes a note to one of your child's teachers or reports an absence
+(Excused Absence). Inside, the papers are a stack, with the newsletter's latest issue (the
+one the Planner links to) always on top first, then notes from teachers (yellow sticky
+notes) and class bulletins, then the forms to sign; the papers behind peek out above it,
+with a count. Swipe sideways (or tap the arrows) to go through them, tap one to read or
+sign it, and swipe a paper up (or tap Remove) to take it out of your folder after
+confirming. Signed, expired and removed forms leave the folder and wait under *Done &
+removed* for 30 days (notes and bulletins after two weeks); a removed one still open can be
+put back. Removing only hides it for you: the school still sees whether a form is signed.
+
+**Class bulletins and notes** (Classes → Bulletins & notes, or *Bulletin* on a class; the
+Folder tile in Staff view). A teacher posts a bulletin (a title and what to say) to the
+classes they lead, or writes a note to one student's parents. Each lands in those parents'
+Folders and they're told; students and other families never see a note. The teacher sees
+how many parents have read each, and deletes it if needed. Notes parents write to them (the
+Class Folder's +) arrive under *From parents* (and on the bell), marked Seen for the parent once
+opened; *Reply* answers with a note into that family's Folder. Only that parent and teacher see them.
 
 **Marketplace** (Apps → Marketplace). Parents and staff buy and sell uniforms and
 school-related items after accepting the Marketplace terms (text and version in
@@ -546,7 +559,9 @@ real bugs and building requested features. New reports notify the triage team.
 arriving late or leaving early, with a reason (sick, appointment, family, travel, other) and a note.
 The office and the child's teachers are told right away and see it, a day at a time, in Classes →
 Absences reported by parents and on the class roll; the office marks each one seen, and the parents
-hear back. Parents call a report off if plans change.
+hear back. Parents call a report off if plans change. They can attach a **doctor's note**, a photo of
+the paper excuse or a PDF from the clinic, when they report it or up to 30 days afterwards, and view,
+replace or remove it. Only the child's parents and the office open it; teachers see that there is one.
 
 **Lunch visits** (Apps → Lunch Visits). Parents, and grandparents or other family the office linked,
 book a time to come eat lunch with their child. The office (*Lunch visits* permission) sets the lunch

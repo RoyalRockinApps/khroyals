@@ -60,6 +60,8 @@ export function notificationHref(data: Record<string, unknown> | null | undefine
   if (data.teacherThreadId) return `/teachers/${data.teacherThreadId}`;
   if (data.assignmentId) return '/assignments';
   if (data.formId) return `/forms/${data.formId}`;
+  if (data.folderNoteId) return `/forms/note/${data.folderNoteId}`;
+  if (data.parentNoteId) return `/forms/from-parent/${data.parentNoteId}`;
   if (data.albumId) return `/photos/${data.albumId}`;
   if (data.photos) return '/photos';
   if (data.feedbackId) return `/feedback/${data.feedbackId}`;

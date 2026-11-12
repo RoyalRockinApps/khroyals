@@ -102,6 +102,8 @@ export default function Classes() {
               <ClassTool first icon="clipboard-outline" label="Take roll" onPress={() => router.push(`/attendance/${c.id}`)} />
               <ClassTool icon="checkbox-outline" label={n ? `Assignments · ${n}` : 'Assignments'}
                 onPress={() => router.push({ pathname: '/assignments', params: { section: c.id } })} />
+              <ClassTool icon="megaphone-outline" label="Bulletin"
+                onPress={() => router.push({ pathname: '/forms/write', params: { kind: 'bulletin', section: c.id } })} />
             </ClassCard>
           );
         })}
@@ -109,6 +111,10 @@ export default function Classes() {
       {data.messages && (
         <Row icon="chatbubbles-outline" title="Messages" href="/teachers" badge={unread}
           sub={classes.length ? 'Ask the Teacher: write to your students and answer theirs' : 'Every Ask the Teacher conversation'} />
+      )}
+      {classes.length > 0 && (
+        <Row icon="megaphone-outline" title="Bulletins & notes to families" href="/forms/notes"
+          sub="Class bulletins and notes to a student’s parents, in their Folder" />
       )}
       {data.subs && <Row icon="people" title="Substitutes" sub="Schedule a sub, with your sub plans" href="/subs" />}
 
