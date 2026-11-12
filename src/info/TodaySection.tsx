@@ -1,6 +1,6 @@
 /**
  * One day on the Planner tab: whether there's school, the uniform to wear (with boys' and
- * girls' pictures of the approved pieces), assignments, a card for each
+ * girls' pictures of the approved pieces; it folds away), assignments, a card for each
  * of a parent's children, and the day's school events, activities, volunteer sign-ups
  * and car line hours.
  */
@@ -9,6 +9,7 @@ import { router, type Href } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Assignment } from '../api/connect';
 import { gradeLabel } from '../comms/grades';
+import { useRemembered } from '../remembered';
 import { C, Card, P, s } from '../ui';
 import { AssignmentsCard } from './AssignmentsCard';
 import type { DayPlan, Kid, Row } from './plan';
@@ -83,17 +84,42 @@ function Rows({ rows }: { rows: Row[] }) {
   });
 }
 
+/**
+ * What to wear: the uniform's pictures and pieces, under a header that folds it away. Open or folded is remembered on
+ * this phone, the same for every day; folded on a dress-up day, the day's theme still shows under the header.
+ */
 function UniformCard({ u }: { u: Uniform }) {
   const photos = UNIFORM_IMAGES[u.kind];
+  const [open, setOpen] = useRemembered('khroyals.planner.wearOpen', true);
+  const themes = u.dress?.themes ?? [];
   return (
     <Card style={{ gap: 12 }}>
-      <View style={s.row}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }}
+        accessibilityLabel={`What to wear: ${u.title}`} accessibilityHint={open ? 'Folds the uniform away' : 'Shows the uniform'}
+        hitSlop={8} style={({ pressed }) => [s.row, pressed && { opacity: 0.7 }]}>
         <MaterialCommunityIcons name="tshirt-crew-outline" size={24} color={C.primary} />
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 1, color: C.primary }}>WHAT TO WEAR</Text>
           <Text style={{ fontSize: 17, fontWeight: '800', color: C.ink }}>{u.title}</Text>
+          {!open && themes.length > 0 && (
+            <View style={[s.row, { gap: 6, marginTop: 2 }]}>
+              <Ionicons name="sparkles" size={14} color={C.accent} />
+              <Text style={{ flex: 1, color: C.accent, fontWeight: '700' }} numberOfLines={1}>
+                {themes.map((t) => t.title).join(' · ')}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={22} color={C.muted} />
+      </Pressable>
+      {open && <UniformDetails u={u} photos={photos} />}
+    </Card>
+  );
+}
+
+function UniformDetails({ u, photos }: { u: Uniform; photos: (typeof UNIFORM_IMAGES)[Uniform['kind']] }) {
+  return (
+    <>
       {u.dress && <DressUp dress={u.dress} />}
       <View style={[s.row, { alignItems: 'flex-start', gap: 12 }]}>
         <Variant label="Boys" photo={photos.boys} lines={u.boys} />
@@ -113,7 +139,7 @@ function UniformCard({ u }: { u: Uniform }) {
         <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="link" onPress={() => Linking.openURL(UNIFORM_GUIDE)}>Uniform Guide ›</Text>
         <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="link" onPress={() => Linking.openURL(UNIFORM_STORE)}>Shop at French Toast ›</Text>
       </View>
-    </Card>
+    </>
   );
 }
 

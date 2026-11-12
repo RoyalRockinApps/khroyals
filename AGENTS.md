@@ -329,7 +329,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   the end once per person and subject (`experiment_log`); opens and reads count only after a view. Screens ask
   `myVariant(key)` and log with `logExperiment` (version A whenever it's null). `push.send` holders start, stop and read
   the results (`experiment_results`: counts per version only, never names); `src/experiments/stats.ts` says whether a
-  difference is real (95%, at least 30 views each). The first is the Planner's Royal News card (`src/news/RoyalNewsCard.tsx`).
+  difference is real (95%, at least 30 views each). The first is the Planner's Royal News button (`src/news/RoyalNewsCard.tsx`: the masthead's script on ruled paper, `src/news/paper.tsx`, above Coming Up).
   **Never test safety, consent or legal wording** (alerts, pickup and check-out, forms, sign-in).
 - **App usage** (`app_usage`; Admin portal → App usage, `src/admin/UsageSection.tsx`; `audit.view`): the root layout's
   `UsageTracker` reports each app someone moves into, and coming back after 5 minutes away (`usage_log`: one row per

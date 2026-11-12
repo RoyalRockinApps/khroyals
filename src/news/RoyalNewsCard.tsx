@@ -1,18 +1,18 @@
 /**
- * The Royal News card on the Planner, and the first A/B test (royal_news_card, src/experiments/registry.ts). Version A,
- * which everyone sees when the test isn't running: "Royal News" with a line about the newsletter, opening the archive.
- * Version B: the latest issue's title and date, a New badge in its first week, and Read it, opening that issue.
- * `visible` says the card has scrolled into view on the Planner: that's when it counts as seen; a tap counts as opened
- * (reading to the end is counted on the issue screen). Each counts once per issue.
+ * The Royal News button on the Planner (above Coming Up): the newsletter's masthead, in its brush script on ruled paper
+ * like an issue's first page (src/news/paper.tsx). It's also the first A/B test (royal_news_card,
+ * src/experiments/registry.ts). Version A, which everyone sees when the test isn't running, opens the list of issues.
+ * Version B adds the latest issue's date (and New in its first week) under the masthead and opens that issue.
+ * `visible` says the button has scrolled into view on the Planner: that's when it counts as seen; a tap counts as
+ * opened (reading to the end is counted on the issue screen). Each counts once per issue.
  */
 import { useEffect, useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { issueDate, listNewsletters, logExperiment, myVariant, type NewsletterSummary } from '../api/connect';
 import { schoolToday } from '../calendar/past';
 import { SCHOOL } from '../school';
-import { C, Card, P } from '../ui';
+import { NEWS, RULE, RuledLines, SERIF, useMastheadFont } from './paper';
 
 const KEY = 'royal_news_card';
 
@@ -38,43 +38,36 @@ export function RoyalNewsCard({ visible }: { visible: boolean }) {
     else if (SCHOOL.newsUrl) Linking.openURL(SCHOOL.newsUrl);
     else router.navigate('/royal-news');
   };
-  return <NewsCardView latest={b ? latest : null} onPress={open} />;
+  return <NewsButton latest={b ? latest : null} onPress={open} />;
 }
 
-/** The card itself: version B when given the latest issue, else version A. */
-export function NewsCardView({ latest, onPress }: { latest: NewsletterSummary | null; onPress: () => void }) {
-  if (latest) {
-    const fresh = isNew(latest.sentOn);
-    return (
-      <Card onPress={onPress} style={{ gap: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="mail-unread-outline" size={18} color={C.primary} />
-          <Text style={{ flex: 1, fontSize: 13, fontWeight: '800', letterSpacing: 1, color: C.muted }}>{SCHOOL.newsName.toUpperCase()}</Text>
+/** The button: the masthead on ruled paper, with the latest issue's date under it when given one (version B). */
+export function NewsButton({ latest, onPress }: { latest: NewsletterSummary | null; onPress: () => void }) {
+  const script = useMastheadFont();
+  const [height, setHeight] = useState(0);
+  const fresh = !!latest && isNew(latest.sentOn);
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button"
+      accessibilityLabel={latest ? `${SCHOOL.newsName}, ${issueDate(latest.sentOn)}${fresh ? ', new' : ''}` : `${SCHOOL.newsName}, the school newsletter`}
+      onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+      style={({ pressed }) => ({
+        backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', minHeight: RULE * 4 + 4, justifyContent: 'center',
+        paddingHorizontal: 16, paddingVertical: 10, opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.985 : 1 }],
+        shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+      })}>
+      <RuledLines height={height} />
+      <Text style={[{ fontSize: 50, lineHeight: 66, textAlign: 'center', color: NEWS.accent }, script]}
+        numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{SCHOOL.newsName}</Text>
+      {latest && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: -4 }}>
+          <Text style={{ fontFamily: SERIF, fontSize: 15, color: NEWS.accent }}>{issueDate(latest.sentOn)}</Text>
           {fresh && (
-            <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: C.accent }}>
-              <Text style={{ fontSize: 12, fontWeight: '900', color: '#fff' }}>NEW</Text>
+            <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, backgroundColor: NEWS.accent }}>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: '#fff', letterSpacing: 0.5 }}>NEW</Text>
             </View>
           )}
         </View>
-        <Text style={{ fontSize: 18, fontWeight: '800', color: C.ink }} numberOfLines={2}>{latest.title}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ flex: 1, color: C.muted }}>{issueDate(latest.sentOn)}</Text>
-          <Text style={{ color: C.primary, fontWeight: '800' }}>Read it ›</Text>
-        </View>
-      </Card>
-    );
-  }
-
-  return (
-    <Card onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: `${C.primary}1A`, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="mail-open-outline" size={22} color={C.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{SCHOOL.newsName}</Text>
-        <P muted>The school newsletter, sent to families by email. Read this week's and past issues.</P>
-      </View>
-      <Ionicons name={SCHOOL.newsUrl ? 'open-outline' : 'chevron-forward'} size={18} color={C.muted} />
-    </Card>
+      )}
+    </Pressable>
   );
 }

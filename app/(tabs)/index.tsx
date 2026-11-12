@@ -28,8 +28,9 @@ import { dateRange } from '../../src/site/calendar';
  * card for each of a parent's children, and the day's events, activities, volunteer
  * sign-ups and car line hours. Teachers and staff (on the Staff view) and substitutes first get Checking in at school
  * (src/onsite/CheckInCard.tsx), then Needs you today: what's
- * waiting on them across the apps (staff_today), each opening its screen. Then the school calendar's next two weeks, the school's newsletter
- * (Royal News; its card is an A/B test, src/news/RoyalNewsCard.tsx, counted as seen once it scrolls into view) and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
+ * waiting on them across the apps (staff_today), each opening its screen. Then the school's newsletter (Royal News: a button
+ * in its masthead's script, and an A/B test, src/news/RoyalNewsCard.tsx, counted as seen once it scrolls into view), the
+ * school calendar's next two weeks, the latest photos and the latest news. (The school website's home page's other sections aren't shown here; its F.A.Q.s are
  * in Ask the School.)
  */
 export default function Home() {
@@ -75,6 +76,10 @@ export default function Home() {
 
       <DayPager plans={plans} index={index} onIndex={setIndex} render={(p) => <TodaySection plan={p} onToggle={toggle} />} />
 
+      <View onLayout={(e) => news.placed(e.nativeEvent.layout.y)}>
+        <RoyalNewsCard visible={news.seen} />
+      </View>
+
       <View style={{ gap: 8 }}>
         <H>Coming Up</H>
         {next.length === 0 && (
@@ -90,10 +95,6 @@ export default function Home() {
           </Card>
         ))}
         <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => router.navigate('/calendar')}>Full calendar ›</Text>
-      </View>
-
-      <View onLayout={(e) => news.placed(e.nativeEvent.layout.y)}>
-        <RoyalNewsCard visible={news.seen} />
       </View>
 
       {photos.length > 0 && (

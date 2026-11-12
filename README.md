@@ -520,11 +520,12 @@ too, as totals. Counts only: nobody's own use is shown, and records are erased a
 
 **A/B tests** (Royal News → the gear, or Admin portal → *A/B tests*; staff with Send
 notifications). Different groups of people see different versions of one part of the app,
-and the counts show which works better. The first is the **Royal News card on the
-Planner**: A is the card as it was (opens the archive); B shows the latest issue's title
-and date with a New badge in its first week (opens that issue). Everyone with an account
+and the counts show which works better. The first is the **Royal News button on the
+Planner** (above Coming Up: the newsletter's name in its masthead's brush script on ruled
+paper): A is the masthead alone (opens the archive); B adds the latest issue's date under
+it, with New in its first week (opens that issue). Everyone with an account
 except students is in a running test, about half on each version, and keeps the same
-version on every device. The app counts, once per person and issue, who saw the card
+version on every device. The app counts, once per person and issue, who saw the button
 (scrolled into view), opened it and read the issue to the end. The results screen shows
 each version's counts and rates and says whether one is really ahead (95% sure, with at
 least 30 people per version) or it could still be chance. Start, stop or start over

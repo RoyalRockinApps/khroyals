@@ -8,15 +8,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useFonts, KaushanScript_400Regular } from '@expo-google-fonts/kaushan-script';
 import { isWritten, issueDate, logExperiment, type NewsBlock, type NewsletterIssue, type Span } from '../api/connect';
 import { ReadingScroll } from '../Reading';
 import { SCHOOL } from '../school';
+import { NEWS, RuledLines, SERIF, useMastheadFont } from './paper';
 
-const NEWS = SCHOOL.theme.newsletter;
-/** The sheet's ruled lines, this far apart. */
-const RULE = 26;
-const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
 const CONDENSED = Platform.select({
   ios: 'AvenirNextCondensed-MediumItalic', android: 'sans-serif-condensed',
   default: '"Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif',
@@ -25,7 +21,7 @@ const INK = '#3A3A3A';
 const LINK = '#1F5DB4';
 
 export function IssueView({ issue, canEdit, header }: { issue: NewsletterIssue; canEdit: boolean; header?: ReactNode }) {
-  const [script] = useFonts({ KaushanScript_400Regular });
+  const script = useMastheadFont();
   return (
     <ReadingScroll doneLabel={`Back to ${SCHOOL.newsName}`} doneHref="/royal-news" background={NEWS.page}
       contentStyle={{ paddingHorizontal: 14, paddingTop: 0 }} onEnd={() => { logExperiment('royal_news_card', 'finished', issue.id); }}>
@@ -38,8 +34,7 @@ export function IssueView({ issue, canEdit, header }: { issue: NewsletterIssue; 
         <View pointerEvents="none" style={[styles.circle, { width: 120, height: 120, right: -84, top: 548, backgroundColor: NEWS.accent }]} />
 
         <Sheet>
-          <Text accessibilityRole="header" style={[styles.masthead, { color: NEWS.accent },
-            script ? { fontFamily: 'KaushanScript_400Regular' } : { fontStyle: 'italic', fontWeight: '800' }]}>{issue.title}</Text>
+          <Text accessibilityRole="header" style={[styles.masthead, { color: NEWS.accent }, script]}>{issue.title}</Text>
           <Text style={[styles.date, { color: NEWS.accent }]}>{issueDate(issue.sentOn)}</Text>
           {issue.blocks.map((b, i) => <Block key={i} b={b} />)}
           {!isWritten(issue) && (
@@ -58,12 +53,9 @@ export function IssueView({ issue, canEdit, header }: { issue: NewsletterIssue; 
 /** A white sheet of ruled paper, its lines running behind the words. */
 function Sheet({ children }: { children: ReactNode }) {
   const [height, setHeight] = useState(0);
-  const lines = Math.max(0, Math.floor(height / RULE));
   return (
     <View style={styles.sheet} onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
-      <View pointerEvents="none" style={styles.rules}>
-        {Array.from({ length: lines }, (_, i) => <View key={i} style={[styles.rule, { top: (i + 1) * RULE }]} />)}
-      </View>
+      <RuledLines height={height} />
       {children}
     </View>
   );
@@ -113,8 +105,6 @@ const styles = StyleSheet.create({
   circle: { position: 'absolute', borderRadius: 999 },
   sheet: { backgroundColor: '#fff', borderRadius: 3, paddingHorizontal: 22, paddingTop: 30, paddingBottom: 34, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-  rules: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  rule: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#E6E8EB' },
   masthead: { fontSize: 50, lineHeight: 64, textAlign: 'center' },
   date: { fontFamily: SERIF, fontSize: 15, textAlign: 'center', marginTop: 4 },
   heading: { fontFamily: CONDENSED, fontStyle: 'italic', fontSize: 32, lineHeight: 40, textAlign: 'center', marginTop: 30 },

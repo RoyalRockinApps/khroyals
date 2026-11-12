@@ -22,10 +22,10 @@ export type ExperimentInfo = {
 export const EXPERIMENTS: Record<string, ExperimentInfo> = {
   royal_news_card: {
     title: 'Newsletter card on the Planner',
-    where: 'The card counts as seen once it scrolls into view on the Planner, opened when it’s tapped, and read when someone reaches the end of that week’s issue (from the card or the archive).',
+    where: 'The newsletter’s button (its masthead, above Coming Up) counts as seen once it scrolls into view on the Planner, opened when it’s tapped, and read when someone reaches the end of that week’s issue (from the button or the archive).',
     variants: {
-      a: { label: 'A · The archive card', about: 'The newsletter’s name with a line about it; opens the list of issues.' },
-      b: { label: 'B · This week’s issue', about: 'The latest issue’s title and date, with a New badge in its first week and Read it; opens that issue.' },
+      a: { label: 'A · The archive', about: 'The masthead alone; opens the list of issues.' },
+      b: { label: 'B · This week’s issue', about: 'The masthead with the latest issue’s date under it, and New in its first week; opens that issue.' },
     },
   },
 };
