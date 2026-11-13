@@ -160,6 +160,12 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   accounts see none. Both tiles are students' only: teachers reach the teacher side from **Classes**
   (a class card's *Assignments*, `?section=`, and *Messages*). Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them).
+- **Study** (`study_notes`, `study_decks`, `study_cards`; the Study app, `app/study`, a `studentApp` tile): a student's own
+  notes and flash cards. Only students write (`app.require_student`, through the `study_*` functions) and only the
+  student reads them (RLS `owner_id = auth.uid()`): never their parents, teachers or the office, so don't add a way in
+  without the student data review. Studying moves a card through the Leitner boxes in `study_card_review` (the demo's
+  copy is `sampleReview` in `src/study/sample.ts`). They go with the login: the `study_forget` trigger deletes them when
+  a student's profile becomes `managed` again (`student_login_remove`, `delete_my_account`).
 - **Student records** (the Student app, `app/student`; `sis_students`, `sis_terms`, `sis_attendance`, `sis_courses`,
   `sis_assignments`): a read-only copy of the school's student information system (FACTS, Blackbaud…). Only `sis_import`
   (service role) writes it, from one shape whatever the system: it matches students by the link made before, a profile

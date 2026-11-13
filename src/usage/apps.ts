@@ -30,6 +30,7 @@ export const USAGE_APPS: UsageApp[] = [
   { key: 'questions', label: 'Ask the School', paths: ['questions'] },
   { key: 'teachers', label: 'Ask the Teacher', paths: ['teachers'] },
   { key: 'assignments', label: 'Assignments', paths: ['assignments'] },
+  { key: 'study', label: 'Study', paths: ['study'] },
   { key: 'feedback', label: 'Feedback', paths: ['feedback'] },
   { key: 'admin', label: 'Admin portal', paths: ['admin', 'experiments'] },
   { key: 'profile', label: 'Profile', paths: ['profile'] },

@@ -2653,6 +2653,24 @@ export type Database = {
           },
         ]
       }
+      study_cards: {
+        Row: { back: string; box: number; created_at: string; deck_id: string; due_on: string; front: string; id: string; owner_id: string; position: number; reviewed_at: string | null }
+        Insert: { back: string; box?: number; created_at?: string; deck_id: string; due_on?: string; front: string; id?: string; owner_id: string; position?: number; reviewed_at?: string | null }
+        Update: { back?: string; box?: number; created_at?: string; deck_id?: string; due_on?: string; front?: string; id?: string; owner_id?: string; position?: number; reviewed_at?: string | null }
+        Relationships: []
+      }
+      study_decks: {
+        Row: { created_at: string; id: string; note_id: string | null; owner_id: string; studied_at: string | null; subject: string; title: string; updated_at: string }
+        Insert: { created_at?: string; id?: string; note_id?: string | null; owner_id: string; studied_at?: string | null; subject?: string; title: string; updated_at?: string }
+        Update: { created_at?: string; id?: string; note_id?: string | null; owner_id?: string; studied_at?: string | null; subject?: string; title?: string; updated_at?: string }
+        Relationships: []
+      }
+      study_notes: {
+        Row: { body: string; created_at: string; id: string; owner_id: string; subject: string; title: string; updated_at: string }
+        Insert: { body?: string; created_at?: string; id?: string; owner_id: string; subject?: string; title?: string; updated_at?: string }
+        Update: { body?: string; created_at?: string; id?: string; owner_id?: string; subject?: string; title?: string; updated_at?: string }
+        Relationships: []
+      }
       teacher_messages: {
         Row: {
           author_id: string | null
@@ -4751,6 +4769,45 @@ export type Database = {
       student_record: { Args: { p_student?: string }; Returns: Json }
       sis_import: { Args: { p: Json }; Returns: Json }
       student_login_status: { Args: { p_student: string }; Returns: Json }
+      study_card_delete: { Args: { p_id: string }; Returns: undefined }
+      study_card_edit: { Args: { p_back: string; p_front: string; p_id: string }; Returns: undefined }
+      study_card_review: {
+        Args: { p_id: string; p_knew: boolean }
+        Returns: Database["public"]["Tables"]["study_cards"]["Row"]
+      }
+      study_cards_add: { Args: { p_cards: Json; p_deck: string }; Returns: number }
+      study_deck_delete: { Args: { p_id: string }; Returns: undefined }
+      study_deck_reset: { Args: { p_id: string }; Returns: undefined }
+      study_deck_save: {
+        Args: { p_id: string; p_note?: string; p_subject?: string; p_title: string }
+        Returns: string
+      }
+      study_decks_list: {
+        Args: never
+        Returns: {
+          cards: number
+          due: number
+          fresh: number
+          id: string
+          known: number
+          next_due: string | null
+          note_id: string | null
+          studied_at: string | null
+          subject: string
+          title: string
+          updated_at: string
+        }[]
+      }
+      study_note_delete: { Args: { p_id: string }; Returns: undefined }
+      study_note_save: {
+        Args: { p_body: string; p_id: string; p_subject?: string; p_title: string }
+        Returns: string
+      }
+      study_notes_list: {
+        Args: { p_query?: string }
+        Returns: { id: string; preview: string; subject: string; title: string; updated_at: string }[]
+      }
+      study_subjects: { Args: never; Returns: string[] }
       sub_options: { Args: never; Returns: Json }
       sub_schedule_delete: { Args: { p_id: string }; Returns: undefined }
       sub_schedule_list: { Args: never; Returns: Json }

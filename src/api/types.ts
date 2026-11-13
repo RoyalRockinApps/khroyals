@@ -546,3 +546,19 @@ export type CourseDetail = {
   id: string; studentId: string; name: string; subject: string | null; teacher: string | null; average: number | null; letter: string | null;
   categories: CourseCategory[]; schoolYear: number; scale: GradeScale; terms: SchoolTerm[]; assignments: CourseAssignment[];
 };
+
+/** Study app (students only, private to them): a note in the list, with the start of its text. */
+export type StudyNoteSummary = { id: string; title: string; subject: string; preview: string; updatedAt: string };
+export type StudyNote = { id: string; title: string; subject: string; body: string; createdAt: string; updatedAt: string };
+/**
+ * A deck of flash cards with how many cards are due now, new (never studied), known (box 4 or 5) and the rest being
+ * learned; `nextDue` is when the next one comes back once none are due.
+ */
+export type StudyDeck = {
+  id: string; title: string; subject: string; noteId: string | null; cards: number; due: number; fresh: number; known: number;
+  nextDue: string | null; studiedAt: string | null; updatedAt: string;
+};
+/** A flash card: `box` 1–5 (the Leitner boxes, study_card_review), due again on `dueOn`. */
+export type StudyCard = { id: string; deckId: string; front: string; back: string; position: number; box: number; dueOn: string; reviewedAt: string | null };
+export type CardText = { front: string; back: string };
+

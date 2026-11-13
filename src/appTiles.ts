@@ -5,8 +5,8 @@
  * - `family: false` keeps a tile off Family accounts' page; `student: false` off students'.
  * - `staffOnly` tiles (Alerts) and `adminOnly` tiles (the admin portal) show only in staff view.
  * - `staffVersion` tiles (Car Line, Calendar, Forms, Ask the School) open in their staff version in staff view.
- * - `studentApp` tiles (Ask the Teacher, Assignments) are for students only; teachers reach the
- *   teacher side of both from Classes.
+ * - `studentApp` tiles (Ask the Teacher, Assignments, Study) are for students only; teachers reach the
+ *   teacher side of the first two from Classes, and Study is the student's own.
  * - `inStaffView: false` tiles (Student, News, Marketplace, Volunteer, Handbook) are left out of the
  *   staff view; staff find them on the Standard view.
  * - Substitutes see only the tiles marked `sub` (their Sub Days and the public apps); `subOnly`

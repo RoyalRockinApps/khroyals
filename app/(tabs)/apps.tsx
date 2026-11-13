@@ -53,6 +53,8 @@ const ALL_APPS: App[] = [
   { label: 'Feedback', image: TILES.feedback, icon: 'chatbubble-ellipses', color: SCHOOL.theme.dark, href: '/feedback', sub: true },
   { label: 'Ask the Teacher', image: TILES.teachers, icon: 'chatbubbles', color: SCHOOL.theme.dark, href: '/teachers', family: false, studentApp: true },
   { label: 'Assignments', image: TILES.assignments, icon: 'checkbox', color: SCHOOL.theme.dark, href: '/assignments', family: false, studentApp: true },
+  // Students' own notes and flash cards (private to them).
+  { label: 'Study', icon: 'library', color: SCHOOL.theme.dark, href: '/study', family: false, studentApp: true },
   { label: 'Admin', icon: 'shield-checkmark', color: NAVY, href: '/admin', adminOnly: true },
 ];
 /** The Handbook only for a school whose handbook is in the app. */

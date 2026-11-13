@@ -441,7 +441,7 @@ class sections (`rosters` with kind 'section', Admin portal → Classes) each sh
 at a glance: a bar of present / late / absent and "Roll not taken yet" until it's started, with
 *Take roll* and *Assignments* (that class's, and assigning more) along the bottom. Below them are
 *Messages* (the teacher side of Ask the Teacher, with the unread count) and *Substitutes*.
-Students keep Ask the Teacher and Assignments as their own apps. Tapping a class opens the roll: P, L or A for each student (tap again to clear) and
+Students keep Ask the Teacher and Assignments as their own apps (with Study, below). Tapping a class opens the roll: P, L or A for each student (tap again to clear) and
 *Mark the rest present*. The office's late arrivals and early check-outs (Check In &
 Out) show on the student's row, a late check-in counts as Late whatever the teacher
 marked, and the teacher gets a notification for each. Earlier school days are a tap
@@ -469,6 +469,17 @@ class roll's **Going home** view (where it opens after dismissal) marks the rest
 Drove, Bus or Other, and parents are told. **Extended care** (Classes → Extended care): the
 office sets which students stay on which days and who its staff are (the gear); its staff
 open today's check-out list and release each child only to someone on their pickup list.
+
+**Study** (Apps → Study; students only, and private to the student: not their parents, teachers or the office).
+Notes: a title, the class it's for (their class sections' names, "English 10", or any other) and the text, saved a
+moment after typing stops; search finds every word in the title, class or text, and chips filter by class. Flash
+cards: decks of cards typed in one at a time, pasted as a list, or made from a note's "term - meaning" lines
+(`src/study/parse.ts`). *Study* goes through the cards due now, a deck's or every deck's (*Study now* on top),
+shuffled: turn the card over, then *Still learning* (it comes round again and goes back to box 1) or *Got it* (up a
+box). The boxes are Leitner's (`study_card_review`): box 2 comes back tomorrow, 3 in three days, 4 in a week, 5 in two
+weeks, then a month; a deck's bar shows known (box 4–5), learning and new. *Flip through* turns through a whole deck
+without recording anything; the header's button shows the answer side first. Everything goes with the student's
+login: deleting the account or taking the login away deletes it (`supabase/migrations/…_study.sql`).
 
 **Event tickets** (Activities). An activity's coaches and directors tap *Sell tickets* on
 an event: kinds of ticket with prices and optional limits (Adult $10, Student $5, Under 5

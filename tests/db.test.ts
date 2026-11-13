@@ -5044,6 +5044,93 @@ test('activity team: the roster, the board and the parent chat are for the team;
   await db.exec(`delete from gallery_albums where id = '${album}'; delete from sports where id = '${xc.id}'`);
 });
 
+test('study: a student\'s notes and flash cards are theirs alone; cards move through the boxes as they study', async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;
+  const review = async (card: string, knew: boolean) =>
+    (await one(`select box, due_on - app.school_today() as days from study_card_review('${card}', ${knew})`)) as { box: number; days: number };
+  const counts = async () => {
+    const d = await one(`select * from study_decks_list()`);
+    return [d.cards, d.due, d.fresh, d.known];
+  };
+
+  // Ava writes a note and finds it again by its words.
+  await as('u-s01');
+  const note = (await one(`select study_note_save(null, 'Cells', E'Mitochondria - the powerhouse of the cell\\nRibosome - makes proteins', 'Biology') as id`)).id;
+  assert.deepEqual(await rows(`select title, subject, preview from study_notes_list()`),
+    [{ title: 'Cells', subject: 'Biology', preview: 'Mitochondria - the powerhouse of the cell Ribosome - makes proteins' }]);
+  assert.equal((await rows(`select 1 from study_notes_list('POWERHOUSE  cell')`)).length, 1);
+  assert.equal((await rows(`select 1 from study_notes_list('powerhouse algebra')`)).length, 0);
+  await one(`select study_note_save('${note}', 'Cell parts', 'Nucleus - holds the DNA', 'Biology')`);
+  assert.equal((await one(`select body from study_notes where id = '${note}'`)).body, 'Nucleus - holds the DNA');
+  const subjects = (await one(`select study_subjects() as s`)).s as string[];
+  assert.ok(subjects.includes('Biology') && subjects.includes('English 10 – Period 3'), 'what she used, and her classes');
+
+  // A deck made from the note, with two cards, both new and due today.
+  const deck = (await one(`select study_deck_save(null, 'Cells', 'Biology', '${note}') as id`)).id;
+  await rejects(`select study_deck_save(null, '  ')`, /Give the deck a name/);
+  assert.equal((await one(`select study_cards_add('${deck}', '[{"front":"Mitochondria","back":"The powerhouse of the cell"},{"front":" Ribosome ","back":"Makes proteins"}]') as n`)).n, 2);
+  await rejects(`select study_cards_add('${deck}', '[{"front":"Nucleus","back":"  "}]')`, /front and a back/);
+  await rejects(`select study_cards_add('${deck}', '[]')`, /Add a card first/);
+  const [mito, ribo] = (await rows(`select id, front from study_cards where deck_id = '${deck}' order by position`)).map((c) => c.id);
+  assert.equal((await one(`select front from study_cards where id = '${ribo}'`)).front, 'Ribosome');
+  assert.deepEqual(await counts(), [2, 2, 2, 0]);
+
+  // Knowing a card moves it up a box and brings it back later; missing one keeps it in box 1, due again today.
+  assert.deepEqual(await review(mito, true), { box: 2, days: 1 });
+  assert.deepEqual(await review(ribo, false), { box: 1, days: 0 });
+  for (const [box, days] of [[3, 3], [4, 7], [5, 14], [5, 30]]) assert.deepEqual(await review(mito, true), { box, days });
+  assert.deepEqual(await counts(), [2, 1, 0, 1]);
+  assert.ok((await one(`select studied_at from study_decks_list()`)).studied_at);
+  await one(`select study_card_edit('${ribo}', 'Ribosome', 'Builds proteins')`);
+  assert.equal((await one(`select box from study_cards where id = '${ribo}'`)).box, 1, 'editing keeps its place');
+  await one(`select study_deck_save('${deck}', 'Cell parts', 'Biology')`);
+
+  // Starting over makes every card new again.
+  await one(`select study_deck_reset('${deck}')`);
+  assert.deepEqual(await counts(), [2, 2, 2, 0]);
+
+  // Nobody else sees or changes any of it: not her mother, her teacher, another student or the office.
+  for (const who of ['u-p01', 'u-eng', 'u-s02', 'u-admin']) {
+    await as(who, true);
+    for (const t of ['study_notes', 'study_decks', 'study_cards', 'study_notes_list()', 'study_decks_list()']) {
+      assert.equal((await rows(`select 1 from ${t}`)).length, 0, `${who}: ${t}`);
+    }
+    const refused = who === 'u-s02' ? /isn't yours/ : /Study is for students/;
+    await rejects(`select study_note_save('${note}', 'Mine now', '', '')`, refused);
+    await rejects(`select study_card_review('${mito}', true)`, refused);
+    await rejects(`select study_cards_add('${deck}', '[{"front":"a","back":"b"}]')`, refused);
+    await rejects(`select study_note_delete('${note}')`, /isn't yours/);
+    await rejects(`select study_deck_delete('${deck}')`, /isn't yours/);
+    await rejects(`select study_card_delete('${ribo}')`, /isn't yours/);
+  }
+  // Only students study, and only through the functions.
+  await as('u-p01');
+  await rejects(`select study_note_save(null, 'Grocery list', '', '')`, /Study is for students/);
+  await rejects(`select study_deck_save(null, 'Mine', '')`, /Study is for students/);
+  await rejects(`insert into study_notes (owner_id, title) values (${id('u-p01')}, 'x')`, /permission denied/);
+  await as('u-s01');
+  await rejects(`update study_cards set box = 5 where id = '${ribo}'`, /permission denied/);
+
+  // Deleting the note keeps the deck made from it; deleting a card or the deck takes them.
+  await one(`select study_note_delete('${note}')`);
+  assert.equal((await one(`select note_id from study_decks where id = '${deck}'`)).note_id, null);
+  await one(`select study_card_delete('${ribo}')`);
+  assert.deepEqual(await counts(), [1, 1, 1, 0]);
+  await one(`select study_deck_delete('${deck}')`);
+  assert.equal((await rows(`select 1 from study_cards`)).length, 0);
+
+  // They go with her login: taking it away (her profile stays) deletes her notes and cards.
+  const keep = (await one(`select study_deck_save(null, 'Spanish', 'Spanish') as id`)).id;
+  await one(`select study_cards_add('${keep}', '[{"front":"la manzana","back":"the apple"}]')`);
+  await one(`select study_note_save(null, 'Verbs', 'ser - to be', 'Spanish')`);
+  await asSuper();
+  await db.exec(`update profiles set managed = true where id = '${ava}'`);
+  for (const t of ['study_notes', 'study_decks', 'study_cards']) {
+    assert.equal((await rows(`select 1 from ${t} where owner_id = '${ava}'`)).length, 0, t);
+  }
+  await db.exec(`update profiles set managed = false where id = '${ava}'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();
