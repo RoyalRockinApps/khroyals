@@ -1,5 +1,5 @@
 /**
- * The More tab's menu, from the website's: the footer's Quick Links as a drop-down at
+ * The About screen's menu (Profile tab → About), from the website's: the footer's Quick Links as a drop-down at
  * the top (without Family Portal, which is in the menu, and with the menu's current
  * School Calendar; the footer's is last year's), then Student Life; no Admissions or
  * News; and Employment as a link next to Family Portal (the footer's buttons aren't

@@ -1,23 +1,30 @@
 import { useState } from 'react';
 import { Linking, ScrollView, Text, View } from 'react-native';
-import { getSite } from '../../src/api/mockApi';
-import { AutoImage } from '../../src/site/Blocks';
-import { openLink, routeFor } from '../../src/site/links';
-import { moreMenu } from '../../src/site/moreMenu';
-import { C, Card, H, Loading, P, s, useLoad } from '../../src/ui';
+import { Stack } from 'expo-router';
+import { getSite } from '../src/api/mockApi';
+import { AutoImage } from '../src/site/Blocks';
+import { openLink, routeFor } from '../src/site/links';
+import { moreMenu } from '../src/site/moreMenu';
+import { SCHOOL } from '../src/school';
+import { C, Card, H, Loading, P, s, useLoad } from '../src/ui';
 
 type Campus = { name: string; grades: string; line1: string; city: string; state: string; zip: string; phone: string };
 
-/** The website's menu (shaped for the app in src/site/moreMenu.ts), contact details and footer. */
-export default function More() {
+/**
+ * About the school (Profile tab → About, once the More tab): the website's menu (shaped for the app in
+ * src/site/moreMenu.ts), contact details and footer.
+ */
+export default function About() {
   const { data } = useLoad(getSite);
   const [open, setOpen] = useState<string | null>(null);
-  if (!data) return <Loading />;
+  const title = <Stack.Screen options={{ title: `About ${SCHOOL.name}` }} />;
+  if (!data) return <>{title}<Loading /></>;
   const { school, navigation, footer, social } = data;
   const external = (url: string) => routeFor(url).kind === 'external';
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
+      {title}
       {school.logo && <AutoImage uri={school.logo} contain maxHeight={110} />}
 
       {moreMenu(navigation, footer).map((n) => n.items ? (

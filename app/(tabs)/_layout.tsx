@@ -67,23 +67,12 @@ function NotificationsButton() {
   );
 }
 
-/** Round person button next to the bell; opens My profile (photo, name, notification settings). */
-function ProfileButton() {
-  return (
-    <Pressable onPress={() => router.push('/profile')} hitSlop={8}
-      accessibilityRole="button" accessibilityLabel="My profile"
-      style={({ pressed }) => [hs.bell, { marginRight: 10 }, pressed && { opacity: 0.6 }]}>
-      <Ionicons name="person-outline" size={20} color="#fff" />
-    </Pressable>
-  );
-}
-
 export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
       headerStyle: { backgroundColor: C.primary }, headerTintColor: '#fff', headerTitleStyle: { ...FONT_STYLE.title, fontSize: 20 },
       headerTitleAlign: 'left',
-      headerRight: () => <View style={{ flexDirection: 'row' }}><ProfileButton /><NotificationsButton /></View>,
+      headerRight: () => <NotificationsButton />,
       tabBarActiveTintColor: C.primary,
       tabBarBackground: TabBarEdge,
       // The page color around the centered content column on iPads and tablets.
@@ -96,7 +85,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="share" options={{ title: 'Share', tabBarIcon: icon('📲') }} />
       <Tabs.Screen name="apps" options={{ title: 'Apps', headerTitle: SCHOOL.tagline, tabBarButton: (props) => <AppsTabButton {...props} /> }} />
       <Tabs.Screen name="connect" options={{ title: 'Connect', tabBarIcon: icon('💬') }} />
-      <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: icon('☰') }} />
+      {/* My profile: photo, name, notifications, About the school (the website pages), Sign out. */}
+      <Tabs.Screen name="profile" options={{ title: 'Profile', headerTitle: 'My profile', tabBarIcon: icon('👤') }} />
     </Tabs>
   );
 }

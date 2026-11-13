@@ -165,7 +165,7 @@ Working in the app and on the server today.
 | Area | Feature | What it does |
 |---|---|---|
 | Accounts | Passwordless sign-in | Email a 6-digit code (10 min); new accounts wait for admin approval |
-| Accounts | My profile | Photo, name, push settings per group, quiet hours |
+| Accounts | My profile | The Profile tab (in place of More; the top bar keeps only the bell): photo, name, push settings per group, quiet hours, and About the school (the website pages) |
 | Accounts | My children | Parents edit photo, bio, birthday, allergies, health notes; grades move up every July 1 |
 | Accounts | Family accounts | Grandparents and relatives get car line, Volunteer, Activities; kept out of groups, Marketplace, Student, Ask the School |
 | School site | Website content in-app | All 23 pages, 55 news posts, home page and videos imported from khroyals.com |

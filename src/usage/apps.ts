@@ -10,7 +10,8 @@ export const USAGE_APPS: UsageApp[] = [
   { key: 'connect', label: 'Connect', paths: ['connect', 'group', 'post-stats'] },
   { key: 'main', label: 'Main Page', paths: ['apps'] },
   { key: 'share', label: 'Share', paths: ['share'] },
-  { key: 'more', label: 'More (website pages)', paths: ['more', 'page', 'video'] },
+  // Once the More tab; the key stays so earlier counts carry on.
+  { key: 'more', label: 'About the school (website pages)', paths: ['about', 'page', 'video'] },
   { key: 'carline', label: 'Car Line', paths: ['carline', 'carline-board', 'carline-settings', 'carline-transfer', 'vehicle'] },
   { key: 'classes', label: 'Classes', paths: ['attendance', 'checkout', 'checkin', 'onsite', 'extended-care', 'subs'] },
   { key: 'sub', label: 'Sub Days', paths: ['sub'] },
@@ -31,7 +32,7 @@ export const USAGE_APPS: UsageApp[] = [
   { key: 'assignments', label: 'Assignments', paths: ['assignments'] },
   { key: 'feedback', label: 'Feedback', paths: ['feedback'] },
   { key: 'admin', label: 'Admin portal', paths: ['admin', 'experiments'] },
-  { key: 'profile', label: 'My profile', paths: ['profile'] },
+  { key: 'profile', label: 'Profile', paths: ['profile'] },
   { key: 'children', label: 'My children', paths: ['children'] },
   { key: 'notifications', label: 'Notifications', paths: ['notifications'] },
 ];

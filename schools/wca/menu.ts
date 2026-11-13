@@ -1,5 +1,5 @@
 /**
- * The More tab's menu, from the website's: the footer's Quick Links as a drop-down at the top
+ * The About screen's menu (Profile tab → About), from the website's: the footer's Quick Links as a drop-down at the top
  * (Westminster Hub, Employment, transcripts…), then the site's own menu (About, Academics,
  * Admissions, Athletics, Give, Apply). Shaped here, not in the imported content, so a fresh
  * import of wca-hsv.org keeps it. No app imports, so tests run it.

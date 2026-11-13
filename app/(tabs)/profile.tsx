@@ -1,25 +1,26 @@
 /**
- * My profile: photo, name, and which notifications reach this person's phone
- * (overall categories, quiet hours, and a level per group). Sign out, and Delete my account at the bottom.
+ * The Profile tab (My profile): photo, name, and which notifications reach this person's phone
+ * (overall categories, quiet hours, and a level per group); About the school (its website pages and contact, app/about.tsx);
+ * Sign out, and Delete my account at the bottom. Demo builds (no server) show the demo person; saving needs the server.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { pickSquarePhoto } from '../src/photos';
+import { router, useFocusEffect } from 'expo-router';
+import { pickSquarePhoto } from '../../src/photos';
 import {
   isSchoolStaff, live, myGroupPrefs, mySettings, removeMyAvatar, session, setNotificationPref, signOut, updateMyName, updateMySettings,
   uploadMyAvatar, type GroupPref, type MySettings, type Person,
-} from '../src/api/connect';
-import { AlertLocationCard } from '../src/alerts/AlertLocationCard';
-import { EmergencyAlertsCard } from '../src/alerts/EmergencyAlertsCard';
-import { forgetCarPass } from '../src/carline/carPass';
-import { disableAutoCheckIn } from '../src/carline/autoCheckIn';
-import { MyVehicles } from '../src/carline/MyVehicles';
-import { DeleteAccount } from '../src/comms/DeleteAccount';
-import { disablePush, enablePush } from '../src/comms/push';
-import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../src/ui';
-import { TimeField } from '../src/forms/DateTimeField';
-import { SCHOOL } from '../src/school';
+} from '../../src/api/connect';
+import { AlertLocationCard } from '../../src/alerts/AlertLocationCard';
+import { EmergencyAlertsCard } from '../../src/alerts/EmergencyAlertsCard';
+import { forgetCarPass } from '../../src/carline/carPass';
+import { disableAutoCheckIn } from '../../src/carline/autoCheckIn';
+import { MyVehicles } from '../../src/carline/MyVehicles';
+import { DeleteAccount } from '../../src/comms/DeleteAccount';
+import { disablePush, enablePush } from '../../src/comms/push';
+import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
+import { TimeField } from '../../src/forms/DateTimeField';
+import { SCHOOL } from '../../src/school';
 
 const TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
 const LEVELS: [GroupPref['pref'], string][] = [['all', 'Everything'], ['mentions', 'Important only'], ['none', 'Off']];
@@ -39,6 +40,20 @@ const pill = (label: string, on: boolean, onPress: () => void) => (
       backgroundColor: on ? C.primary : '#fff', color: on ? '#fff' : C.ink, fontSize: 13 }}>{label}</Text>
 );
 const fail = (e: any) => Alert.alert('Something went wrong', e.message);
+
+/** The school's website pages, contact details and social media (once the More tab). */
+const AboutSchool = () => (
+  <Card onPress={() => router.push('/about')}>
+    <View style={s.row}>
+      <Text style={{ fontSize: 22 }}>🏫</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: '700', color: C.ink }}>About {SCHOOL.name}</Text>
+        <P muted>The school's website pages, contact details and social media</P>
+      </View>
+      <Text style={{ color: C.muted, fontSize: 18 }}>›</Text>
+    </View>
+  </Card>
+);
 
 export default function Profile() {
   const [person, setPerson] = useState<Person | null>(null);
@@ -68,13 +83,18 @@ export default function Profile() {
     if (gp.status === 'fulfilled') setGroups(gp.value);
   }, []);
   useEffect(() => { load().catch(fail).finally(() => setLoaded(true)); }, [load]);
+  // A tab stays open in the background, so catch up (a new photo, groups, another account) each time it comes back.
+  const shown = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (shown.current) load().catch(() => {});
+    shown.current = true;
+  }, [load]));
 
-  if (!live) return <View style={[s.screen, s.pad]}><P muted>Profiles need the school's {SCHOOL.connectName} account.</P></View>;
   if (loaded && !person) {
     return (
       <View style={[s.screen, s.pad]}>
-        <Stack.Screen options={{ title: 'My profile' }} />
         <Card><P>Log in on the Connect tab to set up your profile.</P><Button label="Go to Connect" onPress={() => router.replace('/connect')} /></Card>
+        <AboutSchool />
       </View>
     );
   }
@@ -127,12 +147,10 @@ export default function Profile() {
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: 'My profile' }} />
-
       <Card style={{ alignItems: 'center', gap: 10 }}>
         <Avatar person={person} size={112} />
         <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{person.firstName} {person.lastName}</Text>
-        <P muted>{person.email} · {person.schoolRole}{person.grade != null ? ` · grade ${person.grade}` : ''}</P>
+        <P muted>{[person.email, person.schoolRole, person.grade != null && `grade ${person.grade}`].filter(Boolean).join(' · ')}</P>
         <View style={[s.row, { flexWrap: 'wrap', justifyContent: 'center', gap: 16 }]}>
           {busy === 'photo' ? <Loading /> : (
             <>
@@ -236,6 +254,8 @@ export default function Profile() {
           </View>
         </Card>
       )}
+
+      <AboutSchool />
 
       <Button kind="ghost" label="Sign out" onPress={() => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(() => router.replace('/connect'))} />
       {live && <DeleteAccount person={person} onDone={() => router.replace('/connect')} />}

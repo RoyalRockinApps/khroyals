@@ -127,7 +127,7 @@ src/ScreenEdge.tsx    the thin red line around every light screen (navigators' s
 src/sports/           Activities: categories, season and sign-up rules, sample data, shared pieces
 src/carplay/          what the CarPlay screen shows and does (car line check-in)
 modules/carplay/      local Expo module: the CarPlay scene and templates (Swift)
-app/                  expo-router screens (tabs: Info · Share · Home · Connect · More;
+app/                  expo-router screens (tabs: Planner · Share · Home · Connect · Profile;
                       Home is the shield button, labeled along its curve, which opens
                       the Apps page: Car Line, Student, Calendar, News, …)
 tests/                permission engine tests
@@ -196,7 +196,7 @@ tools in other apps*. Those screens ask for the authenticator code right where t
 tool is (`VerifyCard` in `src/comms/MfaGate.tsx`), so nobody goes to the portal and
 back.
 
-**My profile** (person button in the top bar, or your name on Connect): profile
+**My profile** (the Profile tab, or your name on Connect): profile
 photo (private `avatars` bucket, signed URLs; staff with *people.roles* can remove
 one), name, and push settings — group posts, Marketplace, Volunteering, quiet
 hours, and a level per group. School-wide announcements always push. Settings only
@@ -204,7 +204,9 @@ filter pushes (`app.wants_push`); the in-app inbox still lists everything. At th
 (and on the Waiting for approval screen), **Delete my account**: type DELETE and the
 login, profile, posts, comments, sign-ups and settings go for good; children stay with
 the school. A student whose parents use the app loses only the login (their parents are
-told and can give one again). Directors hand the role on first.
+told and can give one again). Directors hand the role on first. **About** (`app/about.tsx`,
+a row on the Profile tab; once the More tab) keeps the school's website menu, contact
+details and social links.
 
 **Android Auto:** the car line on the car's screen — each child's status and an
 "I'm here" button (`modules/car-line`, using a per-phone car pass that can only do

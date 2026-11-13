@@ -1,4 +1,4 @@
-/** src/site/moreMenu.ts: the More tab's menu, reshaped from the website's. */
+/** src/site/moreMenu.ts: the About screen's menu (Profile tab → About), reshaped from the website's. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

@@ -66,7 +66,6 @@ export default function Root() {
       // The red edge line under the header; the tabs draw their own, and the video player and car line board are dark.
       screenLayout={edgeLayout({ bottom: true, skip: ['(tabs)', 'video', 'carline-board'] })}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="profile" options={{ title: 'My profile' }} />
     </Stack>
   );
   return (
