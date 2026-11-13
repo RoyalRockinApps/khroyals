@@ -5131,6 +5131,135 @@ test('study: a student\'s notes and flash cards are theirs alone; cards move thr
   await db.exec(`update profiles set managed = false where id = '${ava}'`);
 });
 
+test('bulletin boards: one for each academy and teacher; its class reads it, its teacher runs it, its parents chat', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [jenId, sci] = [await uid('u-eng'), await uid('u-sci')];
+  const told = async (who: string, board: string) => {
+    await as(who);
+    return (await rows(`select title || ' ' || body as t from my_notifications() where data->>'boardId' = '${board}'`)).map((n) => n.t).join('\n');
+  };
+  const boardsOf = async (who: string, mfa = false) => { await as(who, mfa); return (await one(`select my_boards() as b`)).b as any[]; };
+
+  // Kingdom Heights' academies come from its own file; each gets a board, and so does every teacher.
+  await asSuper();
+  for (const f of readdirSync(join(ROOT, 'supabase/schools/khroyals')).filter((x) => x.endsWith('_academies.sql'))) {
+    await db.exec(sql(join('supabase/schools/khroyals', f)));
+  }
+  assert.deepEqual((await rows(`select a.name from boards b join academies a on a.id = b.academy_id order by a.position`)).map((r) => r.name),
+    ['Early Learning Academy', 'Formation Academy', 'Presence Academy', 'Kingdom Academy']);
+  assert.equal((await rows(`select 1 from profiles p where school_role = 'teacher' and not exists (select 1 from boards where teacher_id = p.id)`)).length, 0);
+  const kingdom = (await one(`select id from boards where academy_id = 'kingdom'`)).id;
+  const jen = (await one(`select id from boards where teacher_id = '${jenId}'`)).id;
+  const sciBoard = (await one(`select id from boards where teacher_id = '${sci}'`)).id;
+
+  // Rosa (Ava's mother) sees Ava's English teacher's board and the Kingdom Academy's (Ava is in 10th), and no others.
+  let mine = await boardsOf('u-p01');
+  assert.deepEqual(mine.map((b) => b.id).sort(), [jen, kingdom].sort());
+  const jb = mine.find((b) => b.id === jen);
+  assert.deepEqual([jb.kind, jb.family, jb.editor, jb.chat, jb.children, jb.teacherName, jb.sections], ['teacher', true, false, true, ['Ava'], 'Jennifer Taylor', ['English 10 – Period 3']]);
+  assert.deepEqual(mine.find((b) => b.id === kingdom).chat, false, 'academy boards have no chat');
+  await rejects(`select board_pin('${jen}', 'note', 'Hi')`, /teacher or its editors pin/);
+  await rejects(`select board_post_save(null, '${jen}', '', 'Hello')`, /teacher or its editors make announcements/);
+  await rejects(`select board_decorate('${jen}', 'Mine', '', 'cork', 'none', null)`, /teacher or its editors decorate/);
+
+  // Jennifer pins a note and a photo of student work, moves the note to the front and decorates.
+  await as('u-eng');
+  assert.deepEqual([(await one(`select board_view('${jen}') as b`)).b.editor, (await one(`select board_view('${jen}') as b`)).b.leads], [true, true]);
+  const note = (await one(`select board_pin('${jen}', 'note', 'Spelling test Friday!', 'pink') as id`)).id;
+  await rejects(`select board_pin('${jen}', 'note', '   ')`, /Write something on the note/);
+  await rejects(`select board_pin('${jen}', 'photo', 'Leaves', 'white', '${sci}/work.jpg')`, /Upload the photo first/);
+  await asSuper();
+  await db.exec(`insert into storage.objects (bucket_id, name) values ('boards', '${jenId}/work.jpg')`);
+  await as('u-eng');
+  const photo = (await one(`select board_pin('${jen}', 'photo', 'Our leaf drawings', 'white', '${jenId}/work.jpg') as id`)).id;
+  assert.deepEqual((await rows(`select id from board_items where board_id = '${jen}' order by position desc`)).map((r) => r.id), [photo, note]);
+  await one(`select board_item_front('${note}')`);
+  assert.deepEqual((await rows(`select id from board_items where board_id = '${jen}' order by position desc`)).map((r) => r.id), [note, photo]);
+  await one(`select board_decorate('${jen}', '10th Grade English', 'Mrs. Taylor', 'chalk', 'scallop-gold', null)`);
+  await rejects(`select board_decorate('${jen}', '', '', 'plaid', 'none', null)`, /check constraint/);
+  assert.deepEqual((await one(`select title, byline, background, border from boards where id = '${jen}'`)),
+    { title: '10th Grade English', byline: 'Mrs. Taylor', background: 'chalk', border: 'scallop-gold' });
+
+  // An announcement tells the class's students and parents (not other families).
+  await rejects(`select board_post_save(null, '${jen}', 'Hi', '  ')`, /Write the announcement first/);
+  const post = (await one(`select board_post_save(null, '${jen}', 'Field trip', 'Permission slips are due Friday.', true) as id`)).id;
+  assert.match(await told('u-p01', jen), /📣 10th Grade English: Field trip Permission slips are due Friday\./);
+  assert.match(await told('u-s01', jen), /Field trip/);
+  assert.equal(await told('u-p07', jen), '');
+
+  // Ava reads the board and its announcements, but not the parents' chat.
+  await as('u-s01');
+  assert.equal((await rows(`select 1 from board_items where board_id = '${jen}'`)).length, 2);
+  assert.equal((await rows(`select 1 from board_posts where board_id = '${jen}'`)).length, 1);
+  assert.equal((await one(`select board_view('${jen}') as b`)).b.chat, false);
+  await rejects(`select board_chat_send('${jen}', 'Hi')`, /class's parents and its teacher/);
+
+  // Rosa and Jennifer chat; nobody else is in it (students, other parents, other staff, Family accounts, subs).
+  await as('u-p01');
+  const rosaSays = (await one(`select (board_chat_send('${jen}', 'Can I send snacks Friday?')).id as id`)).id;
+  await as('u-eng');
+  const jenSays = (await one(`select (board_chat_send('${jen}', 'Yes, thank you!')).id as id`)).id;
+  for (const who of ['u-s01', 'u-p07', 'u-sci', 'u-gran', 'u-sub']) {
+    await as(who);
+    assert.equal((await rows(`select 1 from board_chat_messages where board_id = '${jen}'`)).length, 0, who);
+    await rejects(`select board_chat_send('${jen}', 'Hi')`, /class's parents and its teacher/);
+  }
+  await as('u-p01');
+  await rejects(`select board_chat_delete('${jenSays}')`, /only remove your own/);
+  await one(`select board_chat_delete('${rosaSays}')`);
+  await rejects(`select board_chat_send('${kingdom}', 'Hi')`, /class's parents and its teacher/);
+
+  // Other families don't read it; Family accounts and substitutes have no boards; staff read every board.
+  await as('u-p07');
+  assert.equal((await one(`select board_view('${jen}') as b`)).b, null);
+  assert.equal((await rows(`select 1 from board_items where board_id = '${jen}'`)).length, 0);
+  assert.ok(!(await boardsOf('u-p07')).some((b) => b.id === jen));
+  assert.deepEqual(await boardsOf('u-gran'), []);
+  assert.deepEqual(await boardsOf('u-sub'), []);
+  const staff = await boardsOf('u-sci');
+  assert.ok([jen, kingdom, sciBoard].every((b) => staff.some((x) => x.id === b)), 'staff read every board');
+  assert.deepEqual([staff[0].kind, staff.find((b) => b.id === sciBoard).editor, staff.find((b) => b.id === jen).editor], ['academy', true, false]);
+  await as('u-sci');
+  await rejects(`select board_pin('${jen}', 'note', 'Hi')`, /teacher or its editors pin/);
+
+  // An admin with Groups puts Jessica in charge of the Kingdom Academy's board; she announces there.
+  await as('u-sci');
+  await rejects(`select board_editor_set('${kingdom}', '${sci}', true)`, /Only admins with Groups/);
+  await as('u-admin', true);
+  await rejects(`select board_editor_set('${kingdom}', ${id('u-p01')}, true)`, /run by teachers and staff/);
+  await one(`select board_editor_set('${kingdom}', '${sci}', true)`);
+  assert.equal((await one(`select board_view('${kingdom}') as b`)).b.leads, false, 'admins edit every board without it being theirs');
+  await as('u-sci');
+  assert.equal((await one(`select board_view('${kingdom}') as b`)).b.leads, true);
+  await one(`select board_pin('${kingdom}', 'note', 'Welcome back, Kingdom Academy!', 'blue')`);
+  await one(`select board_post_save(null, '${kingdom}', 'Chapel', 'Chapel is at 9:00 on Wednesday.', false)`);
+  assert.match(await told('u-p01', kingdom), /📣 Kingdom Academy: Chapel/);
+
+  // The photos: the album an editor links, else (a teacher board) the class's grade album when it's all one grade.
+  await asSuper();
+  const grades = (await rows(`select distinct p.grade from app.board_students('${jen}') s join profiles p on p.id = s`)).map((r) => r.grade);
+  let gradeAlbum = (await rows(`select id from gallery_albums where grade = 10 and school_year = app.school_year_end()`))[0]?.id;
+  if (!gradeAlbum) {
+    gradeAlbum = (await one(`insert into gallery_albums (title, taken_on, visibility, grade, school_year)
+      values ('10th Grade', app.school_today(), 'everyone', 10, app.school_year_end()) returning id`)).id;
+  }
+  await as('u-eng');
+  assert.equal((await one(`select board_view('${jen}') as b`)).b.albumId, grades.length === 1 && grades[0] === 10 ? gradeAlbum : null);
+  const linked = (await one(`select id from gallery_albums where grade is null and visibility = 'everyone' limit 1`))?.id ?? gradeAlbum;
+  await one(`select board_decorate('${jen}', '10th Grade English', 'Mrs. Taylor', 'chalk', 'scallop-gold', '${linked}')`);
+  assert.equal((await one(`select board_view('${jen}') as b`)).b.albumId, linked);
+
+  // Taking things down: the photo comes back so the app can remove the file; announcements go too.
+  assert.equal((await one(`select board_unpin('${photo}') as p`)).p, `${jenId}/work.jpg`);
+  await one(`select board_post_delete('${post}')`);
+  await rejects(`insert into board_items (board_id, kind, body) values ('${jen}', 'note', 'x')`, /permission denied/);
+
+  await asSuper();
+  await db.exec(`delete from academies; delete from board_items; delete from board_posts; delete from board_chat_messages;
+    update boards set title = '', byline = '', background = 'cork', border = 'scallop-red', album_id = null;
+    delete from storage.objects where bucket_id = 'boards'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

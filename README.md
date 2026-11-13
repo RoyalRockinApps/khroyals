@@ -127,7 +127,7 @@ src/ScreenEdge.tsx    the thin red line around every light screen (navigators' s
 src/sports/           Activities: categories, season and sign-up rules, sample data, shared pieces
 src/carplay/          what the CarPlay screen shows and does (car line check-in)
 modules/carplay/      local Expo module: the CarPlay scene and templates (Swift)
-app/                  expo-router screens (tabs: Planner · Share · Home · Connect · Profile;
+app/                  expo-router screens (tabs: Planner · Share · Home · Boards · Profile;
                       Home is the shield button, labeled along its curve, which opens
                       the Apps page: Car Line, Student, Calendar, News, …)
 tests/                permission engine tests
@@ -196,7 +196,7 @@ tools in other apps*. Those screens ask for the authenticator code right where t
 tool is (`VerifyCard` in `src/comms/MfaGate.tsx`), so nobody goes to the portal and
 back.
 
-**My profile** (the Profile tab, or your name on Connect): your photo and name on top
+**My profile** (the Profile tab): your photo and name on top
 (tap to change), then a short menu like a phone's Settings (`src/profile/SettingsList.tsx`),
 each row saying what's set now and opening its own screen (`app/profile/`): *Name & photo*,
 *My children*, *My vehicles*, *Notifications*, *Emergency alerts* (staff and substitutes),
@@ -642,12 +642,32 @@ still see the F.A.Q.s under the message.
 only created with `supabase_setup.mjs --demo`, for local or throwaway projects. The
 app has no demo logins.
 
+## Bulletin boards (the Boards tab)
+
+The tab once called Connect (its route is still `/connect`, where sign-in links go) is the school's **bulletin boards**:
+a main board for each academy (Kingdom Heights: Early Learning K2–K4, Formation K–5th, Presence 6th–8th, Kingdom
+9th–12th; a school's academies are in `supabase/schools/<id>/`, table `academies`) and a board for every teacher. A
+teacher sees their own board first; parents see their children's teachers' and academies' boards (with the child's name
+on each), students their own; staff see every board. The groups people are in are folded at the bottom (*Groups*).
+
+A board (`app/board/[id]`, drawn by `src/boards/Corkboard.tsx`) reads top to bottom like the classroom one: the board
+itself, its title on a strip of paper (a teacher's class grade or name and their name under it, until they name it),
+notes on colored paper and photos of student work pinned up at a slight tilt, and a strip of class photos from an
+album (the one its editors link, else the class's grade album when the class is all one grade); then the teacher's
+**announcements** (pinned ones first; a new one notifies the class's families and students); then, on teacher boards,
+the **parent chat**, for the class's parents and the teacher only. Its teacher (and staff an admin with Groups puts in
+charge, `board_editors`; academy boards are run this way) pins notes and student work, takes them down or moves them to
+the front (tap one), announces, and decorates it from the gear: title, the name under it, background (cork, felt,
+paper, a chalkboard), border trim (scallops, a rainbow, a wooden frame) and the photo album. Who's on a board is worked
+out, never stored (`app.board_students`: the sections a teacher leads, or an academy's grades); Family accounts and
+substitutes have no boards. Student work photos are in the private `boards` bucket, read only by whoever reads the board.
+
 ## Royals Connect — how groups work
 
 Every group is one primitive with a **style preset** plus fully overridable settings.
 
 **Hide, archive, delete.** Any member hides a group from their own list (*Hide from my groups* on
-the group; it comes back under *Hidden from my list* on the Connect tab), which matters for groups
+the group; it comes back under *Hidden from my list* in Groups on the Boards tab), which matters for groups
 the school put them in and they can't leave (`group_hide`, `memberships.hidden_at`). A group's owners
 (and `groups.manage`) **archive** it in Group settings: it's gone for everyone else (lists, its posts,
 events and members) and takes nothing new, until they restore it (`group_archive`; `app.effective_role`
@@ -679,7 +699,7 @@ touching manually-added people. Groups can nest (Volleyball → Volleyball Famil
 
 **Roles**: school admins act as owners everywhere; only staff can create groups.
 
-The **Connect** tab has a "Viewing as" switcher so you can test as admin, teacher,
+The **Boards** tab has a "Viewing as" switcher so you can test as admin, teacher,
 coach, student, a muted student, or a parent and watch permissions change.
 
 ## Moving to production

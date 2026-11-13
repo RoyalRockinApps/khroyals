@@ -562,3 +562,19 @@ export type StudyDeck = {
 export type StudyCard = { id: string; deckId: string; front: string; back: string; position: number; box: number; dueOn: string; reviewedAt: string | null };
 export type CardText = { front: string; back: string };
 
+/**
+ * A bulletin board (the Boards tab): an academy's main board or a teacher's. `family`: the caller's own class or
+ * academy (they're its student or a parent of one; `children` names them); `editor`: they pin, post and decorate;
+ * `leads`: it's theirs (its teacher, or put in charge of it); `chat`: they're in its parent chat. `albumId`: the photos it shows (`linkedAlbumId`, the album its editors chose; null: the class's grade album). The heading comes from src/boards/decor.ts.
+ */
+export type Board = {
+  id: string; kind: 'academy' | 'teacher'; academyId: string | null; academyName: string | null; minGrade: number | null; maxGrade: number | null;
+  position: number | null; teacherId: string | null; teacherName: string | null; teacherAvatar: string;
+  title: string; byline: string; background: string; border: string;
+  editor: boolean; leads: boolean; family: boolean; chat: boolean; children: string[]; grades: number[]; sections: string[];
+  items: number; lastPostAt: string | null; albumId: string | null; linkedAlbumId: string | null;
+};
+/** Pinned to a board: a note (its words, on colored paper) or a photo of student work (with a caption). */
+export type BoardItem = { id: string; boardId: string; kind: 'note' | 'photo'; body: string; color: string; image: string | null; photo: string; position: number; createdAt: string };
+export type BoardPost = { id: string; boardId: string; authorId: string | null; title: string; body: string; pinned: boolean; createdAt: string; updatedAt: string };
+export type BoardChatMessage = { id: string; boardId: string; authorId: string; body: string; createdAt: string };

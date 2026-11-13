@@ -4,7 +4,7 @@ import { run } from './client';
 
 export function clearSignedUrls() { avatarSigned.clear(); photoUrls.clear(); }
 
-type PhotoBucket = 'avatars' | 'marketplace' | 'volunteer';
+type PhotoBucket = 'avatars' | 'marketplace' | 'volunteer' | 'boards';
 
 export async function uploadJpeg(bucket: PhotoBucket, path: string, base64: string) {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));

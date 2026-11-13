@@ -89,6 +89,16 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   exist only for their owners (`app.effective_role` returns null for anyone else, mirrored in `src/comms/permissions.ts`)
   and take no new posts, comments or events (trigger `app.refuse_archived`). Only an archived group is deleted
   (`group_delete`, its name typed to confirm), logged in the school-wide audit log.
+- **Bulletin boards** (the Boards tab, once Connect; `app/(tabs)/connect.tsx` keeps the `/connect` route because sign-in
+  links go there; `boards`, `board_items`, `board_posts`, `board_chat_messages`, `board_editors`, `academies`): a board per
+  teacher (made for every `school_role = 'teacher'`, trigger `board_for_teacher`) and per academy (a school's academies are
+  its own data: `supabase/schools/<id>/…_academies.sql`, never a shared migration). Who's on one is worked out
+  (`app.board_students`: the sections the teacher leads, or the academy's grades); `app.sees_board` lets in staff, its
+  editors, its students and their parents (never Family accounts or substitutes); `app.board_editor` is the teacher,
+  `board_editors` staff and `groups.manage`; the chat (`app.in_board_chat`, teacher boards only) is the class's parents and
+  the editors, never students or other staff. Decorations and paper colors are in both `src/boards/decor.ts` and the
+  database checks (`tests/boards.test.ts`). Student work photos go in the private `boards` bucket under the uploader's
+  folder; keep the caption hint about leaving out students' last names.
 - **Family accounts** (`school_role = 'family'`: grandparents, other relatives) are closed
   by default. They get car line pickup for the children the office links in
   `family_pickups` (never `guardians`), Volunteer, Activities (follow, no sign-ups) and the

@@ -7,7 +7,8 @@ export type UsageApp = { key: string; label: string; paths: string[] };
 
 export const USAGE_APPS: UsageApp[] = [
   { key: 'planner', label: 'Planner', paths: ['', 'index'] },
-  { key: 'connect', label: 'Connect', paths: ['connect', 'group', 'post-stats'] },
+  // Once Connect; the key stays so earlier counts carry on.
+  { key: 'connect', label: 'Bulletin Boards', paths: ['connect', 'board', 'group', 'post-stats'] },
   { key: 'main', label: 'Main Page', paths: ['apps'] },
   { key: 'share', label: 'Share', paths: ['share'] },
   // Once the More tab; the key stays so earlier counts carry on.

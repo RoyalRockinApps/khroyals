@@ -84,7 +84,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Planner', headerTitle: headerDate(), tabBarIcon: icon('🗓️') }} />
       <Tabs.Screen name="share" options={{ title: 'Share', tabBarIcon: icon('📲') }} />
       <Tabs.Screen name="apps" options={{ title: 'Apps', headerTitle: SCHOOL.tagline, tabBarButton: (props) => <AppsTabButton {...props} /> }} />
-      <Tabs.Screen name="connect" options={{ title: 'Connect', tabBarIcon: icon('💬') }} />
+      {/* Bulletin boards (once Connect; the route stays /connect, where sign-in links go). */}
+      <Tabs.Screen name="connect" options={{ title: 'Boards', headerTitle: 'Bulletin Boards', tabBarIcon: icon('📌') }} />
       {/* My profile: photo, name, notifications, About the school (the website pages), Sign out. */}
       <Tabs.Screen name="profile" options={{ title: 'Profile', headerTitle: 'My profile', tabBarIcon: icon('👤') }} />
     </Tabs>

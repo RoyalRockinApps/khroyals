@@ -10,6 +10,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      academies: {
+        Row: { id: string; max_grade: number; min_grade: number; name: string; position: number }
+        Insert: { id: string; max_grade: number; min_grade: number; name: string; position?: number }
+        Update: { id?: string; max_grade?: number; min_grade?: number; name?: string; position?: number }
+        Relationships: []
+      }
+      board_chat_messages: {
+        Row: { author_id: string; board_id: string; body: string; created_at: string; id: string }
+        Insert: { author_id: string; board_id: string; body: string; created_at?: string; id?: string }
+        Update: { author_id?: string; board_id?: string; body?: string; created_at?: string; id?: string }
+        Relationships: []
+      }
+      board_editors: {
+        Row: { board_id: string; user_id: string }
+        Insert: { board_id: string; user_id: string }
+        Update: { board_id?: string; user_id?: string }
+        Relationships: []
+      }
+      board_items: {
+        Row: { author_id: string | null; board_id: string; body: string; color: string; created_at: string; id: string; image: string | null; kind: string; position: number }
+        Insert: { author_id?: string | null; board_id: string; body?: string; color?: string; created_at?: string; id?: string; image?: string | null; kind: string; position?: number }
+        Update: { author_id?: string | null; board_id?: string; body?: string; color?: string; created_at?: string; id?: string; image?: string | null; kind?: string; position?: number }
+        Relationships: []
+      }
+      board_posts: {
+        Row: { author_id: string | null; board_id: string; body: string; created_at: string; id: string; pinned: boolean; title: string; updated_at: string }
+        Insert: { author_id?: string | null; board_id: string; body: string; created_at?: string; id?: string; pinned?: boolean; title?: string; updated_at?: string }
+        Update: { author_id?: string | null; board_id?: string; body?: string; created_at?: string; id?: string; pinned?: boolean; title?: string; updated_at?: string }
+        Relationships: []
+      }
+      boards: {
+        Row: { academy_id: string | null; album_id: string | null; background: string; border: string; byline: string; created_at: string; id: string; teacher_id: string | null; title: string; updated_at: string }
+        Insert: { academy_id?: string | null; album_id?: string | null; background?: string; border?: string; byline?: string; created_at?: string; id?: string; teacher_id?: string | null; title?: string; updated_at?: string }
+        Update: { academy_id?: string | null; album_id?: string | null; background?: string; border?: string; byline?: string; created_at?: string; id?: string; teacher_id?: string | null; title?: string; updated_at?: string }
+        Relationships: []
+      }
       admin_roles: {
         Row: {
           created_at: string
@@ -3140,6 +3176,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      board_chat_delete: { Args: { p_id: string }; Returns: undefined }
+      board_chat_send: {
+        Args: { p_board: string; p_body: string }
+        Returns: Database["public"]["Tables"]["board_chat_messages"]["Row"]
+      }
+      board_decorate: {
+        Args: { p_album: string; p_background: string; p_board: string; p_border: string; p_byline: string; p_title: string }
+        Returns: undefined
+      }
+      board_editor_set: { Args: { p_board: string; p_on: boolean; p_user: string }; Returns: undefined }
+      board_item_front: { Args: { p_item: string }; Returns: undefined }
+      board_pin: {
+        Args: { p_board: string; p_body: string; p_color?: string; p_image?: string; p_kind: string }
+        Returns: string
+      }
+      board_post_delete: { Args: { p_id: string }; Returns: undefined }
+      board_post_save: {
+        Args: { p_board: string; p_body: string; p_id: string; p_pinned?: boolean; p_title: string }
+        Returns: string
+      }
+      board_unpin: { Args: { p_item: string }; Returns: string }
+      board_view: { Args: { p_board: string }; Returns: Json }
+      my_boards: { Args: never; Returns: Json }
       absence_cancel: { Args: { p_id: string }; Returns: undefined }
       absence_list: {
         Args: { p_days?: number; p_from?: string }

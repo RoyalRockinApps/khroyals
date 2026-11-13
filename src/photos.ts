@@ -4,7 +4,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { SCHOOL } from './school';
 
-export async function pickSquarePhoto(camera: boolean): Promise<string | null> {
+/** `size`: the most pixels on a side (profile photos 512; student work on a bulletin board more). */
+export async function pickSquarePhoto(camera: boolean, size = 512): Promise<string | null> {
   if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
     Alert.alert('Camera is off', `Allow camera access for ${SCHOOL.appName} in Settings to take a photo.`);
     return null;
@@ -16,7 +17,7 @@ export async function pickSquarePhoto(camera: boolean): Promise<string | null> {
   const ctx = ImageManipulator.manipulate(asset.uri);
   const side = Math.min(asset.width, asset.height);
   if (asset.width !== asset.height) ctx.crop({ originX: (asset.width - side) / 2, originY: (asset.height - side) / 2, width: side, height: side });
-  if (side > 512) ctx.resize({ width: 512, height: 512 });
+  if (side > size) ctx.resize({ width: size, height: size });
   const out = await (await ctx.renderAsync()).saveAsync({ compress: 0.75, format: SaveFormat.JPEG, base64: true });
   return out.base64 ?? null;
 }
