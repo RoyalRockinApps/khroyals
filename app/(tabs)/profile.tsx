@@ -1,264 +1,104 @@
 /**
- * The Profile tab (My profile): photo, name, and which notifications reach this person's phone
- * (overall categories, quiet hours, and a level per group); About the school (its website pages and contact, app/about.tsx);
- * Sign out, and Delete my account at the bottom. Demo builds (no server) show the demo person; saving needs the server.
+ * The Profile tab (My profile): who you are at the top (photo, name, role; tap to change), then a short menu like a
+ * phone's Settings (src/profile/SettingsList.tsx), each row saying what's set now and opening its own screen:
+ * You (Name & photo, My children, My vehicles), Notifications (what reaches your phone; Emergency alerts for staff),
+ * School (About the school's website pages, Send feedback), then Sign out, Delete my account and the app's version.
+ * Demo builds (no server) show the demo person; saving needs the server.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { pickSquarePhoto } from '../../src/photos';
+import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  isSchoolStaff, live, myGroupPrefs, mySettings, removeMyAvatar, session, setNotificationPref, signOut, updateMyName, updateMySettings,
-  uploadMyAvatar, type GroupPref, type MySettings, type Person,
+  ROLE_LABELS, isSchoolStaff, live, mySettings, myVehicles, signOut, type MySettings, type Vehicle,
 } from '../../src/api/connect';
-import { AlertLocationCard } from '../../src/alerts/AlertLocationCard';
-import { EmergencyAlertsCard } from '../../src/alerts/EmergencyAlertsCard';
 import { forgetCarPass } from '../../src/carline/carPass';
 import { disableAutoCheckIn } from '../../src/carline/autoCheckIn';
-import { MyVehicles } from '../../src/carline/MyVehicles';
+import { vehicleLabel } from '../../src/carline/vehicles';
 import { DeleteAccount } from '../../src/comms/DeleteAccount';
-import { disablePush, enablePush } from '../../src/comms/push';
-import { Avatar, Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
-import { TimeField } from '../../src/forms/DateTimeField';
+import { disablePush } from '../../src/comms/push';
+import { timeLabel } from '../../src/forms/dates';
+import { Group, Row, useMe } from '../../src/profile/SettingsList';
 import { SCHOOL } from '../../src/school';
+import { Avatar, Button, C, Card, Loading, P, s } from '../../src/ui';
 
-const TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
-const LEVELS: [GroupPref['pref'], string][] = [['all', 'Everything'], ['mentions', 'Important only'], ['none', 'Off']];
-
-const Toggle = ({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: boolean; onChange?: (v: boolean) => void; disabled?: boolean }) => (
-  <View style={[s.row, { justifyContent: 'space-between' }]}>
-    <View style={{ flex: 1 }}>
-      <Text style={{ fontWeight: '600', color: disabled ? C.muted : C.ink }}>{label}</Text>
-      {hint && <P muted>{hint}</P>}
-    </View>
-    <Switch value={value} onValueChange={onChange} disabled={disabled} trackColor={{ true: C.primary }} accessibilityLabel={label} />
-  </View>
-);
-const pill = (label: string, on: boolean, onPress: () => void) => (
-  <Text key={label} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }}
-    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: C.line,
-      backgroundColor: on ? C.primary : '#fff', color: on ? '#fff' : C.ink, fontSize: 13 }}>{label}</Text>
-);
-const fail = (e: any) => Alert.alert('Something went wrong', e.message);
-
-/** The school's website pages, contact details and social media (once the More tab). */
-const AboutSchool = () => (
-  <Card onPress={() => router.push('/about')}>
-    <View style={s.row}>
-      <Text style={{ fontSize: 22 }}>🏫</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: '700', color: C.ink }}>About {SCHOOL.name}</Text>
-        <P muted>The school's website pages, contact details and social media</P>
-      </View>
-      <Text style={{ color: C.muted, fontSize: 18 }}>›</Text>
-    </View>
-  </Card>
-);
+// The iPhone app is always version 1.0, so its build number tells builds apart.
+const ios = Constants.expoConfig?.ios;
+const VERSION = Platform.OS === 'ios' && ios?.version ? `${ios.version}${ios.buildNumber ? ` (${ios.buildNumber})` : ''}` : Constants.expoConfig?.version;
 
 export default function Profile() {
-  const [person, setPerson] = useState<Person | null>(null);
-  const [first, setFirst] = useState('');
-  const [last, setLast] = useState('');
+  const [me] = useMe();
   const [settings, setSettings] = useState<MySettings | null>(null);
-  const [quiet, setQuiet] = useState({ on: false, start: '21:00', end: '07:00' });
-  const [groups, setGroups] = useState<GroupPref[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [device, setDevice] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [settingsError, setSettingsError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const p = await session();
-    setPerson(p);
-    if (!p) return;
-    setFirst(p.firstName); setLast(p.lastName);
-    // Photo and name still work if notification settings can't load; say what failed.
-    const [st, gp] = await Promise.allSettled([mySettings(), myGroupPrefs()]);
-    if (st.status === 'fulfilled') {
-      setSettings(st.value);
-      setQuiet({ on: !!st.value.quietStart, start: st.value.quietStart ?? '21:00', end: st.value.quietEnd ?? '07:00' });
-    } else {
-      setSettingsError(st.reason?.message ?? 'Notification settings are unavailable right now.');
-    }
-    if (gp.status === 'fulfilled') setGroups(gp.value);
-  }, []);
-  useEffect(() => { load().catch(fail).finally(() => setLoaded(true)); }, [load]);
-  // A tab stays open in the background, so catch up (a new photo, groups, another account) each time it comes back.
-  const shown = useRef(false);
+  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  // What each row says is set now, fresh whenever the tab comes back into view.
   useFocusEffect(useCallback(() => {
-    if (shown.current) load().catch(() => {});
-    shown.current = true;
-  }, [load]));
+    mySettings().then(setSettings).catch(() => {});
+    myVehicles().then(setVehicles).catch(() => {});
+  }, []));
 
-  if (loaded && !person) {
+  if (me === undefined) return <Loading />;
+  if (!me) {
     return (
-      <View style={[s.screen, s.pad]}>
+      <ScrollView style={s.screen} contentContainerStyle={s.pad}>
         <Card><P>Log in on the Connect tab to set up your profile.</P><Button label="Go to Connect" onPress={() => router.replace('/connect')} /></Card>
-        <AboutSchool />
-      </View>
+        <Group><Row first icon="school" tint={C.primary} title={`About ${SCHOOL.name}`} sub="Website pages, contact details" onPress={() => router.push('/about')} /></Group>
+      </ScrollView>
     );
   }
-  if (!person || (!settings && !settingsError)) return <Loading />;
 
-  // Family accounts have no groups, children to manage or Marketplace, so those settings stay out of the way.
-  const family = person.schoolRole === 'family';
-  const sub = person.schoolRole === 'substitute';   // Substitutes: no groups, children, Marketplace or Volunteer either
-  const adult = person.schoolRole !== 'student' && !family && !sub;
-  const step = async (key: string, fn: () => Promise<unknown>) => {
-    setBusy(key);
-    try { await fn(); } catch (e: any) { fail(e); } finally { setBusy(null); }
-  };
-
-  const pickPhoto = (camera: boolean) => step('photo', async () => {
-    const base64 = await pickSquarePhoto(camera);
-    if (!base64) return;
-    await uploadMyAvatar(base64);
-    setPerson(await session());
-  });
-  const removePhoto = () => step('photo', async () => { await removeMyAvatar(); setPerson(await session()); });
-
-  const saveName = () => step('name', async () => {
-    await updateMyName(first, last);
-    setPerson(await session());
-    Alert.alert('Saved', 'Your name is updated.');
-  });
-
-  const saveSettings = (next: MySettings) => step('settings', async () => setSettings(await updateMySettings(next)));
-  const saveQuiet = (q = quiet) => {
-    if (q.on && (!TIME.test(q.start) || !TIME.test(q.end))) return Alert.alert('Quiet hours', 'Choose when quiet hours start and end.');
-    if (!settings) return;
-    const pad = (t: string) => t.padStart(5, '0');
-    saveSettings({ ...settings, quietStart: q.on ? pad(q.start) : null, quietEnd: q.on ? pad(q.end) : null });
-  };
-  const setGroupPref = (g: GroupPref, pref: GroupPref['pref']) => step(`g:${g.groupId}`, async () => {
-    await setNotificationPref(g.groupId, pref);
-    setGroups(groups.map((x) => (x.groupId === g.groupId ? { ...x, pref } : x)));
-  });
-
-  const checkDevice = () => step('device', async () => {
-    const r = await enablePush();
-    setDevice(r.state === 'on' ? 'Notifications are on for this device.' : r.detail ?? 'Notifications are off for this device.');
-    if (r.state === 'denied') {
-      Alert.alert('Notifications are off', `Turn on notifications for ${SCHOOL.appName} in your phone's settings.`, [
-        { text: 'Not now', style: 'cancel' }, { text: 'Open settings', onPress: () => Linking.openSettings() },
-      ]);
-    }
-  });
+  // Family accounts and substitutes have no children to manage; Family accounts and staff pick children up.
+  const family = me.schoolRole === 'family';
+  const sub = me.schoolRole === 'substitute';
+  const adult = me.schoolRole !== 'student' && !family && !sub;
+  const drives = !me.pending && (adult || family);
+  const alerts = isSchoolStaff(me) || sub;
+  const quiet = settings?.quietStart && settings.quietEnd ? `Quiet hours ${timeLabel(settings.quietStart)} – ${timeLabel(settings.quietEnd)}` : null;
+  const role = `${ROLE_LABELS[me.schoolRole] ?? me.schoolRole}${me.grade != null ? ` · grade ${me.grade}` : ''}`;
+  const leave = () => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(() => router.replace('/connect'));
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
-      <Card style={{ alignItems: 'center', gap: 10 }}>
-        <Avatar person={person} size={112} />
-        <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{person.firstName} {person.lastName}</Text>
-        <P muted>{[person.email, person.schoolRole, person.grade != null && `grade ${person.grade}`].filter(Boolean).join(' · ')}</P>
-        <View style={[s.row, { flexWrap: 'wrap', justifyContent: 'center', gap: 16 }]}>
-          {busy === 'photo' ? <Loading /> : (
-            <>
-              {Platform.OS !== 'web' && <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => pickPhoto(true)}>Take photo</Text>}
-              <Text style={{ color: C.primary, fontWeight: '700' }} onPress={() => pickPhoto(false)}>{person.avatar ? 'Change photo' : 'Add a photo'}</Text>
-              {!!person.avatar && <Text style={{ color: C.danger, fontWeight: '600' }} onPress={removePhoto}>Remove</Text>}
-            </>
-          )}
-        </View>
-        <P muted>Everyone at school who uses {SCHOOL.connectName} can see your photo.</P>
-      </Card>
-
-      {adult && (
-        <Card onPress={() => router.push('/children')}>
-          <View style={s.row}>
-            <Text style={{ fontSize: 22 }}>👨‍👩‍👧</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '700', color: C.ink }}>My children</Text>
-              <P muted>Photos, birthdays, allergies, and adding a child</P>
-            </View>
-            <Text style={{ color: C.muted, fontSize: 18 }}>›</Text>
+    <ScrollView style={s.screen} contentContainerStyle={[s.pad, { gap: 18 }]}>
+      <Pressable onPress={() => router.push('/profile/edit')} accessibilityRole="button" accessibilityLabel={`${me.firstName} ${me.lastName}, ${role}. Change name or photo`}
+        style={({ pressed }) => [{ alignItems: 'center', gap: 6, paddingTop: 8 }, pressed && { opacity: 0.8 }]}>
+        <View>
+          <Avatar person={me} size={104} />
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 34, height: 34, borderRadius: 17, backgroundColor: C.primary,
+            borderWidth: 3, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="camera" size={16} color="#fff" />
           </View>
-        </Card>
-      )}
-
-      {/* Whoever picks children up: parents, Family accounts and staff. */}
-      {!person.pending && (adult || family) && <MyVehicles />}
-
-      <Card>
-        <H>Name</H>
-        <View style={s.row}>
-          <Field label="First name" autoComplete="given-name" textContentType="givenName" value={first} onChangeText={setFirst} style={{ flex: 1, minWidth: 0 }} />
-          <Field label="Last name" autoComplete="family-name" textContentType="familyName" value={last} onChangeText={setLast} style={{ flex: 1, minWidth: 0 }} />
         </View>
-        <Button label={busy === 'name' ? 'Saving…' : 'Save name'} onPress={saveName}
-          disabled={!!busy || !first.trim() || !last.trim() || (first.trim() === person.firstName && last.trim() === person.lastName)} />
-      </Card>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: C.ink, marginTop: 4 }}>{me.firstName} {me.lastName}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: C.primary }}>{role}</Text>
+        {!!me.email && <Text style={{ color: C.muted }}>{me.email}</Text>}
+      </Pressable>
 
-      {!settings ? (
-        <Card><H>Notifications</H><P muted>Notification settings couldn't load: {settingsError}</P></Card>
-      ) : (<>
-      <Card>
-        <H>Notifications</H>
-        <P muted>Choose what reaches your phone. Everything still shows under the bell in the app.</P>
-        <Toggle label="School announcements" hint="News from the school office. Urgent ones (closures, safety) always come through." value={settings.pushSchool}
-          onChange={(v) => saveSettings({ ...settings, pushSchool: v })} />
-        {!family && !sub && <Toggle label="Group posts" hint="Fine-tune each group below." value={settings.pushGroups}
-          onChange={(v) => saveSettings({ ...settings, pushGroups: v })} />}
-        {!family && !sub && <Toggle label="Replies" hint="Replies on posts you follow. You follow your own posts and ones you reply to; tap 🔔 on any post to change." value={settings.pushReplies}
-          onChange={(v) => saveSettings({ ...settings, pushReplies: v })} />}
-        {adult && <Toggle label="Marketplace" hint="Dibs, offers and sales on your items." value={settings.pushMarketplace}
-          onChange={(v) => saveSettings({ ...settings, pushMarketplace: v })} />}
-        {(adult || family) && <Toggle label="Volunteering" hint="Sign-ups and changes to opportunities." value={settings.pushVolunteer}
-          onChange={(v) => saveSettings({ ...settings, pushVolunteer: v })} />}
-        <Toggle label="Quiet hours" hint="No notifications overnight (urgent school announcements still come through)." value={quiet.on}
-          onChange={(on) => { const q = { ...quiet, on }; setQuiet(q); saveQuiet(q); }} />
-        {quiet.on && (
-          <>
-            <View style={s.row}>
-              <TimeField label="From" value={quiet.start} onChange={(start) => setQuiet({ ...quiet, start })} style={{ flex: 1, minWidth: 0 }} />
-              <TimeField label="Until" value={quiet.end} onChange={(end) => setQuiet({ ...quiet, end })} style={{ flex: 1, minWidth: 0 }} />
-            </View>
-            <Button kind="ghost" label="Save quiet hours" disabled={!!busy} onPress={() => saveQuiet()} />
-          </>
+      <Group title="You">
+        <Row first icon="person" tint="#2563EB" title="Name & photo" sub="What everyone at school sees" onPress={() => router.push('/profile/edit')} />
+        {adult && <Row icon="people" tint="#7C3AED" title="My children" sub="Photos, birthdays, allergies" onPress={() => router.push('/children')} />}
+        {drives && (
+          <Row icon="car" tint="#0F766E" title="My vehicles"
+            sub={vehicles?.length ? `${vehicleLabel(vehicles[0])}${vehicles.length > 1 ? ` and ${vehicles.length - 1} more` : ''}` : 'What you drive to pickup'}
+            onPress={() => router.push('/profile/vehicles')} />
         )}
-        {Platform.OS !== 'web' && (
-          <>
-            <Text style={{ color: C.primary, fontWeight: '700' }} onPress={checkDevice}>Check notifications on this phone</Text>
-            {device && <P muted>{device}</P>}
-          </>
-        )}
-      </Card>
+      </Group>
 
-      {/* Substitutes get critical alerts while on duty, so they set these up too. */}
-      {(isSchoolStaff(person) || sub) && <EmergencyAlertsCard />}
-      {(isSchoolStaff(person) || sub) && <AlertLocationCard />}
+      <Group title="Notifications">
+        <Row first icon="notifications" tint="#DC2626" title="Notifications" sub={quiet ?? 'What reaches your phone'}
+          onPress={() => router.push('/profile/notifications')} />
+        {alerts && <Row icon="warning" tint="#B45309" title="Emergency alerts" sub="Loud alerts, your location" onPress={() => router.push('/profile/alerts')} />}
+      </Group>
 
-      {groups.length > 0 && (
-        <Card>
-          <H>Your groups</H>
-          <P muted>"Important only" still sends announcements and urgent posts.</P>
-          {groups.map((g) => (
-            <View key={g.groupId} style={{ gap: 6, paddingVertical: 6, borderTopWidth: 1, borderTopColor: C.line, opacity: settings.pushGroups ? 1 : 0.5 }}>
-              <Text style={{ fontWeight: '600', color: C.ink }}>{g.icon} {g.name}</Text>
-              <View style={[s.row, { flexWrap: 'wrap', gap: 6 }]}>{LEVELS.map(([k, l]) => pill(l, g.pref === k, () => setGroupPref(g, k)))}</View>
-            </View>
-          ))}
-        </Card>
-      )}
-      </>)}
+      <Group title={SCHOOL.name}>
+        <Row first icon="school" tint={C.primary} title={`About ${SCHOOL.name}`} sub="Website and contact details" onPress={() => router.push('/about')} />
+        {!me.pending && <Row icon="chatbubble-ellipses" tint="#059669" title="Send feedback" sub="A problem or an idea" onPress={() => router.push('/feedback')} />}
+      </Group>
 
-      {!person.pending && (
-        <Card onPress={() => router.push('/feedback')}>
-          <View style={s.row}>
-            <Text style={{ fontSize: 22 }}>💬</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '700', color: C.ink }}>Send feedback</Text>
-              <P muted>Report a problem with the app or suggest an idea</P>
-            </View>
-            <Text style={{ color: C.muted, fontSize: 18 }}>›</Text>
-          </View>
-        </Card>
-      )}
-
-      <AboutSchool />
-
-      <Button kind="ghost" label="Sign out" onPress={() => disablePush().then(disableAutoCheckIn).then(forgetCarPass).then(signOut).then(() => router.replace('/connect'))} />
-      {live && <DeleteAccount person={person} onDone={() => router.replace('/connect')} />}
+      <Group>
+        <Row first icon="log-out" tint="#64748B" title="Sign out" onPress={leave} danger />
+      </Group>
+      {live && <DeleteAccount person={me} onDone={() => router.replace('/connect')} />}
+      {!!VERSION && <Text style={{ textAlign: 'center', color: C.muted, fontSize: 12 }}>{SCHOOL.appName} {VERSION}</Text>}
     </ScrollView>
   );
 }

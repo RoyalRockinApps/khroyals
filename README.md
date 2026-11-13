@@ -196,9 +196,13 @@ tools in other apps*. Those screens ask for the authenticator code right where t
 tool is (`VerifyCard` in `src/comms/MfaGate.tsx`), so nobody goes to the portal and
 back.
 
-**My profile** (the Profile tab, or your name on Connect): profile
-photo (private `avatars` bucket, signed URLs; staff with *people.roles* can remove
-one), name, and push settings — group posts, Marketplace, Volunteering, quiet
+**My profile** (the Profile tab, or your name on Connect): your photo and name on top
+(tap to change), then a short menu like a phone's Settings (`src/profile/SettingsList.tsx`),
+each row saying what's set now and opening its own screen (`app/profile/`): *Name & photo*,
+*My children*, *My vehicles*, *Notifications*, *Emergency alerts* (staff and substitutes),
+*About the school*, *Send feedback*, then *Sign out*, *Delete my account* and the app's
+version. The profile photo is in the private `avatars` bucket (signed URLs; staff with
+*people.roles* can remove one). Notifications holds the push settings — group posts, Marketplace, Volunteering, quiet
 hours, and a level per group. School-wide announcements always push. Settings only
 filter pushes (`app.wants_push`); the in-app inbox still lists everything. At the bottom
 (and on the Waiting for approval screen), **Delete my account**: type DELETE and the

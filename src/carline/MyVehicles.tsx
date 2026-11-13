@@ -8,7 +8,8 @@ import { Button, C, Card, Chip, H, P, s } from '../ui';
 import { VehicleIcon } from './VehicleIcon';
 import { vehicleLabel } from './vehicles';
 
-export function MyVehicles() {
+/** `heading`: its own title (left off on the My vehicles screen, whose header says it). */
+export function MyVehicles({ heading = true }: { heading?: boolean }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const load = useCallback(() => { myVehicles().then(setVehicles).catch(() => setVehicles([])); }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -16,7 +17,7 @@ export function MyVehicles() {
 
   return (
     <Card style={{ gap: 10 }}>
-      <H>My vehicles</H>
+      {heading && <H>My vehicles</H>}
       <P muted>Car line staff see the vehicle you arrive in. The one you used last is picked for you next time.</P>
       {vehicles.map((v, i) => (
         <Pressable key={v.id} onPress={() => router.push({ pathname: '/vehicle', params: { id: v.id } })} accessibilityRole="button"
