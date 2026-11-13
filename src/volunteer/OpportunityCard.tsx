@@ -2,6 +2,8 @@
  * An opportunity's card in a list (the Volunteer app, an event's page): its banner, when
  * and where, how full it is, and where you stand. Outside its event it names the event.
  * For its leader, where its invites stand (who it's waiting on, a no to follow up, who said yes).
+ * With time slots (`slots`, src/volunteer/slots.ts) it stands for all of them: how many slots, and
+ * the sign-ups and spots added up; `signups` then has every slot's.
  */
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -13,6 +15,7 @@ import { pledgedTotal, spotsLeft, stillNeeded } from './details';
 import { countLabel, isPast, nameOf, whenLabel } from './format';
 import { inviteSummary } from './invites';
 import { GREEN, OpportunityBanner, SpotsBar } from './parts';
+import { slotsProgress } from './slots';
 
 /** How many said yes (or how much is pledged), out of how many, and whether it's full. */
 export function progress(o: Opportunity, signups: Signup[]) {
@@ -22,18 +25,22 @@ export function progress(o: Opportunity, signups: Signup[]) {
   return { n, goal, full: !!goal && n >= goal, left: items ? stillNeeded(n, o.quantity ?? 0) : spotsLeft(n, o.spots) };
 }
 
-export function OpportunityCard({ o, signups, me, event, invites = [] }: {
-  o: Opportunity; signups: Signup[]; me: Person; event?: string; invites?: VolunteerInvite[];
+export function OpportunityCard({ o, signups, me, event, invites = [], slots }: {
+  o: Opportunity; signups: Signup[]; me: Person; event?: string; invites?: VolunteerInvite[]; slots?: Opportunity[];
 }) {
   const items = o.kind === 'items';
-  const { n, goal, full, left } = progress(o, signups);
+  const times = slots && slots.length > 1 ? slots : null;
+  const across = times ? slotsProgress(times.filter((x) => x.status === 'open'), signups) : null;
+  const { n, goal, full, left } = across
+    ? { ...across, left: across.full ? null : across.goal ? spotsLeft(across.n, across.goal) : null }
+    : progress(o, signups);
   const mine = signups.find((x) => x.userId === me.id);
   // Its leader follows the invites; everyone else only sees their own.
   const asked = o.status === 'open' && !isPast(o) && o.leadId === me.id ? inviteSummary(invites, signups, nameOf) : null;
   const tone = asked?.tone === 'yes' ? GREEN : asked?.tone === 'no' ? C.danger : '#B45309';
   return (
     <Pressable onPress={() => router.push(`/volunteer/${o.id}`)} accessibilityRole="button"
-      accessibilityLabel={`${o.title}, ${whenLabel(o)}${o.location ? `, ${o.location}` : ''}${event ? `, part of ${event}` : ''}`}
+      accessibilityLabel={`${o.title}, ${whenLabel(o)}${times ? `, ${times.length} time slots` : ''}${o.location ? `, ${o.location}` : ''}${event ? `, part of ${event}` : ''}`}
       style={({ pressed }) => [{ backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.line, overflow: 'hidden' },
         isPast(o) && PAST_STYLE, pressed && { opacity: 0.85 }]}>
       <OpportunityBanner o={o} />
@@ -46,10 +53,18 @@ export function OpportunityCard({ o, signups, me, event, invites = [] }: {
         )}
         <Text style={{ fontSize: 18, fontWeight: '800', color: C.ink }}>{o.title}</Text>
         <P muted>{whenLabel(o)}{o.location ? ` · ${o.location}` : ''}</P>
+        {!!times && (
+          <View style={[s.row, { gap: 5 }]}>
+            <Ionicons name="time" size={15} color={C.accent} />
+            <Text style={{ color: C.accent, fontWeight: '800' }}>
+              {times.length} time slots{across && across.open < times.length && across.open > 0 ? ` · ${across.open} with spots left` : ''}
+            </Text>
+          </View>
+        )}
         <View style={[s.row, { flexWrap: 'wrap' }]}>
           <View style={[s.row, { gap: 4 }]}>
             <Ionicons name={items ? 'gift' : 'people'} size={16} color={C.primary} />
-            <Text style={{ color: C.primary, fontWeight: '700' }}>{items ? `${n} of ${o.quantity} ${o.item}` : countLabel(n, o.spots)}</Text>
+            <Text style={{ color: C.primary, fontWeight: '700' }}>{items ? `${n} of ${o.quantity} ${o.item}` : countLabel(n, goal)}</Text>
           </View>
           {!!left && !full && !isPast(o) && o.status === 'open' && <Text style={{ color: GREEN, fontWeight: '700' }}>{left}</Text>}
           {o.status === 'deleted' ? <Chip label="Cancelled" color={C.danger} />

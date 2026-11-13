@@ -2858,6 +2858,7 @@ export type Database = {
           description: string
           ends_on: string | null
           id: string
+          image: string | null
           lead_id: string
           location: string | null
           starts_on: string
@@ -2869,6 +2870,7 @@ export type Database = {
           description?: string
           ends_on?: string | null
           id?: string
+          image?: string | null
           lead_id: string
           location?: string | null
           starts_on: string
@@ -2880,6 +2882,7 @@ export type Database = {
           description?: string
           ends_on?: string | null
           id?: string
+          image?: string | null
           lead_id?: string
           location?: string | null
           starts_on?: string
@@ -2927,12 +2930,14 @@ export type Database = {
           ends_on: string | null
           event_id: string | null
           id: string
+          image: string | null
           invite_only: boolean
           item: string | null
           kind: string
           lead_id: string
           location: string | null
           position: number | null
+          slot_of: string | null
           quantity: number | null
           spots: number | null
           start_time: string | null
@@ -2948,12 +2953,14 @@ export type Database = {
           ends_on?: string | null
           event_id?: string | null
           id?: string
+          image?: string | null
           invite_only?: boolean
           item?: string | null
           kind?: string
           lead_id: string
           location?: string | null
           position?: number | null
+          slot_of?: string | null
           quantity?: number | null
           spots?: number | null
           start_time?: string | null
@@ -2969,12 +2976,14 @@ export type Database = {
           ends_on?: string | null
           event_id?: string | null
           id?: string
+          image?: string | null
           invite_only?: boolean
           item?: string | null
           kind?: string
           lead_id?: string
           location?: string | null
           position?: number | null
+          slot_of?: string | null
           quantity?: number | null
           spots?: number | null
           start_time?: string | null
@@ -4876,6 +4885,12 @@ export type Database = {
         Returns: string
       }
       volunteer_set_event: { Args: { p_event: string | null; p_opportunity: string }; Returns: undefined }
+      volunteer_add_slot: {
+        Args: { p_end_time?: string; p_ends_on?: string; p_opportunity: string; p_spots?: number; p_start_time?: string; p_starts_on: string }
+        Returns: Database['public']['Tables']['volunteer_opportunities']['Row']
+      }
+      volunteer_set_image: { Args: { p_image: string | null; p_opportunity: string }; Returns: string | null }
+      volunteer_event_set_image: { Args: { p_event: string; p_image: string | null }; Returns: string | null }
       volunteer_post: {
         Args: {
           p_description: string
@@ -4900,12 +4915,14 @@ export type Database = {
           ends_on: string | null
           event_id: string | null
           id: string
+          image: string | null
           invite_only: boolean
           item: string | null
           kind: string
           lead_id: string
           location: string | null
           position: number | null
+          slot_of: string | null
           quantity: number | null
           spots: number | null
           start_time: string | null

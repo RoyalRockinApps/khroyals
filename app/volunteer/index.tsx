@@ -7,6 +7,7 @@
  * check-in (scan the leader's QR code) is at the top. Volunteer Leaders and directors open the volunteer analytics from here,
  * and everyone sees their own hours from My sign-ups. Invites waiting for your answer come first, each with Say Yes! and
  * Deny; opportunities only for invited people stay out of Opportunities (their leader finds them under Leading).
+ * An opportunity with several time slots is one card (src/volunteer/slots.ts); My sign-ups lists each slot you said yes to.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, View } from 'react-native';
@@ -25,12 +26,14 @@ import { Cheer } from '../../src/volunteer/Cheer';
 import { daysLabel, isPast, nameOf, whenLabel } from '../../src/volunteer/format';
 import { OpportunityCard, progress } from '../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, SectionTitle } from '../../src/volunteer/parts';
+import { bySlots, slotsProgress } from '../../src/volunteer/slots';
 import { VolunteerGate } from '../../src/volunteer/VolunteerGate';
 import { ManageButton } from '../../src/ManageButton';
 import { Button, C, Card, Chip, Loading, P, ask, s } from '../../src/ui';
 
 type Tab = 'open' | 'mine' | 'leading';
 type Kind = 'all' | Opportunity['kind'];
+type Group = { o: Opportunity; slots: Opportunity[] };
 type Data = { opportunities: Opportunity[]; signups: Signup[]; events: VolunteerEvent[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[] };
 
 export default function Volunteer() {
@@ -61,7 +64,6 @@ function Opportunities({ me }: { me: Person }) {
   const todays = data.opportunities.filter((o) => o.status === 'open' && o.kind === 'help' && runsOn(o, today) && said(o));
   const mineToday = (o: Opportunity) => data.attendance.find((a) => a.opportunityId === o.id && a.userId === me.id && a.day === today);
   const eventOf = (o: Opportunity) => data.events.find((e) => e.id === o.eventId);
-  const invitesOf = (o: Opportunity) => data.invites.filter((i) => i.opportunityId === o.id);
   // Invites waiting for your answer (shown above the lists, not again in them).
   const asked = data.invites.filter((i) => i.userId === me.id && i.status === 'pending')
     .map((i) => ({ i, o: data.opportunities.find((o) => o.id === i.opportunityId) }))
@@ -93,7 +95,10 @@ function Opportunities({ me }: { me: Person }) {
   const inside = (e: VolunteerEvent) => ofKind(lists.open.filter((o) => o.eventId === e.id));
   const events = tab !== 'open' ? []
     : data.events.filter((e) => (kinds && kind !== 'all' ? inside(e).length > 0 : !isPast(e) || inside(e).length > 0));
-  const shown = ofKind(showPast.shown ? [...lists[tab], ...past] : lists[tab]).filter((o) => tab !== 'open' || !eventOf(o));
+  // One card per opportunity, however many time slots it has; under My sign-ups, each slot you said yes to.
+  const grouped = (t: Tab, list: Opportunity[]): Group[] => (t === 'mine' ? list.map((o) => ({ o, slots: [o] })) : bySlots(list, isPast));
+  const shown = grouped(tab, ofKind(showPast.shown ? [...lists[tab], ...past] : lists[tab])).filter((g) => tab !== 'open' || !eventOf(g.o));
+  const inGroup = <T extends { opportunityId: string }>(rows: T[], g: Group) => rows.filter((x) => g.slots.some((o) => o.id === x.opportunityId));
   const tabs: Tab[] = posts || all.leading.length ? ['open', 'mine', 'leading'] : ['open', 'mine'];
   const empty: Record<Tab, string> = {
     open: 'No opportunities right now. Check back soon!',
@@ -102,7 +107,7 @@ function Opportunities({ me }: { me: Person }) {
   };
 
   return (
-    <FlatList style={s.screen} contentContainerStyle={s.pad} data={shown} keyExtractor={(o) => o.id}
+    <FlatList style={s.screen} contentContainerStyle={s.pad} data={shown} keyExtractor={(g) => g.o.id}
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
           <Stack.Screen options={{
@@ -128,7 +133,7 @@ function Opportunities({ me }: { me: Person }) {
               <Text key={t} onPress={() => { setTab(t); showPast.hide(); }}
                 style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: C.line,
                   backgroundColor: tab === t ? C.primary : '#fff', color: tab === t ? '#fff' : C.ink, fontWeight: '600' }}>
-                {{ open: 'Opportunities', mine: 'My sign-ups', leading: 'Leading' }[t]} ({lists[t].length})
+                {{ open: 'Opportunities', mine: 'My sign-ups', leading: 'Leading' }[t]} ({grouped(t, lists[t]).length})
               </Text>
             ))}
           </View>
@@ -151,10 +156,12 @@ function Opportunities({ me }: { me: Person }) {
           {events.length > 0 && shown.length > 0 && <SectionTitle icon="hand-left-outline" title="Other opportunities" />}
         </View>}
       ListEmptyComponent={events.length ? null : <Card><P muted>{empty[tab]}</P></Card>}
-      renderItem={({ item: o }) => <OpportunityCard o={o} signups={signupsOf(o)} me={me} event={eventOf(o)?.title} invites={invitesOf(o)} />}
+      renderItem={({ item: g }) => (
+        <OpportunityCard o={g.o} slots={g.slots} signups={inGroup(data.signups, g)} me={me} event={eventOf(g.o)?.title} invites={inGroup(data.invites, g)} />
+      )}
       ListFooterComponentStyle={{ gap: 12 }}
       ListFooterComponent={<>
-        <PastToggle count={past.length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />
+        <PastToggle count={grouped(tab, past).length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />
         <Cheer title={cheer} onDone={() => setCheer(null)} />
       </>} />
   );
@@ -191,9 +198,11 @@ function InviteCard({ o, invite, busy, onAnswer }: { o: Opportunity; invite: Vol
 /** An event's card: its banner, how many opportunities it has, how many still need help, and whether you're helping. */
 function EventCard({ e, opportunities, signups, me }: { e: VolunteerEvent; opportunities: Opportunity[]; signups: Signup[]; me: Person }) {
   const ofThis = (o: Opportunity) => signups.filter((x) => x.opportunityId === o.id);
-  const needHelp = opportunities.filter((o) => !progress(o, ofThis(o)).full).length;
+  // An opportunity with time slots counts once, and needs help while any slot has room.
+  const groups = bySlots(opportunities, isPast);
+  const needHelp = groups.filter((g) => (g.slots.length > 1 ? !slotsProgress(g.slots, signups).full : !progress(g.o, ofThis(g.o)).full)).length;
   const helping = opportunities.some((o) => ofThis(o).some((x) => x.userId === me.id));
-  const count = `${opportunities.length} ${opportunities.length === 1 ? 'opportunity' : 'opportunities'}`;
+  const count = `${groups.length} ${groups.length === 1 ? 'opportunity' : 'opportunities'}`;
   return (
     <Pressable onPress={() => router.push(`/volunteer/event/${e.id}`)} accessibilityRole="button"
       accessibilityLabel={`${e.title}, event, ${daysLabel(e)}${e.location ? `, ${e.location}` : ''}, ${count}`}
@@ -205,10 +214,10 @@ function EventCard({ e, opportunities, signups, me }: { e: VolunteerEvent; oppor
           <View style={[s.row, { flexWrap: 'wrap' }]}>
             <View style={[s.row, { gap: 4 }]}>
               <Ionicons name="list" size={16} color={C.primary} />
-              <Text style={{ color: C.primary, fontWeight: '700' }}>{opportunities.length ? count : 'Opportunities coming soon'}</Text>
+              <Text style={{ color: C.primary, fontWeight: '700' }}>{groups.length ? count : 'Opportunities coming soon'}</Text>
             </View>
-            {needHelp > 0 ? <Text style={{ color: GREEN, fontWeight: '700' }}>{needHelp === opportunities.length ? 'Help needed' : `${needHelp} still need help`}</Text>
-              : opportunities.length > 0 && <Text style={{ color: C.muted, fontWeight: '700' }}>All filled. Thank you!</Text>}
+            {needHelp > 0 ? <Text style={{ color: GREEN, fontWeight: '700' }}>{needHelp === groups.length ? 'Help needed' : `${needHelp} still need help`}</Text>
+              : groups.length > 0 && <Text style={{ color: C.muted, fontWeight: '700' }}>All filled. Thank you!</Text>}
             {helping && <Chip label="You're helping" color={GREEN} />}
             {e.leadId === me.id && <Chip label="You lead" color={C.accent} />}
           </View>

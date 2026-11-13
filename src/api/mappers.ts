@@ -89,13 +89,15 @@ export const toLine = (r: Tables<'market_responses'>): MarketLine => ({
 
 export const toVolunteerEvent = (r: Tables<'volunteer_events'>): VolunteerEvent => ({
   id: r.id, leadId: r.lead_id, title: r.title, description: r.description, startsOn: r.starts_on, endsOn: r.ends_on, location: r.location,
+  image: r.image ?? null,   // the storage path; src/api/volunteer.ts swaps in a link
 });
 
 export const toOpportunity = (r: Tables<'volunteer_opportunities'>): Opportunity => ({
   eventId: r.event_id ?? null, position: r.position ?? null, id: r.id, leadId: r.lead_id, title: r.title, description: r.description, startsOn: r.starts_on, endsOn: r.ends_on,
   startTime: r.start_time?.slice(0, 5) ?? null, endTime: r.end_time?.slice(0, 5) ?? null, location: r.location,
   spots: r.spots, kind: enumValue(r.kind ?? 'help', ['help', 'items']), item: r.item ?? null, quantity: r.quantity ?? null,
-  status: enumValue(r.status, ['open', 'deleted']), deleteReason: r.delete_reason, createdAt: r.created_at, inviteOnly: !!r.invite_only,
+  status: enumValue(r.status, ['open', 'deleted']), deleteReason: r.delete_reason, createdAt: r.created_at, inviteOnly: !!r.invite_only, slotOf: r.slot_of ?? null,
+  image: r.image ?? null,   // the storage path; src/api/volunteer.ts swaps in a link
 });
 
 export const toInvite = (r: Tables<'volunteer_invites'>): VolunteerInvite => ({

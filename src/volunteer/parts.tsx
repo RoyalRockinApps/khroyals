@@ -1,13 +1,15 @@
 /**
  * Pieces the Volunteer screens share, in the Kingdom Heights colors (navy and gold, like
- * the Activities event banners): an opportunity's or event's banner, section cards, the
- * spots bar, the quantity picker for item pledges and the event picker.
+ * the Activities event banners): an opportunity's or event's banner (its cover photo when
+ * its leader put one on, else drawn art), section cards, the spots bar, the quantity picker
+ * for item pledges and the event picker.
  */
 import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Opportunity, VolunteerEvent } from '../api/connect';
 import { GOLD, NAVY } from '../sports/ui';
 import { C, s } from '../ui';
+import { PhotoBackdrop } from './CoverPhoto';
 import { dateTile, durationLabel, themeOf } from './details';
 
 export const GREEN = '#15803D';
@@ -29,9 +31,13 @@ export function OpportunityBanner({ o, hero, leader, style }: {
   return (
     <View style={[{ height: hero ? 196 : 112, backgroundColor: NAVY, padding: 14, overflow: 'hidden', justifyContent: hero ? 'space-between' : 'center',
       borderBottomWidth: 3, borderBottomColor: GOLD }, style]}>
-      <View accessible={false} style={{ position: 'absolute', left: -50, bottom: -70, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-      <MaterialCommunityIcons name={theme.glyph} size={hero ? 170 : 140} color={GOLD} accessible={false}
-        style={{ position: 'absolute', right: hero ? -22 : -18, top: hero ? -30 : -16, opacity: hero ? 0.8 : 0.9, transform: [{ rotate: '-14deg' }] }} />
+      {o.image ? <PhotoBackdrop uri={o.image} /> : (
+        <>
+          <View accessible={false} style={{ position: 'absolute', left: -50, bottom: -70, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <MaterialCommunityIcons name={theme.glyph} size={hero ? 170 : 140} color={GOLD} accessible={false}
+            style={{ position: 'absolute', right: hero ? -22 : -18, top: hero ? -30 : -16, opacity: hero ? 0.8 : 0.9, transform: [{ rotate: '-14deg' }] }} />
+        </>
+      )}
       <View style={[s.row, { gap: 12, alignItems: 'center' }]}>
         <DateTile tile={tile} />
         <View style={{ gap: 6, flexShrink: 1 }}>
@@ -75,7 +81,7 @@ function DateTile({ tile }: { tile: { month: string; days: string } }) {
 const Length = ({ text }: { text: string }) => (
   <View style={[s.row, { gap: 4 }]}>
     <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.85)" />
-    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600' }}>{text}</Text>
+    <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 }}>{text}</Text>
   </View>
 );
 
@@ -92,9 +98,13 @@ export function EventBanner({ e, hero, leader, style }: {
   return (
     <View style={[{ height: hero ? 210 : 168, backgroundColor: NAVY, padding: 14, overflow: 'hidden', justifyContent: 'space-between',
       borderBottomWidth: 3, borderBottomColor: GOLD }, style]}>
-      <View accessible={false} style={{ position: 'absolute', left: -50, bottom: -70, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-      <MaterialCommunityIcons name={themeOf(e).glyph} size={hero ? 170 : 150} color={GOLD} accessible={false}
-        style={{ position: 'absolute', right: -22, top: -26, opacity: 0.8, transform: [{ rotate: '-14deg' }] }} />
+      {e.image ? <PhotoBackdrop uri={e.image} /> : (
+        <>
+          <View accessible={false} style={{ position: 'absolute', left: -50, bottom: -70, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <MaterialCommunityIcons name={themeOf(e).glyph} size={hero ? 170 : 150} color={GOLD} accessible={false}
+            style={{ position: 'absolute', right: -22, top: -26, opacity: 0.8, transform: [{ rotate: '-14deg' }] }} />
+        </>
+      )}
       <View style={[s.row, { gap: 12, alignItems: 'center' }]}>
         <DateTile tile={dateTile(e)} />
         <View style={{ gap: 6, flexShrink: 1 }}>

@@ -133,6 +133,8 @@ export type MarketTerms = { version: number; text: string; accepted: boolean; el
 /** A volunteer event (Harvest Fest) that opportunities are grouped under. */
 export type VolunteerEvent = {
   id: string; leadId: string; title: string; description: string; startsOn: string; endsOn: string | null; location: string | null;
+  /** Its cover photo (a link to show), when its starter put one on; else the banner's drawn art. */
+  image: string | null;
 };
 
 export type Opportunity = {
@@ -144,6 +146,10 @@ export type Opportunity = {
   status: 'open' | 'deleted'; deleteReason: string | null; createdAt: string;
   /** Only the people its leader invites can say yes, and nobody else sees it (a draft until someone does). */
   inviteOnly: boolean;
+  /** Its cover photo (a link to show), when its leader put one on; else the banner's drawn art. */
+  image: string | null;
+  /** A time slot added to another opportunity: the first one posted (src/volunteer/slots.ts). Null for the first. */
+  slotOf: string | null;
 };
 
 /**

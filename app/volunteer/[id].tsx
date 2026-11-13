@@ -11,13 +11,16 @@
  * mark who came under Check-in. Its leaders invite people under Invited and follow each answer
  * (`?invite=1` opens the people picker, as after posting one for invited people only); an invited
  * person answers Say Yes! or Deny. Until someone has said yes it's deleted without a reason.
+ * Its leaders put their own cover photo on its card and banner, change it or take it off (Cover photo).
+ * Under Time slots, an opportunity at several times lists each (its own spots and sign-ups; tap one to open it), and its
+ * leaders add another (src/volunteer/TimeSlots.tsx).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import {
-  getOpportunity, listVolunteerEvents, myAccess, subscribeVolunteer, volunteerDelete, volunteerInvite, volunteerInviteAnswer, volunteerInviteCancel,
+  getOpportunity, listVolunteerEvents, myAccess, setVolunteerPhoto, volunteerAddSlot, subscribeVolunteer, volunteerDelete, volunteerInvite, volunteerInviteAnswer, volunteerInviteCancel,
   volunteerMark, volunteerPledge, volunteerSayYes, volunteerSend, volunteerSetEvent, volunteerWithdraw,
   type Opportunity, type Person, type Signup, type VolunteerAttendance, type VolunteerEvent, type VolunteerInvite, type VolunteerMessage,
 } from '../../src/api/connect';
@@ -25,6 +28,8 @@ import { schoolToday } from '../../src/calendar/past';
 import { GOLD, NAVY } from '../../src/sports/ui';
 import { MyCheckIn, RollCall } from '../../src/volunteer/CheckIn';
 import { Cheer } from '../../src/volunteer/Cheer';
+import { CoverPhotoField } from '../../src/volunteer/CoverPhoto';
+import { TimeSlots } from '../../src/volunteer/TimeSlots';
 import { InviteAnswer, InvitedSection } from '../../src/volunteer/InvitePanel';
 import { detailSections, durationLabel, pledgedTotal, sectionIcon, spotsLeft, startsLabel, stillNeeded } from '../../src/volunteer/details';
 import { countLabel, isPast, longDayLabel, nameOf, timeLabel } from '../../src/volunteer/format';
@@ -43,7 +48,7 @@ const leave = () => (router.canGoBack() ? router.back() : router.replace('/volun
 function Detail({ id, me, startPicking }: { id: string; me: Person; startPicking: boolean }) {
   const [data, setData] = useState<{
     opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[];
-    events: VolunteerEvent[];
+    events: VolunteerEvent[]; slots: Opportunity[]; slotSignups: Signup[];
   } | null>(null);
   const [picking, setPicking] = useState(startPicking);   // the leader's people picker, to invite
   const [office, setOffice] = useState(false);   // groups.manage: runs every opportunity's check-in
@@ -58,7 +63,7 @@ function Detail({ id, me, startPicking }: { id: string; me: Person; startPicking
 
   const load = useCallback(() => Promise.all([getOpportunity(id), listVolunteerEvents().catch(() => [])])
     .then(([o, events]) => setData({ ...o, events }))
-    .catch(() => setData({ opportunity: null, signups: [], messages: [], attendance: [], invites: [], events: [] })), [id]);
+    .catch(() => setData({ opportunity: null, signups: [], messages: [], attendance: [], invites: [], events: [], slots: [], slotSignups: [] })), [id]);
   useFocusEffect(useCallback(() => { load(); return subscribeVolunteer(load); }, [load]));
   useEffect(() => { myAccess().then((a) => setOffice(!!a?.permissions.includes('groups.manage'))).catch(() => {}); }, []);
 
@@ -156,6 +161,18 @@ function Detail({ id, me, startPicking }: { id: string; me: Person; startPicking
           )}
         </Section>
 
+        {/* Its other times (each with its own spots), and for its leaders, adding one. */}
+        {!items && (data.slots.length > 1 || (runs && o.status === 'open' && !past)) && (
+          <TimeSlots current={o} slots={data.slots} signups={data.slotSignups} me={me} busy={busy}
+            canAdd={runs && o.status === 'open'} onProblem={(text) => Alert.alert('Almost there', text)}
+            onAdd={async (slot) => {
+              setBusy(true);
+              try { await volunteerAddSlot(o.id, slot); await load(); return true; }
+              catch (e: any) { Alert.alert("Couldn't add the time slot", e.message); return false; }
+              finally { setBusy(false); }
+            }} />
+        )}
+
         {!!o.location && (
           <Section icon="location-outline" title={items ? 'Drop off at' : 'Where'}>
             <Text style={big}>{o.location}</Text>
@@ -213,6 +230,15 @@ function Detail({ id, me, startPicking }: { id: string; me: Person; startPicking
         {runs && !items && o.status === 'open' && (
           <RollCall o={o} signups={data.signups} attendance={data.attendance} busy={busy}
             onMark={(user, day, status, minutes) => act(() => volunteerMark(o.id, user, day, status, minutes))} />
+        )}
+
+        {runs && o.status === 'open' && (
+          <Section icon="image-outline" title="Cover photo" tint={C.accent}>
+            <CoverPhotoField title={o.image ? 'On its card and at the top of this page' : 'Put your own photo on its card'} value={o.image} busy={busy}
+              onPick={(p) => act(() => setVolunteerPhoto({ opportunityId: o.id }, p.base64))}
+              onRemove={() => ask('Remove the cover photo?', 'Its card goes back to the drawing.', 'Remove',
+                () => act(() => setVolunteerPhoto({ opportunityId: o.id }, null)))} />
+          </Section>
         )}
 
         {movable.length > 0 && (

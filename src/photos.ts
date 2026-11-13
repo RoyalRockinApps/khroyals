@@ -22,6 +22,28 @@ export async function pickSquarePhoto(camera: boolean): Promise<string | null> {
 }
 
 /**
+ * Pick a cover photo for a Volunteer card (camera or library): the middle of it cropped to 2:1, like the banner it fills,
+ * and shrunk to 1600 × 800 at most, as base64 JPEG (and a data link to preview it). Null when cancelled.
+ */
+export async function pickCoverPhoto(camera: boolean): Promise<{ base64: string; uri: string } | null> {
+  if (camera && !(await ImagePicker.requestCameraPermissionsAsync()).granted) {
+    Alert.alert('Camera is off', `Allow camera access for ${SCHOOL.appName} in Settings to take a photo.`);
+    return null;
+  }
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1 };
+  const result = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+  const asset = result.canceled ? null : result.assets[0];
+  if (!asset) return null;
+  const width = Math.min(asset.width, asset.height * 2);
+  const height = Math.round(width / 2);
+  const ctx = ImageManipulator.manipulate(asset.uri)
+    .crop({ originX: (asset.width - width) / 2, originY: (asset.height - height) / 2, width, height });
+  if (width > 1600) ctx.resize({ width: 1600, height: 800 });
+  const out = await (await ctx.renderAsync()).saveAsync({ compress: 0.8, format: SaveFormat.JPEG, base64: true });
+  return out.base64 ? { base64: out.base64, uri: `data:image/jpeg;base64,${out.base64}` } : null;
+}
+
+/**
  * Pick photos for the gallery (several at once): each shrunk to at most 1600 px on its long side,
  * plus a 400 px thumbnail, as base64 JPEG. Empty when cancelled.
  */

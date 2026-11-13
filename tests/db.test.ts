@@ -4831,6 +4831,115 @@ test("notes to teachers: a parent writes to one of their child's teachers, who r
   await db.exec(`delete from parent_notes`);
 });
 
+test('volunteer photos: whoever posts an opportunity or starts an event puts their own photo on its card', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [luis, wei] = [await uid('u-p05'), await uid('u-p02')];
+  const put = (who: string, path: string) => `insert into storage.objects (bucket_id, name, owner) values ('volunteer', '${path}', '${who}')`;
+  const sees = async (path: string) => (await rows(`select 1 from storage.objects where bucket_id = 'volunteer' and name = '${path}'`)).length === 1;
+
+  // Luis (a Volunteer Leader for this test) uploads into his own folder only, then puts the photo on an opportunity he posted.
+  await asSuper();
+  await db.exec(`update profiles set volunteer_lead = true where id = '${luis}'`);
+  await as('u-p05');
+  const opp = await one(`select * from volunteer_post('Bake sale helpers', '', app.school_today() + 6)`);
+  const event = (await one(`select volunteer_event_save(null::uuid, 'Spring Fling', '', app.school_today() + 20) as id`)).id;
+  const path = `${luis}/opp.jpg`;
+  await rejects(`select volunteer_set_image('${opp.id}', '${path}')`, /Upload the photo first/);
+  await rejects(put(luis, `${wei}/opp.jpg`), /row-level security/);
+  await db.exec(put(luis, path));
+  assert.equal((await one(`select volunteer_set_image('${opp.id}', '${path}') as old`)).old, null);
+  const cover = `${luis}/event.jpg`;
+  await db.exec(put(luis, cover));
+  assert.equal((await one(`select volunteer_event_set_image('${event}', '${cover}') as old`)).old, null);
+
+  // An invite-only draft's photo stays as private as the draft.
+  const draft = await one(`select * from volunteer_post('Science fair judge', '', app.school_today() + 9, null, null, null, null, 1,
+    'help', null, null, null, true)`);
+  const secret = `${luis}/draft.jpg`;
+  await db.exec(put(luis, secret));
+  await one(`select volunteer_set_image('${draft.id}', '${secret}')`);
+
+  // A parent who doesn't lead sees the photos of what they can see, but can't upload or change them.
+  await as('u-p02');
+  assert.equal(await sees(path), true);
+  assert.equal(await sees(cover), true);
+  assert.equal(await sees(secret), false, "a draft's photo is as private as the draft");
+  await rejects(put(wei, `${wei}/mine.jpg`), /row-level security/);
+  await rejects(`select volunteer_set_image('${opp.id}', null)`, /Only its leader/);
+  await rejects(`select volunteer_event_set_image('${event}', null)`, /event's starter/);
+
+  // Replacing one gives back the old file to remove, unless something else still uses it; taking it off clears it.
+  await as('u-p05');
+  const next = `${luis}/opp2.jpg`;
+  await db.exec(put(luis, next));
+  assert.equal((await one(`select volunteer_set_image('${opp.id}', '${next}') as old`)).old, path);
+  assert.equal((await one(`select volunteer_set_image('${draft.id}', '${next}') as old`)).old, secret);
+  assert.equal((await one(`select volunteer_set_image('${opp.id}', null) as old`)).old, null, 'the draft still uses it');
+  assert.equal((await one(`select volunteer_event_set_image('${event}', null) as old`)).old, cover);
+  assert.equal((await one(`select image from volunteer_events where id = '${event}'`)).image, null);
+  await one(`select volunteer_delete('${opp.id}', '')`);
+  await rejects(`select volunteer_set_image('${opp.id}', null)`, /isn't open anymore/);
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities where id in ('${opp.id}', '${draft.id}'); delete from volunteer_events where id = '${event}';
+    delete from storage.objects where bucket_id = 'volunteer'; update profiles set volunteer_lead = false where id = '${luis}'`);
+});
+
+test('volunteer time slots: a leader adds more times to an opportunity, each with its own spots and sign-ups', async () => {
+  const luis = (await one(`select ${id('u-p05')} as u`)).u as string;
+  await asSuper();
+  await db.exec(`update profiles set volunteer_lead = true where id = '${luis}'`);
+  const slotsOf = async (o: string) => rows(`select id, starts_on::text, start_time::text, spots, title, location, slot_of, event_id, image
+    from volunteer_opportunities where coalesce(slot_of, id) = '${o}' and status = 'open' order by starts_on, start_time`);
+
+  // Luis posts book fair helpers on Monday and adds Tuesday (one spot) and a second Monday time.
+  await as('u-p05');
+  const first = await one(`select * from volunteer_post('Book fair helpers', 'Run the register.', app.school_today() + 7, null,
+    '15:00', '17:00', 'Library', 2)`);
+  const tue = await one(`select * from volunteer_add_slot('${first.id}', app.school_today() + 8, null, '15:00', '17:00', 1)`);
+  await one(`select * from volunteer_add_slot('${tue.id}', app.school_today() + 7, null, '08:00', '09:00')`);
+  const slots = await slotsOf(first.id);
+  assert.deepEqual(slots.map((x) => [x.start_time, x.spots]), [['08:00:00', null], ['15:00:00', 2], ['15:00:00', 1]]);
+  assert.ok(slots.every((x) => x.title === 'Book fair helpers' && x.location === 'Library'), 'the same help, place and details');
+  assert.deepEqual([...new Set(slots.map((x) => x.slot_of ?? x.id))], [first.id], 'all with the first');
+
+  // A slot that's already there, in the past, or backwards is refused; item requests have no slots; only its leader adds them.
+  await rejects(`select volunteer_add_slot('${first.id}', app.school_today() + 8, null, '15:00', '17:00', 3)`, /already there/);
+  await rejects(`select volunteer_add_slot('${first.id}', app.school_today() - 1)`, /can't be in the past/);
+  await rejects(`select volunteer_add_slot('${first.id}', app.school_today() + 9, null, '17:00', '15:00')`, /end time must be after/);
+  const req = await one(`select * from volunteer_post('Napkins', '', app.school_today() + 5, null, null, null, null, null, 'items', 'packs', 4)`);
+  await rejects(`select volunteer_add_slot('${req.id}', app.school_today() + 6)`, /bring-by date/);
+  await as('u-p01');
+  await rejects(`select volunteer_add_slot('${first.id}', app.school_today() + 9)`, /Only its leader/);
+
+  // Each slot fills on its own: Tuesday's one spot goes to Rosa, so Wei says yes to Monday instead.
+  await one(`select volunteer_say_yes('${tue.id}')`);
+  await as('u-p02');
+  await rejects(`select volunteer_say_yes('${tue.id}')`, /spots are filled/);
+  await one(`select volunteer_say_yes('${first.id}')`);
+
+  // A cover photo goes on every slot, and so does moving it into an event.
+  await as('u-p05');
+  const pic = `${luis}/fair.jpg`;
+  await db.exec(`insert into storage.objects (bucket_id, name, owner) values ('volunteer', '${pic}', '${luis}')`);
+  await one(`select volunteer_set_image('${tue.id}', '${pic}')`);
+  assert.deepEqual([...new Set((await slotsOf(first.id)).map((x) => x.image))], [pic]);
+  const fair = (await one(`select volunteer_event_save(null::uuid, 'Book Fair Week', '', app.school_today() + 7) as id`)).id;
+  await one(`select volunteer_set_event('${tue.id}', '${fair}')`);
+  assert.deepEqual([...new Set((await slotsOf(first.id)).map((x) => x.event_id))], [fair]);
+
+  // Its place in the event's order holds for every slot, and for one added after.
+  const other = await one(`select * from volunteer_post('Set up tables', '', app.school_today() + 7, null, null, null, null, null, 'help', null, null, '${fair}')`);
+  await one(`select volunteer_event_reorder('${fair}', array['${other.id}', '${tue.id}']::uuid[])`);
+  await one(`select volunteer_add_slot('${first.id}', app.school_today() + 9, null, '15:00', '17:00')`);
+  const positions = async () => rows(`select coalesce(slot_of, id) as series, position from volunteer_opportunities where event_id = '${fair}'`);
+  assert.deepEqual([...new Set((await positions()).map((x) => `${x.series === other.id ? 'other' : 'fair'}:${x.position}`))].sort(), ['fair:2', 'other:1']);
+
+  await asSuper();
+  await db.exec(`delete from volunteer_opportunities where coalesce(slot_of, id) in ('${first.id}', '${req.id}', '${other.id}');
+    delete from volunteer_events where id = '${fair}'; delete from storage.objects where bucket_id = 'volunteer';
+    update profiles set volunteer_lead = false where id = '${luis}'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

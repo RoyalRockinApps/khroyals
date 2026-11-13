@@ -23,6 +23,7 @@ import { isPast, longDayLabel, nameOf, whenLabel } from '../../../src/volunteer/
 import { CheckInCodeButton } from '../../../src/volunteer/CheckIn';
 import { OpportunityCard } from '../../../src/volunteer/OpportunityCard';
 import { EventBanner, GREEN, Pill, Section, SectionTitle } from '../../../src/volunteer/parts';
+import { bySlots } from '../../../src/volunteer/slots';
 import { VolunteerGate } from '../../../src/volunteer/VolunteerGate';
 import { Button, C, Card, Loading, P, s, ask, useBottomInset } from '../../../src/ui';
 
@@ -58,12 +59,16 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
 
   const started = e.leadId === me.id;
   const ofEvent = data.opportunities.filter((o) => o.eventId === e.id && o.status === 'open');
-  const coming = inEventOrder(ofEvent.filter((o) => !isPast(o)));
-  const past = ofEvent.filter(isPast);
+  // One card per opportunity, however many time slots it has (src/volunteer/slots.ts).
+  const coming = bySlots(inEventOrder(ofEvent.filter((o) => !isPast(o))), isPast);
+  const past = bySlots(ofEvent.filter(isPast), isPast);
+  const helping = bySlots(ofEvent, isPast).length;
+  const inGroup = <T extends { opportunityId: string }>(rows: T[] | undefined, slots: Opportunity[]) =>
+    (rows ?? []).filter((x) => slots.some((o) => o.id === x.opportunityId));
   const length = durationLabel(e);
   const soon = startsLabel(e);
   const remove = () => ask('Remove this event?',
-    ofEvent.length ? `Its ${ofEvent.length === 1 ? 'opportunity stays' : `${ofEvent.length} opportunities stay`} in the Volunteer app, on ${ofEvent.length === 1 ? 'its' : 'their'} own.` : 'It has no opportunities yet.',
+    helping ? `Its ${helping === 1 ? 'opportunity stays' : `${helping} opportunities stay`} in the Volunteer app, on ${helping === 1 ? 'its' : 'their'} own.` : 'It has no opportunities yet.',
     'Remove', () => {
       setBusy(true);
       volunteerEventDelete(e.id).then(() => router.back()).catch((err) => Alert.alert('Volunteer', errorText(err))).finally(() => setBusy(false));
@@ -128,7 +133,7 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
       <View style={{ marginTop: 8 }}>
         <SectionTitle icon="hand-left-outline" title={`Ways to help (${coming.length})`} tint={GREEN}
           right={started && coming.length > 1 && !order ? (
-            <Pressable onPress={() => setOrder(coming.map((o) => o.id))} accessibilityRole="button" accessibilityLabel="Put the opportunities in order"
+            <Pressable onPress={() => setOrder(coming.map((g) => g.o.id))} accessibilityRole="button" accessibilityLabel="Put the opportunities in order"
               hitSlop={8} style={({ pressed }) => [s.row, { gap: 4, opacity: pressed ? 0.6 : 1 }]}>
               <Ionicons name="swap-vertical" size={18} color={C.primary} />
               <Text style={{ color: C.primary, fontWeight: '800' }}>Reorder</Text>
@@ -140,7 +145,7 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
           <P muted>Put the most important first. Everyone sees them in this order.</P>
           <View style={[s.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>
             {order.map((oid, i) => {
-              const o = coming.find((x) => x.id === oid);
+              const o = coming.find((x) => x.o.id === oid)?.o;
               return o && <ReorderRow key={oid} o={o} n={i + 1} last={i === order.length - 1} onMove={(by) => setOrder(moved(order, i, i + by))} />;
             })}
           </View>
@@ -157,9 +162,8 @@ function EventDetail({ id, me }: { id: string; me: Person }) {
               <P muted>{lead ? 'No opportunities yet. Add what you need help with, or items for people to bring.' : 'No opportunities yet. Check back soon!'}</P>
             </Card>
           )}
-          {[...coming, ...(showPast.shown ? past : [])].map((o) => (
-            <OpportunityCard key={o.id} o={o} signups={data.signups.filter((x) => x.opportunityId === o.id)} me={me}
-              invites={data.invites?.filter((i) => i.opportunityId === o.id)} />
+          {[...coming, ...(showPast.shown ? past : [])].map(({ o, slots }) => (
+            <OpportunityCard key={o.id} o={o} slots={slots} signups={inGroup(data.signups, slots)} me={me} invites={inGroup(data.invites, slots)} />
           ))}
           <PastToggle count={past.length} shown={showPast.shown} onToggle={showPast.toggle} noun="opportunities" />
         </>

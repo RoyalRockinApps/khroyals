@@ -392,6 +392,21 @@ leader's messages are highlighted. A leader deletes an opportunity with a reason
 that every volunteer is sent. Students can't take part. The seed makes the demo
 Teacher a Volunteer Leader.
 
+**Time slots.** Help needed at several times (book fair helpers Monday 3–5 and Tuesday
+3–5) is one opportunity with time slots: *+ Add another time slot* when posting, or
+*Time slots → + Add a time slot* on its page later. Each slot has its own spots, sign-ups,
+check-in QR code and hours, so people say yes to the times they can make. The list shows
+one card with how many slots and spots are left across them; its page lists the slots to
+switch between. Each slot is an opportunity row pointing at the first (`slot_of`,
+`volunteer_add_slot`, `src/volunteer/slots.ts`); the photo, event and order follow all of them.
+
+**Cover photos.** Whoever posts an opportunity or starts an event can put their own photo
+on its card and across the top of its page (*Add a cover photo* when posting; later, the
+opportunity's *Cover photo* section or the event's *Change event details*); without one the
+card shows a drawing that matches its title. The photo is cropped to the banner's 2:1 shape
+and kept in the private `volunteer` bucket, readable only by whoever can see the opportunity
+or event (`volunteer_set_image`, `volunteer_event_set_image`).
+
 **Invites.** A leader asks people in particular from an opportunity's page (*Invited* →
 *Invite people*: find them by name, add a note). Each is told and finds it under
 *Invitations* at the top of Volunteer, with **Say Yes!** and **Deny**. Saying yes signs

@@ -3,6 +3,7 @@ import { subscribeChanges } from './realtime';
 import type { BusyLimits, InvitePerson, Opportunity, Signup, VolunteerAttendance, VolunteerDay, VolunteerEvent, VolunteerInvite, VolunteerMessage, VolunteerScan, VolunteerStat } from './types';
 import { live, rpc, run, sb } from './client';
 import { current } from './session';
+import { removeStoredPhoto, signedPhotoUrls, uploadJpeg } from './storage';
 import { schoolToday } from '../calendar/past';
 import { toAttendance, toInvite, toMessage, toOpportunity, toSignup, toVolunteerEvent } from './mappers';
 import { enumValue } from './validation';
@@ -23,13 +24,41 @@ export async function listVolunteer(): Promise<{
     run(sb().from('volunteer_attendance').select('*').eq('day', schoolToday())),
     run(sb().from('volunteer_invites').select('*').neq('status', 'cancelled').order('created_at')),
   ]);
-  return { opportunities: o.map(toOpportunity), signups: s.map(toSignup), events: e, attendance: a.map(toAttendance), invites: i.map(toInvite) };
+  return { opportunities: await withPhotos(o.map(toOpportunity)), signups: s.map(toSignup), events: e, attendance: a.map(toAttendance), invites: i.map(toInvite) };
+}
+
+/** Cover photos are kept privately: swap each one's storage path for a link to show (none if it can't be had). */
+async function withPhotos<T extends { image: string | null }>(list: T[]): Promise<T[]> {
+  const paths = list.flatMap((x) => (x.image ? [x.image] : []));
+  const urls = paths.length ? await signedPhotoUrls('volunteer', paths).catch(() => ({} as Record<string, string>)) : {};
+  return list.map((x) => (x.image ? { ...x, image: urls[x.image] ?? null } : x));
+}
+
+/**
+ * Its leader (or the event's starter) puts a cover photo on an opportunity's or event's card: a JPEG (base64) uploaded
+ * to their own folder, or null to take it off and go back to the drawn art. The photo it replaces is removed.
+ */
+export async function setVolunteerPhoto(of: { opportunityId: string } | { eventId: string }, base64: string | null) {
+  if (!live || !current) throw new Error('This feature needs the school server.');
+  const path = base64 ? `${current.id}/${Date.now()}.jpg` : null;
+  if (path) await uploadJpeg('volunteer', path, base64!);
+  let old: string | null;
+  try {
+    old = 'opportunityId' in of
+      ? await rpc('volunteer_set_image', { p_opportunity: of.opportunityId, p_image: path })
+      : await rpc('volunteer_event_set_image', { p_event: of.eventId, p_image: path });
+  } catch (error) {
+    if (path) await removeStoredPhoto('volunteer', path).catch(() => {});
+    throw error;
+  }
+  // Someone else's old photo stays (only its uploader removes it); that mustn't fail the change.
+  await removeStoredPhoto('volunteer', old).catch(() => {});
 }
 
 /** The open events (Harvest Fest…) that opportunities are grouped under, soonest first. */
 export async function listVolunteerEvents(): Promise<VolunteerEvent[]> {
   if (!live || !current) return [];
-  return (await run(sb().from('volunteer_events').select('*').eq('status', 'open').order('starts_on'))).map(toVolunteerEvent);
+  return withPhotos((await run(sb().from('volunteer_events').select('*').eq('status', 'open').order('starts_on'))).map(toVolunteerEvent));
 }
 
 /** Volunteer Leaders: start an event (no id) or change one you started. Returns its id. */
@@ -53,11 +82,12 @@ export async function volunteerSetEvent(opportunityId: string, eventId: string |
 }
 
 /**
- * An opportunity, its sign-ups and chat, the check-ins this person can see (their own; every one for its leaders) and
- * its invites (their own; every one for its leaders).
+ * An opportunity, its sign-ups and chat, the check-ins this person can see (their own; every one for its leaders),
+ * its invites (their own; every one for its leaders), and all its time slots (itself too) with their sign-ups.
  */
 export async function getOpportunity(id: string): Promise<{
   opportunity: Opportunity | null; signups: Signup[]; messages: VolunteerMessage[]; attendance: VolunteerAttendance[]; invites: VolunteerInvite[];
+  slots: Opportunity[]; slotSignups: Signup[];
 }> {
   const [o, s, m, a, i] = await Promise.all([
     run(sb().from('volunteer_opportunities').select('*').eq('id', id).maybeSingle()),
@@ -66,9 +96,24 @@ export async function getOpportunity(id: string): Promise<{
     run(sb().from('volunteer_attendance').select('*').eq('opportunity_id', id)),
     run(sb().from('volunteer_invites').select('*').eq('opportunity_id', id).order('created_at')),
   ]);
+  const opportunity = o ? (await withPhotos([toOpportunity(o)]))[0] : null;
+  const series = opportunity ? opportunity.slotOf ?? opportunity.id : null;
+  const slots = series ? (await run(sb().from('volunteer_opportunities').select('*').or(`id.eq.${series},slot_of.eq.${series}`)
+    .order('starts_on').order('start_time'))).map(toOpportunity) : [];
+  const slotSignups = slots.length > 1
+    ? (await run(sb().from('volunteer_signups').select('*').in('opportunity_id', slots.map((x) => x.id)))).map(toSignup) : s.map(toSignup);
   return {
-    opportunity: o ? toOpportunity(o) : null, signups: s.map(toSignup), messages: m.map(toMessage), attendance: a.map(toAttendance), invites: i.map(toInvite),
+    opportunity, signups: s.map(toSignup), messages: m.map(toMessage), attendance: a.map(toAttendance), invites: i.map(toInvite),
+    slots: slots.length ? slots : opportunity ? [opportunity] : [], slotSignups,
   };
+}
+
+/** Its leader adds a time slot to an opportunity (any of its slots): another day or time, with its own spots. */
+export async function volunteerAddSlot(id: string, slot: { startsOn: string; endsOn: string | null; startTime: string | null; endTime: string | null; spots: number | null }) {
+  return toOpportunity(await rpc('volunteer_add_slot', {
+    p_opportunity: id, p_starts_on: slot.startsOn, p_ends_on: slot.endsOn ?? undefined, p_start_time: slot.startTime ?? undefined,
+    p_end_time: slot.endTime ?? undefined, p_spots: slot.spots ?? undefined,
+  }));
 }
 
 export async function volunteerPost(o: {

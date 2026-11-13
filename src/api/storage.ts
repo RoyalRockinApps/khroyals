@@ -4,12 +4,14 @@ import { run } from './client';
 
 export function clearSignedUrls() { avatarSigned.clear(); photoUrls.clear(); }
 
-export async function uploadJpeg(bucket: 'avatars' | 'marketplace', path: string, base64: string) {
+type PhotoBucket = 'avatars' | 'marketplace' | 'volunteer';
+
+export async function uploadJpeg(bucket: PhotoBucket, path: string, base64: string) {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   await run(sb().storage.from(bucket).upload(path, bytes.buffer, { contentType: 'image/jpeg' }));
 }
 
-export async function removeStoredPhoto(bucket: 'avatars' | 'marketplace', path?: string | null) {
+export async function removeStoredPhoto(bucket: PhotoBucket, path?: string | null) {
   if (path && !/^https?:/.test(path)) await run(sb().storage.from(bucket).remove([path]));
 }
 
@@ -37,12 +39,16 @@ export async function signAvatars(paths: (string | null | undefined)[]) {
 
 export const photoUrls = new Map<string, { url: string; until: number }>();
 
-/** Signed URLs for marketplace photos (the bucket is private), cached for most of their hour. */
-export async function marketPhotoUrls(paths: string[]): Promise<Record<string, string>> {
-  const need = [...new Set(paths)].filter((p) => (photoUrls.get(p)?.until ?? 0) < Date.now());
+/** Signed URLs for photos in a private bucket, by path, cached for most of their hour. */
+export async function signedPhotoUrls(bucket: PhotoBucket, paths: string[]): Promise<Record<string, string>> {
+  const key = (p: string) => `${bucket}/${p}`;
+  const need = [...new Set(paths)].filter((p) => (photoUrls.get(key(p))?.until ?? 0) < Date.now());
   if (need.length) {
-    const { data } = await sb().storage.from('marketplace').createSignedUrls(need, 3600);
-    for (const d of data ?? []) if (d.path && d.signedUrl) photoUrls.set(d.path, { url: d.signedUrl, until: Date.now() + 50 * 60_000 });
+    const { data } = await sb().storage.from(bucket).createSignedUrls(need, 3600);
+    for (const d of data ?? []) if (d.path && d.signedUrl) photoUrls.set(key(d.path), { url: d.signedUrl, until: Date.now() + 50 * 60_000 });
   }
-  return Object.fromEntries(paths.flatMap((p) => (photoUrls.has(p) ? [[p, photoUrls.get(p)!.url]] : [])));
+  return Object.fromEntries(paths.flatMap((p) => (photoUrls.has(key(p)) ? [[p, photoUrls.get(key(p))!.url]] : [])));
 }
+
+/** Signed URLs for marketplace photos (the bucket is private). */
+export const marketPhotoUrls = (paths: string[]) => signedPhotoUrls('marketplace', paths);

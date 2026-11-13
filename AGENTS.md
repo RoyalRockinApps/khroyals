@@ -295,6 +295,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   post into any open event (`volunteer_post` with `p_event`); an opportunity's leader moves it (`volunteer_set_event`).
   Only the event's starter (or `groups.manage`) puts its opportunities in order (`volunteer_event_reorder`, `position`;
   unplaced ones follow by date, `inEventOrder`) or removes it (`volunteer_event_delete`), which keeps its opportunities.
+  **Time slots** (`volunteer_opportunities.slot_of`; `src/volunteer/slots.ts`, `src/volunteer/TimeSlots.tsx`): help needed at
+  several times is a row per slot, each extra one pointing at the first (`volunteer_add_slot`: its leaders, help only, copying
+  the title, details, place, event, order, photo and privacy). Everything per opportunity (sign-ups, spots, invites, check-in
+  codes, reminders, hours, chat) stays per slot; lists group a series into one card (`bySlots`), and moving it to an event,
+  its event order and its photo apply to every slot. A new per-opportunity feature should decide whether it's per slot.
+  **Cover photos** (`image` on both; `src/volunteer/CoverPhoto.tsx`): an opportunity's leaders (`app.runs_volunteer`) and an
+  event's starter (`app.runs_volunteer_event`) put a photo they uploaded to their own folder of the private `volunteer` bucket
+  on its card (`volunteer_set_image`, `volunteer_event_set_image`); only people who can see the opportunity or event read
+  the file (the bucket's select policy), so an invite-only draft's photo stays private. Without one, the drawn art.
 - **Volunteer invites** (`volunteer_invites`; `src/volunteer/InvitePanel.tsx`, `src/volunteer/invites.ts`): help opportunities only.
   Its leaders (`app.runs_volunteer`) invite people who can volunteer, found by name (`volunteer_invite_people`: names and
   roles only), with a note (`volunteer_invite`; open invites plus volunteers never exceed the spots, and on an opportunity
