@@ -1,6 +1,6 @@
 /**
  * Apps: the school's tools as large tiles, opened from the shield button in the middle of
- * the tab bar. Teachers, staff and admins get a Standard / Staff switch at the top: Staff
+ * the tab bar. Teachers, staff and admins get a Standard / Staff switch at the top (everyone else a thin gold bar): Staff
  * shows the staff versions (marked in gold), Standard the apps as parents see them. Parents
  * (and staff with children here, on Standard) get their Folder on top, closed until tapped
  * (src/schoolForms/MainFolder.tsx); the Folder tile is the senders' side, in Staff view.
@@ -19,6 +19,7 @@ import { visibleTiles, type TileRules } from '../../src/appTiles';
 import { GOLD, NAVY } from '../../src/sports/ui';
 import { SCHOOL } from '../../src/school';
 import { MainFolder } from '../../src/schoolForms/MainFolder';
+import { EDGE_WIDTH } from '../../src/ScreenEdge';
 import { useStaffViewSetting } from '../../src/staffView';
 import { C, s, useContentWidth } from '../../src/ui';
 
@@ -105,7 +106,9 @@ export default function Apps() {
   const columns = Math.max(3, Math.min(5, Math.floor(useContentWidth() / 140)));
   return (
     <View style={s.screen}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[s.pad, { paddingTop: 16 }]}>
+      <ScrollView style={{ flex: 1 }}>
+      {!staff && <GoldBar />}
+      <View style={[s.pad, { paddingTop: staff ? 16 : 12 }]}>
       {staff && <ViewSwitch staffView={staffSetting} onChange={setStaffSetting} />}
       {active.map((a) => (
         <Pressable key={a.id} onPress={() => router.push('/alerts')} accessibilityRole="button" accessibilityLabel={`Critical alert: ${a.title}. Open`}
@@ -142,9 +145,18 @@ export default function Apps() {
           </Pressable>
         ))}
       </View>
+      </View>
       </ScrollView>
     </View>
   );
+}
+
+/**
+ * Where staff have the Standard / Staff switch, everyone else gets a thin gold bar in the school's style, across the
+ * whole width of the screen up to the red edge lines (src/ScreenEdge.tsx) on either side.
+ */
+function GoldBar() {
+  return <View accessible={false} style={{ height: 6, marginTop: 16, marginHorizontal: EDGE_WIDTH, backgroundColor: GOLD }} />;
 }
 
 /** Standard / Staff: which versions of the apps a teacher, staff member or admin sees. */
@@ -157,7 +169,7 @@ function ViewSwitch({ staffView, onChange }: { staffView: boolean; onChange: (st
         style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 999,
           backgroundColor: on ? (value ? NAVY : C.primary) : 'transparent' }}>
         <Ionicons name={icon} size={16} color={on ? (value ? GOLD : '#fff') : C.muted} />
-        <Text style={{ fontWeight: '800', color: on ? '#fff' : C.muted }}>{label}</Text>
+        <Text style={{ fontWeight: '800', color: on ? '#fff' : C.muted, lineHeight: 18 }}>{label}</Text>
       </Pressable>
     );
   };

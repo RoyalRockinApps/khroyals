@@ -9,7 +9,9 @@ import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from './ui';
 
-const WIDTH = 4;
+/** The line's width; full-width things (the Main page's gold bar) stay this far in so they don't cover it. */
+export const EDGE_WIDTH = 4;
+const WIDTH = EDGE_WIDTH;
 
 /**
  * About the screen's own corner radius, so the line follows the glass instead of being cut
