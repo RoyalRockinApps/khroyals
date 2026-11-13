@@ -516,8 +516,8 @@ for art and clubs; home/away and cancellations. An activity's coaches and direct
 events to its schedule with *+ Add an event* (on the Activities home, or the activity's page). People with an approved account tap an
 activity's ★ button to **follow** it, and parents **sign up** their children during a
 season's sign-up window; its coach or director approves, and only then is the child
-registered. The Activities home has a search (🔍) and two carousels: **Your activities**
-(registered, followed, then ones you opened lately) and **Upcoming events**, which counts
+registered. The Activities home has a search (🔍), **Your activities** as a grid of their icons three
+across (registered, followed, then ones you opened lately) and an **Upcoming events** carousel, which counts
 down to each game, practice or rehearsal with its venue, address and **Directions** (Maps),
 then **Full schedule** for the next two months. Parents answer **Are you going?** (Going /
 Not going) for each registered child, and students for themselves (`sport_event_rsvps`);

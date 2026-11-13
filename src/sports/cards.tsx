@@ -1,5 +1,5 @@
 /**
- * Activities home cards, in the Kingdom Heights colors: activity cards for "Your activities",
+ * Activities home cards, in the school's colors: activity icons for "Your activities",
  * event cards with a countdown for "Upcoming events", the "Are you going?" sheet families use,
  * and the attendance line coaches see.
  */
@@ -27,30 +27,33 @@ const BY_CATEGORY: Record<string, Glyph> = {
 };
 const bannerMark = (sport?: Sport): Glyph => (sport && BY_EMOJI[sport.icon.trim()]) || BY_CATEGORY[sport?.category ?? 'sports'] || 'trophy-outline';
 
-/** One of "Your activities": photo, season, name and why it's yours. */
-export function ActivityCard({ sport, label, badge, onPress }: {
-  sport: Sport; label: string; badge: 'following' | 'registered' | 'viewed'; onPress: () => void;
+/**
+ * One of "Your activities" in its three-column grid: the activity's icon (team photo or emoji) with its name underneath,
+ * and a small green check (registered) or gold star (following) on the icon's corner; ones you only opened lately have none.
+ */
+export function ActivityIcon({ sport, badge, onPress }: {
+  sport: Sport; badge: 'following' | 'registered' | 'viewed'; onPress: () => void;
 }) {
-  const b = badge === 'registered' ? { text: 'Registered', color: GREEN } : badge === 'following' ? { text: 'Following', color: GOLD } : { text: 'Viewed', color: C.muted };
+  const b = badge === 'registered' ? { text: 'Registered', color: GREEN, icon: 'checkmark' as const }
+    : badge === 'following' ? { text: 'Following', color: GOLD, icon: 'star' as const } : null;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${sport.name}, ${b.text}`}
-      style={({ pressed }) => [card, { width: 168, minHeight: 190, padding: 14, justifyContent: 'space-between' }, pressed && { opacity: 0.85 }]}>
-      <View style={{ gap: 10 }}>
-        <View style={[s.row, { justifyContent: 'space-between', alignItems: 'flex-start' }]}>
-          <SportAvatar sport={sport} size={52} />
-          <Text style={{ fontSize: 12, color: C.muted, fontWeight: '600', flexShrink: 1, textAlign: 'right' }} numberOfLines={2}>{label}</Text>
-        </View>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: C.ink }} numberOfLines={2}>{sport.name}</Text>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={b ? `${sport.name}, ${b.text}` : sport.name}
+      style={({ pressed }) => [{ width: '33.333%', alignItems: 'center', gap: 8, paddingHorizontal: 4 }, pressed && { opacity: 0.7 }]}>
+      <View>
+        <SportAvatar sport={sport} size={72} />
+        {!!b && (
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: b.color,
+            borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name={b.icon} size={13} color="#fff" />
+          </View>
+        )}
       </View>
-      <View style={[s.row, { gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: `${b.color}1A` }]}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.color }} />
-        <Text style={{ fontSize: 12, fontWeight: '700', color: b.color }}>{b.text}</Text>
-      </View>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink, textAlign: 'center' }} numberOfLines={2}>{sport.name}</Text>
     </Pressable>
   );
 }
 
-/** The last card in a carousel: "All activities ›", "Full schedule ›". */
+/** The last card in a carousel: "Full schedule ›". */
 export function MoreCard({ icon, title, hint, width, onPress }: {
   icon: React.ComponentProps<typeof Ionicons>['name']; title: string; hint?: string; width: number; onPress: () => void;
 }) {

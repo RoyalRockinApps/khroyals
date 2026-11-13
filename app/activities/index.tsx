@@ -1,13 +1,13 @@
 /**
  * Activities (Apps → Activities): sports, theater, music, art and clubs. Pick a category
- * (or All), or search every activity and schedule. "Your activities" are the ones you follow (★), a child is registered
- * for, or you opened lately; "Upcoming events" counts down to what's next for them, with
+ * (or All), or search every activity and schedule. "Your activities" (a grid of their icons, three across) are the ones you
+ * follow (★), a child is registered for, or you opened lately; "Upcoming events" counts down to what's next for them, with
  * where it is and Are you going? for registered children. Below: what's happening now,
  * seasons coming up with sign-up info, and every other activity to follow. Anyone can
  * browse; following, sign-ups and answers need an approved account. Ticket buyers get My Tickets
  * here: the ticket button in the header, and a card at the top while they hold tickets.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ import {
   type Access, type MySport, type Person, type Sport, type SportEvent, type SportSeason,
 } from '../../src/api/connect';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
-import { ActivityCard, AttendanceLine, EventCard, MoreCard, RsvpButton } from '../../src/sports/cards';
+import { ActivityIcon, AttendanceLine, EventCard, MoreCard, RsvpButton } from '../../src/sports/cards';
 import { CATEGORIES, categoryInfo, inCategory, type Category } from '../../src/sports/categories';
 import { useEventPeople, useNow } from '../../src/sports/hooks';
 import { recentActivities } from '../../src/sports/recent';
@@ -87,8 +87,6 @@ export default function ActivitiesHome() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tickets, setTickets] = useState(0);   // the person's tickets for events from yesterday on
-  const scroll = useRef<ScrollView>(null);
-  const [allY, setAllY] = useState(0);
   const now = useNow();
 
   const load = useCallback(async () => {
@@ -167,7 +165,7 @@ export default function ActivitiesHome() {
   const SHOWN = 25;
 
   return (
-    <ScrollView ref={scroll} style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
+    <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.primary} />}>
       {header}
       {searching && (
@@ -225,13 +223,12 @@ export default function ActivitiesHome() {
           {yours.length > 0 && (
             <>
               <Section title="Your activities" />
-              <Carousel>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 18, marginHorizontal: -4 }}>
                 {yours.map((sp) => (
-                  <ActivityCard key={sp.id} sport={sp} label={seasonLabel(sp)} onPress={() => open(sp.id)}
+                  <ActivityIcon key={sp.id} sport={sp} onPress={() => open(sp.id)}
                     badge={why(sp.id)?.registered ? 'registered' : why(sp.id)?.following ? 'following' : 'viewed'} />
                 ))}
-                <MoreCard icon="people" title="All activities" width={168} onPress={() => scroll.current?.scrollTo({ y: allY, animated: true })} />
-              </Carousel>
+              </View>
             </>
           )}
 
@@ -268,7 +265,7 @@ export default function ActivitiesHome() {
             <Card><P muted>Sign in on the Connect tab to follow activities, sign your children up and see what's coming up here.</P></Card>
           )}
 
-          <View onLayout={(ev) => setAllY(ev.nativeEvent.layout.y)} style={{ gap: 12 }}>
+          <View style={{ gap: 12 }}>
             {shown.length === 0 && (
               <Card><H>No {kind}activities yet</H><P muted>They show up here once the school adds them.</P></Card>
             )}
