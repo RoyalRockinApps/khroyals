@@ -29,7 +29,7 @@ schools/<id>/
   school.ts             names (app, school, community, newsletter), website, colors and fonts
   content/site/         the website's imported content
   assets/               icon, tiles, uniform pictures, car line map
-  menu.ts uniform.ts uniformImages.ts handbook.ts carline.ts carlineMap.ts tiles.ts fonts.ts
+  menu.ts uniform.ts uniformImages.ts handbook.ts handbookOutline.ts carline.ts carlineMap.ts tiles.ts fonts.ts
 supabase/schools/<id>/  database changes for that school only (its names and settings)
 ```
 
@@ -119,7 +119,7 @@ src/market/           Marketplace terms gate and helpers
 src/volunteer/        Volunteer gate and helpers
 src/attendance/       Classes: marks, a class's roll in words, school-day stepping, class cards and their tools
 src/checkin/          checking students in and out: reasons, pickup-list picker, field trip lists
-src/handbook/         Handbook reader: pages, paragraphs, search
+src/handbook/         Handbook reader: pages, paragraphs, sections, search
 src/questions/        Ask the School gate and helpers
 src/share/            QR codes drawn with plain views (qrcode-generator encodes)
 src/calendar/         past events: the school's date, "Show past events", greyed-out style
@@ -469,11 +469,16 @@ the car line board, and critical alerts (they answer and appear on the roll call
 like staff). Afterwards none of it is visible to them. Teachers and staff can be
 scheduled to cover a class too.
 
-**Handbook** (Apps → Handbook). The Student / Parent Handbook to read page by page,
-with search that highlights every match and jumps to its page. The
-text is extracted from the school's PDF (`src/handbook/text.ts`, regenerated with
-`swift scripts/import_handbook.swift`) and rebuilt into headings and paragraphs by
-`src/handbook/handbook.ts`. Page numbers are the PDF's.
+**Handbook** (Apps → Handbook). The Student / Parent Handbook as its table of contents:
+its parts, and each section folded until tapped, opening to that section's text (with
+the PDF page it starts on). Searching opens every section the words are in, highlights
+them, shows how many matches each has, dims the rest and scrolls to the first; *Fold all*
+closes them again. The text is extracted from the school's PDF (`schools/<id>/handbook.ts`,
+regenerated with `swift scripts/import_handbook.swift`) and rebuilt into headings and
+paragraphs by `src/handbook/handbook.ts`; the sections follow the school's outline
+(`schools/<id>/handbookOutline.ts`: each section's title and the line it starts at). The top
+shows the edition from the PDF's cover. After a new edition is imported, `npm run handbook:check`
+says which sections to fix (DEVELOPING.md → Update the handbook).
 
 **Activities** (Apps → Activities: the basketball-and-masks tile). Sports, theater,
 music, art and clubs, picked with the category pills at the top (or All). Anyone

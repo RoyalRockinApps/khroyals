@@ -13,7 +13,7 @@ import makeConfig from '../app.config';
 const ROOT = join(__dirname, '..');
 const { SCHOOLS, schoolId } = require('../schools') as { SCHOOLS: string[]; schoolId: (env?: Record<string, string>) => string };
 const FILES = [
-  'app.json', 'school.ts', 'menu.ts', 'carline.ts', 'carlineMap.ts', 'uniform.ts', 'uniformImages.ts', 'handbook.ts', 'tiles.ts', 'fonts.ts',
+  'app.json', 'school.ts', 'menu.ts', 'carline.ts', 'carlineMap.ts', 'uniform.ts', 'uniformImages.ts', 'handbook.ts', 'handbookOutline.ts', 'tiles.ts', 'fonts.ts',
   'content/site/site.json', 'content/site/home.json', 'content/site/news.json', 'content/site/calendar.json', 'content/site/pages.ts',
   'content/site/pages/index.json', 'assets/icon.png', 'assets/favicon.png', 'assets/adaptive-icon.png',
 ];

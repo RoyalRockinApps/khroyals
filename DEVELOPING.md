@@ -298,6 +298,30 @@ npm run import-site-wca    # re-scrapes wca-hsv.org into schools/wca/content/sit
 npm run typecheck && npm test
 ```
 
+### Update the handbook
+
+When the school publishes a new edition of the Student / Parent Handbook (a new PDF, usually each summer):
+
+```bash
+swift scripts/import_handbook.swift "<the new PDF's link>"     # Mac only; SCHOOL=wca for WCA
+npm run handbook:check                                       # SCHOOL=wca for WCA
+```
+
+The import rewrites `schools/<school>/handbook.ts` (don't edit it by hand). The Handbook app shows it as the
+table of contents in `schools/<school>/handbookOutline.ts`: each section's title and the line it starts at.
+`handbook:check` lists every section with its page and says what to change there:
+
+- **Not found**: the section's starting line isn't in the new text (renamed or reworded). Set its `starts` to
+  the line it begins with now; the check suggests the closest lines. If it's gone from the handbook, delete it.
+- **In the PDF's contents but in no section**: probably a new section. Add it in its place (order matters:
+  sections are found one after another), or, if it has no heading of its own, list it in the `includes` of the
+  section that holds it.
+
+Then `npm test` (tests/handbook.test.ts fails the same way while a section is missing) and commit both files.
+Until the outline is fixed the app still works: a section that isn't found just stays inside the one before it.
+The web app has the new edition as soon as it's pushed; phones get it with the next app build (TestFlight and the
+APK), since the handbook is built into the app.
+
 ## 7. Push notifications
 
 The app asks permission to show notifications after sign-in, and the school's

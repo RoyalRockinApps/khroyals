@@ -18,7 +18,8 @@
     "import-site": "python3 scripts/import_site.py schools/khroyals/content/site",
     "regen-comms": "python3 scripts/gen_comms.py mock-db/comms",
     "import-site-wca": "python3 scripts/import_wordpress.py",
-    "test:web": "node scripts/web_smoke.mjs"
+    "test:web": "node scripts/web_smoke.mjs",
+    "handbook:check": "tsx scripts/handbook_check.ts"
   },
   "dependencies": {
     "@expo-google-fonts/jost": "^0.4.2",

@@ -4,7 +4,8 @@
 //   swift scripts/import_handbook.swift                       # Kingdom Heights' handbook on khroyals.com
 //   SCHOOL=wca swift scripts/import_handbook.swift path/or/url.pdf
 //
-// Then check `npm test` (tests/handbook.test.ts) and commit the school's handbook.ts.
+// Then run `npm run handbook:check` (SCHOOL=… for another school) and update the school's handbookOutline.ts where
+// it says (a renamed heading, a new section), then `npm test`, and commit both files (DEVELOPING.md → Update the handbook).
 import Foundation
 import PDFKit
 
@@ -47,3 +48,4 @@ export const HANDBOOK = \(literal(text));
 """
 try! module.write(to: output, atomically: true, encoding: .utf8)
 print("wrote \(output.path): \(pdf.pageCount) pages, \(text.count) characters")
+print("next: SCHOOL=\(school) npm run handbook:check, and update schools/\(school)/handbookOutline.ts where it says")

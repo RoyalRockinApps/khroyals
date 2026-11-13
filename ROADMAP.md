@@ -42,7 +42,7 @@ has every migration; nobody has an account yet.
 | WCA sign-in and email | — | Not started | WCA's own email (SMTP), Google/Apple sign-in, a Resend key | Same steps as Kingdom Heights (DEVELOPING §5) on WCA's project; free Supabase email sends a link, not a code, and only a few an hour. |
 | School calendar | — | Not started | WCA's 2026–27 calendar | `schools/wca/content/site/calendar.json` is empty; the office can add dates in the app. |
 | Dress code on the Planner | — | Not started | WCA's uniform guide | Fill `schools/wca/uniform.ts` (and pictures in `uniformImages.ts`) like Kingdom Heights'. |
-| Family handbook | — | Not started | The handbook PDF | `SCHOOL=wca swift scripts/import_handbook.swift <pdf>`; the Handbook tile appears once it has pages. |
+| Family handbook | — | Not started | The handbook PDF | `SCHOOL=wca swift scripts/import_handbook.swift <pdf>`, then list its sections in `schools/wca/handbookOutline.ts`; the Handbook tile appears once it has pages. |
 | Car line spot and traffic map | — | Not started | Which campus and where cars line up | The pickup zone starts at the Lower Campus (375 Mt. Zion Rd.); car line leads move it in the app. Add a traffic map in `schools/wca/carline.ts` / `carlineMap.ts`. |
 | Newsletter | — | Not started | What WCA sends families | WCA News imports Smore newsletters; adjust if WCA uses something else. |
 | App store accounts and push | — | Not started | WCA's Apple and Google accounts | Its own listings (`org.wcahsv.app`); same steps as Kingdom Heights (DEVELOPING §7, §9 with `SCHOOL=wca`). |
@@ -172,7 +172,7 @@ Working in the app and on the server today.
 | School site | News | News articles (Apps → News) |
 | School site | Calendar | 2026–27 dates, "Show past events" toggle, group calendars |
 | School site | Share tab | QR code, share sheet and link to khroyals.com |
-| School site | Handbook | Page-by-page reader with search and highlighting, works signed out |
+| School site | Handbook | The table of contents with each section folded until tapped; search opens and highlights every section it's in; works signed out |
 | Royals Connect | Groups | Chat, Discussion Board, Announcements and Q&A styles, each action's "who can" set separately |
 | Royals Connect | Moderation | Lock, approval queues, slow mode, quiet hours, mutes, pinning, audit log |
 | Forms | Permission slips, releases and acknowledgments | Teachers send to their classes, coaches to their activities' sign-ups and the office to grades or the school; parents sign once per child (either parent counts), senders see who has signed and send reminders, and record fees paid |
