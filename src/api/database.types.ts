@@ -558,6 +558,7 @@ export type Database = {
           grade: number | null
           id: string
           school_year: number | null
+          sport_id: string | null
           taken_on: string
           title: string
           visibility: string
@@ -572,6 +573,7 @@ export type Database = {
           grade?: number | null
           id?: string
           school_year?: number | null
+          sport_id?: string | null
           taken_on?: string
           title: string
           visibility?: string
@@ -586,6 +588,7 @@ export type Database = {
           grade?: number | null
           id?: string
           school_year?: number | null
+          sport_id?: string | null
           taken_on?: string
           title?: string
           visibility?: string
@@ -2236,6 +2239,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sport_bulletins: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          pinned: boolean
+          sport_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          sport_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          sport_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sport_chat_messages: {
+        Row: { author_id: string; body: string; created_at: string; id: string; sport_id: string }
+        Insert: { author_id: string; body: string; created_at?: string; id?: string; sport_id: string }
+        Update: { author_id?: string; body?: string; created_at?: string; id?: string; sport_id?: string }
+        Relationships: []
       }
       sport_coaches: {
         Row: {
@@ -4476,6 +4518,17 @@ export type Database = {
         Args: { p_path: string; p_sport: string }
         Returns: undefined
       }
+      sport_album: { Args: { p_sport: string }; Returns: string }
+      sport_bulletin_delete: { Args: { p_id: string }; Returns: undefined }
+      sport_bulletin_save: {
+        Args: { p_body: string; p_id: string | null; p_pinned?: boolean; p_sport: string | null; p_title: string }
+        Returns: string
+      }
+      sport_chat_delete: { Args: { p_id: string }; Returns: undefined }
+      sport_chat_send: {
+        Args: { p_body: string; p_sport: string }
+        Returns: { author_id: string; body: string; created_at: string; id: string; sport_id: string }
+      }
       sport_decide: {
         Args: { p_approve: boolean; p_note?: string; p_registration: string }
         Returns: {
@@ -4594,6 +4647,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      sport_roster: { Args: { p_sport: string }; Returns: Json }
       sport_rsvp: {
         Args: { p_event: string; p_status: string; p_student: string }
         Returns: undefined

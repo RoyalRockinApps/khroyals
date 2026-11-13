@@ -523,9 +523,20 @@ then **Full schedule** for the next two months. Parents answer **Are you going?*
 Not going) for each registered child, and students for themselves (`sport_event_rsvps`);
 coaches and directors see who's coming on each item (`sport_event_attendance`). Coaches,
 directors and activity managers can add a **team photo** (`avatars/sports/<id>/`, seen by
-approved accounts; signed-out visitors see the emoji). Managers: the *Manage
+approved accounts; signed-out visitors see the emoji; from the page's gear). Each **activity's page** is a navy
+banner (team photo, who leads it, the ★) over tabs that stay at the top as it scrolls: **Home** (sign-ups waiting
+for its leaders, new chat messages, what's next, the latest from the board, and each season with sign-up for your
+children), **Schedule**, then the team's own space (`supabase/migrations/…_activity_team.sql`, `src/sports/team/`).
+The team is the students registered for one of its seasons that isn't over and their parents (never Family
+accounts); its leaders are its coaches or directors and the activity managers. **Board**: the leaders post news,
+pin it to the top, change it or take it down (`sport_bulletins`); the team reads it and its students and parents are
+told about each new post. **Roster**: who's on the team with their grade and parents (`sport_roster`), and for the
+leaders, the sign-ups to approve. **Chat**: the team's parents and its leaders (never students) talk
+(`sport_chat_messages`); people remove their own messages with a long press, the leaders anyone's; a red dot marks
+messages since this phone last looked. **Photos**: this school year's album in the photo gallery ("Volleyball
+2026–27", `gallery_albums.sport_id`), which its leaders start (`sport_album`) and everyone adds to. Managers: the *Manage
 activities* permission (`sports.manage`; Director and Administrator roles to start; add
-it to a role like "Athletic Director") adds activities and their coaches or directors,
+it to a role like "Athletic Director") adds activities and their coaches or directors (Edit activity, behind the page's gear),
 who (staff, no authenticator code needed) run its seasons, schedule and sign-ups.
 Notifications: schedule changes go to everyone involved, sign-up decisions to the
 parent, new sign-ups to the coaches/directors (or the activity managers), and "sign-ups

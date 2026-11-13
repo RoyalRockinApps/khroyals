@@ -288,6 +288,13 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   "Are you going?" answers (`sport_event_rsvps`, `sport_rsvp`) are only for registered
   participants, given by their parents (`app.my_students()`, so never Family accounts) or
   themselves; only the activity's leaders see attendance.
+  **An activity's team** (its page's Board, Roster and Chat tabs; `src/sports/team/`): the students registered for one of
+  its seasons that isn't over (`app.team_students`) and their parents (`app.team_parent`, `app.is_guardian_of`, so never
+  Family accounts); its leaders are `app.can_manage_sport`. The team and leaders read the board (`sport_bulletins`, only
+  leaders post: `sport_bulletin_save`, which tells the team's parents and students) and the roster (`sport_roster`);
+  only the team's parents and the leaders are in the chat (`sport_chat_messages`, `app.in_team_chat`; never students).
+  `teamAccess` in `src/api/policy.ts` mirrors who sees which tab. Its photo album is a gallery album per school year
+  (`gallery_albums.sport_id`, `sport_album`: leaders start it), for everyone like event albums.
 - **Volunteer events** (`volunteer_events`; `volunteer_opportunities.event_id`): an event (Harvest Fest) is one
   card in the Volunteer app holding its opportunities. Any Volunteer Leader or coach (`app.posts_volunteer`: Volunteer Leaders,
   and staff on an activity's `sport_coaches`; `useCanPost` in `src/volunteer/canPost.tsx`) starts one (`volunteer_event_save`),

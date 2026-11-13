@@ -1,5 +1,5 @@
 /** policy: internal API implementation. Screens import the connect facade. */
-import type { Access, Person, Sport } from './types';
+import type { Access, Person, Sport, SportRegistration } from './types';
 
 /** Staff the office has put on car line duty (the database checks the same rule). */
 export const onCarlineDuty = (p: Person | null) => !!p?.carlineDuty && ['admin', 'teacher', 'staff'].includes(p.schoolRole);
@@ -8,6 +8,20 @@ export const onCarlineDuty = (p: Person | null) => !!p?.carlineDuty && ['admin',
 export const canManageSport = (sport: Sport, access: Access | null, me: Person | null) =>
   !!access?.permissions.includes('sports.manage')
   || (!!me && ['admin', 'teacher', 'staff'].includes(me.schoolRole) && sport.coachIds.includes(me.id));
+
+/**
+ * Someone's place on an activity's team (the database decides with app.on_team / app.in_team_chat): its leaders; the
+ * students registered for one of its seasons that isn't over; and their parents, never Family accounts. `regs` are
+ * the sign-ups they can see for its current seasons, `kids` their children. The team reads the roster and the board;
+ * the parents and the leaders are in the chat.
+ */
+export function teamAccess(sport: Sport | null | undefined, access: Access | null, me: Person | null, regs: SportRegistration[], kids: Person[]) {
+  const leader = !!sport && canManageSport(sport, access, me);
+  const registered = regs.filter((r) => r.status === 'registered');
+  const student = !!me && me.schoolRole === 'student' && registered.some((r) => r.studentId === me.id);
+  const parent = !!me && me.schoolRole !== 'family' && registered.some((r) => kids.some((k) => k.id === r.studentId));
+  return { leader, onTeam: leader || student || parent, inChat: leader || parent };
+}
 
 /** Parents, staff and Family accounts volunteer; the office picks Volunteer Leaders (the database checks the same). */
 export const canVolunteer = (p: Person | null) => !!p && !p.pending && ['parent', 'teacher', 'staff', 'admin', 'family'].includes(p.schoolRole);

@@ -3,11 +3,11 @@ import { subscribeChanges } from './realtime';
 /** activities: internal API implementation. Screens import the connect facade. */
 import { enumValue } from './validation';
 import { CATEGORIES } from '../sports/categories';
-import { sampleSports } from '../sports/sample';
+import { sampleSports, sampleTeam } from '../sports/sample';
 import type { Category } from '../sports/categories';
-import type { MySport, Sport, SportAttendance, SportEvent, SportRegistration, SportRsvp, SportSeason } from './types';
+import type { MySport, Sport, SportAttendance, SportBulletin, SportChatMessage, SportEvent, SportRegistration, SportRsvp, SportSeason, TeamMember } from './types';
 import { live, rpc, run, sb } from './client';
-import { current } from './session';
+import { current, getUser } from './session';
 import { avatarUrl, signAvatars } from './storage';
 import { toRegistration, toSeason, toSportEvent } from './mappers';
 
@@ -151,4 +151,68 @@ export async function removeSportPhoto(sportId: string, oldPath?: string | null)
 
 export function subscribeSports(onChange: () => void): () => void {
   return subscribeChanges('subscribeSports', [{ event: '*', table: 'sport_events' }, { event: '*', table: 'sport_registrations' }, { event: '*', table: 'sport_event_rsvps' }], onChange);
+}
+
+// ----------------------------------------------------------------------
+// The team: roster, bulletin board, parent chat and photo album (supabase/migrations/…_activity_team.sql)
+// ----------------------------------------------------------------------
+
+/** The students on the team now, with their parents (for the team's families and its leaders). */
+export async function sportRoster(sportId: string): Promise<TeamMember[]> {
+  if (!live) return sampleTeam(sportId).roster.map((m) => ({ ...m, avatar: getUser(m.studentId)?.avatar ?? '' }));
+  const rows = (await rpc('sport_roster', { p_sport: sportId })) as unknown as {
+    studentId: string; firstName: string; lastName: string; grade: number | null; avatar: string | null; seasons: string[]; parents: string[];
+  }[];
+  await signAvatars(rows.map((r) => r.avatar)).catch(() => {});
+  return rows.map((r) => ({ ...r, grade: r.grade ?? null, avatar: avatarUrl(r.avatar), seasons: r.seasons ?? [], parents: r.parents ?? [] }));
+}
+
+/** The board's posts, pinned first, then newest (the team and its leaders read them). */
+export async function sportBulletins(sportId: string): Promise<SportBulletin[]> {
+  if (!live) return sampleTeam(sportId).bulletins.sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt));
+  const rows = await run(sb().from('sport_bulletins').select('*').eq('sport_id', sportId)
+    .order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100));
+  return rows.map((r) => ({
+    id: r.id, sportId: r.sport_id, authorId: r.author_id, title: r.title, body: r.body, pinned: r.pinned, createdAt: r.created_at, updatedAt: r.updated_at,
+  }));
+}
+
+/** The leaders post on the board (no id), or change, pin or unpin a post. A new post tells the team. */
+export async function saveBulletin(b: { id?: string | null; sportId: string; title: string; body: string; pinned: boolean }): Promise<string> {
+  if (!live) noServer();
+  return rpc('sport_bulletin_save', { p_id: b.id ?? null, p_sport: b.id ? null : b.sportId, p_title: b.title, p_body: b.body, p_pinned: b.pinned });
+}
+
+export async function deleteBulletin(id: string) { if (!live) noServer(); await rpc('sport_bulletin_delete', { p_id: id }); }
+
+const toChat = (r: { id: string; sport_id: string; author_id: string; body: string; created_at: string }): SportChatMessage =>
+  ({ id: r.id, sportId: r.sport_id, authorId: r.author_id, body: r.body, createdAt: r.created_at });
+
+/** The parent chat's latest 200 messages, oldest first. */
+export async function sportChat(sportId: string): Promise<SportChatMessage[]> {
+  if (!live) return sampleTeam(sportId).chat;
+  const rows = await run(sb().from('sport_chat_messages').select('*').eq('sport_id', sportId).order('created_at', { ascending: false }).limit(200));
+  return rows.reverse().map(toChat);
+}
+
+export async function sendSportChat(sportId: string, body: string): Promise<SportChatMessage> {
+  if (!live) noServer();
+  return toChat(await rpc('sport_chat_send', { p_sport: sportId, p_body: body }));
+}
+
+/** Remove your own message, or (the leaders) anyone's. */
+export async function deleteSportChat(id: string) { if (!live) noServer(); await rpc('sport_chat_delete', { p_id: id }); }
+
+/** The leaders start this school year's photo album (or get the one there is); returns its id. */
+export async function makeSportAlbum(sportId: string): Promise<string> {
+  if (!live) noServer();
+  return rpc('sport_album', { p_sport: sportId });
+}
+
+/** Live updates to the board and the chat. */
+export function subscribeTeam(sportId: string, onChange: () => void): () => void {
+  return subscribeChanges('subscribeTeam', [
+    { event: '*', table: 'sport_bulletins', filter: `sport_id=eq.${sportId}` },
+    { event: '*', table: 'sport_chat_messages', filter: `sport_id=eq.${sportId}` },
+  ], onChange);
 }

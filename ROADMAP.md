@@ -205,6 +205,7 @@ Working in the app and on the server today.
 | Activities | Sports, theater, music, art, clubs | Seasons, schedules, follow, sign-ups with coach approval |
 | Activities | Coaches add events and post volunteer help | Coaches and directors add events from the Activities home or their activity's page, and post opportunities and start events in Volunteer like Volunteer Leaders |
 | Activities | Events and RSVPs | Countdown carousel, directions, Going / Not going, attendance for coaches, team photos |
+| Activities | Team pages | Each activity's page in tabs (Home, Schedule, Board, Roster, Photos, Chat): the coaches' bulletin board with pinned posts, the team roster with parents, a chat for the team's parents and coaches, and a photo album each school year |
 | Marketplace | Buy and sell | Terms gate, photos, Dibs or Offer with one counter, deal card |
 | Volunteer | Activities-style look | Banner art on every opportunity, details in section cards, and a clapping celebration on Say Yes! |
 | Volunteer | Time slots | An opportunity can run at several times, each with its own spots, sign-ups and check-in; one card in the list, slots to pick on its page, and leaders add more later |

@@ -1,10 +1,13 @@
-/** Add or edit an activity (activity managers): category, name, emoji and a short description. */
-import { useEffect, useState } from 'react';
-import { Alert, Platform, ScrollView, Text, View } from 'react-native';
+/**
+ * Add or edit an activity (activity managers; the activity page's gear): category, name, emoji and a short description,
+ * and, once it exists, its coaches or directors (faculty and staff).
+ */
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { deleteSport, listSports, saveSport } from '../../src/api/connect';
+import { deleteSport, getUser, listSports, listUsers, saveSport, setSportCoach, type Person } from '../../src/api/connect';
 import { CATEGORIES, categoryInfo, leaders, type Category } from '../../src/sports/categories';
-import { Button, C, Card, Field, Loading, P, s } from '../../src/ui';
+import { Button, C, Card, Field, H, Loading, P, s } from '../../src/ui';
 
 const EMOJI: Record<Category, string> = {
   sports: '🏐 🏀 ⚽ 🏈 ⚾ 🎾 🏃 ⛳', theater: '🎭 🎬 🎟️', music: '🎵 🎤 🎹 🎻 🥁 🎺', art: '🎨 🖌️ 📷 🏺', clubs: '🤖 ♟️ 🔬 📚 🌱',
@@ -72,8 +75,46 @@ export default function EditActivity() {
         <Field label="Description" placeholder="Who it's for and what to expect" value={description} onChangeText={setDescription} multiline style={{ minHeight: 80 }} />
       </Card>
       <Button label={busy ? 'Saving…' : 'Save'} disabled={busy || !name.trim()} onPress={save} />
+      {!!id && <Leaders sportId={id} category={category} />}
       {id ? <Button label="Delete activity" kind="ghost" onPress={remove} />
         : <P muted>Then add a season, its schedule and its {leaders(category, 2).toLowerCase()} from the activity's page.</P>}
     </ScrollView>
+  );
+}
+
+/** Who leads the activity: its coaches or directors, added from faculty and staff and removed here. */
+function Leaders({ sportId, category }: { sportId: string; category: Category }) {
+  const [ids, setIds] = useState<string[] | null>(null);
+  const [staff, setStaff] = useState<Person[]>([]);
+  const [q, setQ] = useState('');
+  const load = useCallback(() => {
+    listSports().then(({ sports }) => setIds(sports.find((x) => x.id === sportId)?.coachIds ?? [])).catch(() => setIds([]));
+  }, [sportId]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { listUsers().then((ps) => setStaff(ps.filter((p) => ['admin', 'teacher', 'staff'].includes(p.schoolRole)))).catch(() => {}); }, []);
+  if (!ids) return <Loading />;
+  const set = (uid: string, on: boolean) => { setQ(''); setSportCoach(sportId, uid, on).then(load).catch((e) => Alert.alert('Activities', e.message)); };
+  const label = (uid: string) => { const p = getUser(uid); return p ? `${p.firstName} ${p.lastName}` : 'Someone'; };
+  const many = leaders(category, 2);
+  const matches = q.trim().length < 2 ? [] : staff.filter((p) => !ids.includes(p.id)
+    && `${p.firstName} ${p.lastName}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 5);
+  return (
+    <Card style={{ gap: 8, marginTop: 8 }}>
+      <H>{many}</H>
+      {ids.length === 0 && <P muted>No {many.toLowerCase()} yet. Sign-ups go to the activity managers until there are.</P>}
+      {ids.map((uid) => (
+        <View key={uid} style={[s.row, { justifyContent: 'space-between' }]}>
+          <Text style={{ color: C.ink, fontWeight: '600' }}>{label(uid)}</Text>
+          <Text style={{ color: C.danger, fontWeight: '700' }} onPress={() => set(uid, false)} accessibilityRole="button">Remove</Text>
+        </View>
+      ))}
+      <TextInput style={s.input} placeholder={`Add a ${categoryInfo(category).leader.toLowerCase()}: search faculty and staff`} value={q} onChangeText={setQ}
+        accessibilityLabel="Search faculty and staff" />
+      {matches.map((p) => (
+        <Text key={p.id} style={{ color: C.primary, fontWeight: '700', paddingVertical: 4 }} onPress={() => set(p.id, true)} accessibilityRole="button">
+          + {p.firstName} {p.lastName}
+        </Text>
+      ))}
+    </Card>
   );
 }

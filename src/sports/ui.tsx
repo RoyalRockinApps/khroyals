@@ -9,6 +9,8 @@ import { directionsUrl } from './events';
 import { SCHOOL } from '../school';
 
 export const GOLD = '#CA8A04';
+/** Gold that reads on navy. */
+export const GOLD_LIGHT = '#FFD54A';
 export const NAVY = SCHOOL.theme.dark;
 export const ORANGE = '#EA580C';
 
@@ -18,8 +20,8 @@ export function when(iso: string) {
   return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
 }
 
-/** A round button with a star in the middle: follow an activity to see its schedule and news. */
-export function StarButton({ following, onPress, disabled }: { following: boolean; onPress: () => void; disabled?: boolean }) {
+/** A round button with a star in the middle: follow an activity to see its schedule and news. `onDark`: on a navy banner. */
+export function StarButton({ following, onPress, disabled, onDark }: { following: boolean; onPress: () => void; disabled?: boolean; onDark?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: following, disabled }}
       accessibilityLabel={following ? 'Following. Tap to unfollow' : 'Follow this activity'}
@@ -30,7 +32,7 @@ export function StarButton({ following, onPress, disabled }: { following: boolea
       }}>
         <Ionicons name={following ? 'star' : 'star-outline'} size={28} color={following ? '#fff' : GOLD} />
       </View>
-      <Text style={{ fontSize: 12, fontWeight: '700', color: following ? GOLD : C.ink }}>{following ? 'Following' : 'Follow'}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '700', color: onDark ? (following ? GOLD_LIGHT : '#fff') : following ? GOLD : C.ink }}>{following ? 'Following' : 'Follow'}</Text>
     </Pressable>
   );
 }

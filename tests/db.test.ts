@@ -4940,6 +4940,110 @@ test('volunteer time slots: a leader adds more times to an opportunity, each wit
     update profiles set volunteer_lead = false where id = '${luis}'`);
 });
 
+test('activity team: the roster, the board and the parent chat are for the team; the photo album is for everyone', async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;
+  const told = async (who: string, sport: string) => {
+    await as(who);
+    return (await rows(`select title, body from my_notifications() where data->>'bulletinId' is not null and data->>'sportId' = '${sport}'`))
+      .map((n) => `${n.title} | ${n.body}`).join('\n');
+  };
+  // Cross Country with a coach and a season: Ava (Rosa's daughter) is on the team; Liam's sign-up is still waiting.
+  await as('u-admin', true);
+  const xc = await one(`select * from sport_save(null, 'Cross Country', '🏃', 'Fall running', 'sports')`);
+  await one(`select sport_set_coach('${xc.id}', ${id('u-vbcoach')}, true)`);
+  await as('u-vbcoach');
+  const season = await one(`select * from season_save(null, '${xc.id}', 'Fall 2026', app.school_today() - 1, app.school_today() + 40,
+    app.school_today() - 1, app.school_today() + 5)`);
+  await as('u-p01');
+  const reg = await one(`select * from sport_register('${season.id}', '${ava}')`);
+  await as('u-p02');
+  await one(`select * from sport_register('${season.id}', ${id('u-s02')})`);
+  await as('u-vbcoach');
+  await one(`select * from sport_decide('${reg.id}', true)`);
+
+  // Roster: the coach, Ava and her parents see it; a family still waiting, other families and Family accounts don't.
+  for (const who of ['u-vbcoach', 'u-p01', 'u-s01']) {
+    await as(who);
+    const roster = (await one(`select sport_roster('${xc.id}') as r`)).r;
+    assert.deepEqual(roster.map((x: any) => `${x.firstName} ${x.lastName}`), ['Ava Reyes'], who);
+    assert.deepEqual(roster[0].seasons, ['Fall 2026']);
+    assert.ok(roster[0].parents.some((n: string) => /^Ros\w+ Reyes$/.test(n)), 'with her parents (an earlier test calls Rosa "Rosie")');
+  }
+  for (const who of ['u-p02', 'u-p07', 'u-gran']) {
+    await as(who);
+    await rejects(`select sport_roster('${xc.id}')`, /roster is for the team/);
+  }
+
+  // Board: only the coach posts; Ava and Rosa are told and read it; Wei and Priya neither hear nor see it.
+  await as('u-p01');
+  await rejects(`select sport_bulletin_save(null, '${xc.id}', '', 'Hi')`, /Only the activity's coaches or directors/);
+  await as('u-vbcoach');
+  await rejects(`select sport_bulletin_save(null, '${xc.id}', '', '   ')`, /Write something/);
+  const post = (await one(`select sport_bulletin_save(null, '${xc.id}', 'Meet moved', 'Saturday''s meet starts at 8:00 at Brahan Spring.') as id`)).id;
+  for (const who of ['u-p01', 'u-s01']) {
+    assert.equal(await told(who, xc.id), '🏃 Cross Country: Meet moved | Saturday\'s meet starts at 8:00 at Brahan Spring.', who);
+    assert.equal((await rows(`select 1 from sport_bulletins where sport_id = '${xc.id}'`)).length, 1, who);
+  }
+  for (const who of ['u-p02', 'u-p07', 'u-vbcoach']) assert.equal(await told(who, xc.id), '', who);
+  for (const who of ['u-p02', 'u-p07', 'u-gran']) {
+    await as(who);
+    assert.equal((await rows(`select 1 from sport_bulletins where sport_id = '${xc.id}'`)).length, 0, who);
+  }
+  // Pinning or changing it is quiet; parents can't take it down.
+  await as('u-vbcoach');
+  await one(`select sport_bulletin_save('${post}', null, 'Meet moved', 'Saturday''s meet starts at 8:30.', true)`);
+  assert.equal(await told('u-p01', xc.id), '🏃 Cross Country: Meet moved | Saturday\'s meet starts at 8:00 at Brahan Spring.');
+  assert.deepEqual(await one(`select pinned, body from sport_bulletins where id = '${post}'`), { pinned: true, body: 'Saturday\'s meet starts at 8:30.' });
+  await rejects(`select sport_bulletin_delete('${post}')`, /Only the activity's coaches or directors/);
+
+  // Parent chat: the team's parents and the coach; not students, waiting families or Family accounts.
+  await one(`select sport_chat_send('${xc.id}', 'Anyone want to carpool Saturday?')`);
+  for (const who of ['u-s01', 'u-p02', 'u-p07', 'u-gran']) {
+    await as(who);
+    await rejects(`select sport_chat_send('${xc.id}', 'Hi')`, /chat is for the team's parents/);
+    assert.equal((await rows(`select 1 from sport_chat_messages where sport_id = '${xc.id}'`)).length, 0, who);
+  }
+  await as('u-vbcoach');
+  const coachSays = (await one(`select (sport_chat_send('${xc.id}', 'Vans leave at 7:15.')).id as id`)).id;
+  await as('u-p01');
+  assert.deepEqual((await rows(`select body from sport_chat_messages where sport_id = '${xc.id}' order by created_at, body`)).map((m) => m.body),
+    ['Anyone want to carpool Saturday?', 'Vans leave at 7:15.']);
+  await rejects(`select sport_chat_delete('${coachSays}')`, /only remove your own/);
+  const rosaSays = (await one(`select (sport_chat_send('${xc.id}', 'Oops')).id as id`)).id;
+  await one(`select sport_chat_delete('${rosaSays}')`);
+  await rejects(`select sport_chat_send('${xc.id}', '  ')`, /Write a message/);
+  await rejects(`insert into sport_chat_messages (sport_id, author_id, body) values ('${xc.id}', '${ava}', 'x')`, /permission denied/);
+
+  // Photo album: the coach starts this school year's; everyone sees it and adds to it.
+  await rejects(`select sport_album('${xc.id}')`, /coaches or directors start its photo album/);
+  await as('u-vbcoach');
+  const album = (await one(`select sport_album('${xc.id}') as id`)).id;
+  assert.equal((await one(`select sport_album('${xc.id}') as id`)).id, album, 'one a year');
+  const made = await one(`select a.title, a.visibility, c.name as category from gallery_albums a join gallery_categories c on c.id = a.category_id where a.id = '${album}'`);
+  assert.match(made.title, /^Cross Country \d{4}–\d{2}$/);
+  assert.deepEqual([made.visibility, made.category], ['everyone', 'Sports']);
+  for (const who of ['u-p01', 'u-p07']) {
+    await as(who);
+    assert.equal((await one(`select sport_album('${xc.id}') as id`)).id, album, who);
+    assert.equal((await rows(`select 1 from gallery_albums where sport_id = '${xc.id}'`)).length, 1, who);
+  }
+
+  // Once the season is over, the families are off the team; the coach still has it all.
+  await asSuper();
+  await db.exec(`update sport_seasons set starts_on = app.school_today() - 60, ends_on = app.school_today() - 1 where id = '${season.id}'`);
+  await as('u-p01');
+  await rejects(`select sport_roster('${xc.id}')`, /roster is for the team/);
+  assert.equal((await rows(`select 1 from sport_bulletins where sport_id = '${xc.id}'`)).length, 0);
+  assert.equal((await rows(`select 1 from sport_chat_messages where sport_id = '${xc.id}'`)).length, 0);
+  await as('u-vbcoach');
+  assert.equal((await rows(`select 1 from sport_chat_messages where sport_id = '${xc.id}'`)).length, 2);
+  await one(`select sport_bulletin_delete('${post}')`);
+  assert.equal((await rows(`select 1 from sport_bulletins where sport_id = '${xc.id}'`)).length, 0);
+
+  await asSuper();
+  await db.exec(`delete from gallery_albums where id = '${album}'; delete from sports where id = '${xc.id}'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

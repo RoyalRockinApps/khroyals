@@ -62,13 +62,14 @@ const words = (q: string) => q.replace(/[,()%*\\]/g, ' ').trim().split(/\s+/).fi
 /**
  * Albums you can see, newest first, each with its photo count and a cover thumbnail. `category`
  * narrows to one category; `search` matches every word against the album's name, description and
- * category, or its photos' captions.
+ * category, or its photos' captions. `sport` lists an activity's albums (one per school year).
  */
-export async function listAlbums(opts: { limit?: number; category?: string | null; search?: string } = {}): Promise<GalleryAlbum[]> {
+export async function listAlbums(opts: { limit?: number; category?: string | null; search?: string; sport?: string } = {}): Promise<GalleryAlbum[]> {
   if (!live || !current) return [];
   let q = sb().from('gallery_albums').select('*, gallery_photos(path, created_at)')
     .order('taken_on', { ascending: false }).order('created_at', { ascending: false }).limit(opts.limit ?? 200);
   if (opts.category) q = q.eq('category_id', opts.category);
+  if (opts.sport) q = q.eq('sport_id', opts.sport);
   const [found, mine] = await Promise.all([run(q), myAlbumIds()]);
   let albums = found;
   const terms = words(opts.search ?? '').map((w) => w.toLowerCase());

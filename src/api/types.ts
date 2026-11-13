@@ -107,6 +107,16 @@ export type SportRsvp = { eventId: string; studentId: string; status: 'going' | 
 
 /** For an activity's leaders: one registered participant and their answer. */
 export type SportAttendance = { eventId: string; studentId: string; name: string; status: 'going' | 'not_going' | 'none' };
+/** A post on an activity's bulletin board: its coaches or directors write, the team reads; pinned ones stay on top. */
+export type SportBulletin = {
+  id: string; sportId: string; authorId: string; title: string; body: string; pinned: boolean; createdAt: string; updatedAt: string;
+};
+/** A message in an activity's parent chat (the team's parents and its coaches or directors). */
+export type SportChatMessage = { id: string; sportId: string; authorId: string; body: string; createdAt: string };
+/** A student on an activity's team, for its roster: grade, photo, the seasons they're in and their parents' names. */
+export type TeamMember = {
+  studentId: string; firstName: string; lastName: string; grade: number | null; avatar: string; seasons: string[]; parents: string[];
+};
 
 export type Condition = 'new' | 'like_new' | 'good' | 'fair';
 

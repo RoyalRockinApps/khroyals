@@ -1,18 +1,25 @@
 /**
- * One activity (a sport, show, ensemble, club…): its team photo, follow it (★), its current and
- * next season (details, grades, sign-up for your children), and its schedule with where each item
- * is and Are you going? for registered children. Its coaches or directors and the activity
- * managers also see who's coming, change the team photo, approve sign-ups and edit the schedule
- * and seasons; activity managers edit the activity and who leads it.
+ * One activity (a sport, show, ensemble, club…): a navy banner with its team photo, who leads it and Follow (★), then
+ * tabs (src/sports/team/TabBar.tsx) so each part has its own place:
+ *   Home: what needs you (sign-ups waiting for its leaders, new messages in the parent chat), what's next, the latest
+ *     from the board, and its current and next seasons with sign-up for your children.
+ *   Schedule: games, practices and rehearsals (past ones behind a toggle), with Are you going? and tickets.
+ *   Board, Roster and Chat: the team's own space (src/sports/team): news from its leaders, who's on the team, and its
+ *     parents' chat. Only the team sees them (its students and parents, and its leaders); students don't see the chat.
+ *   Photos: this school year's album, for every approved account.
+ * Its leaders change the team photo from the header's gear; activity managers also edit the activity and who leads
+ * it there. Demo builds (no server) show every tab with Volleyball's sample team.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Platform, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  canBuyTickets, canManageSport, decideSportRegistration, followSport, getUser, isFamily, listSports, listUsers, myAccess, myChildren, mySports,
-  registerForSport, removeSportPhoto, session, setSportCoach, sportRegistrations, sportSchedule, subscribeSports, uploadSportPhoto,
+  canBuyTickets, canManageSport, followSport, getUser, isFamily, isSubstitute, listSports, live, myAccess, myChildren, mySports,
+  registerForSport, removeSportPhoto, session, sportRegistrations, sportSchedule, subscribeSports, teamAccess, uploadSportPhoto,
   withdrawSportRegistration, type Access, type Person, type Sport, type SportEvent, type SportRegistration, type SportSeason,
 } from '../../src/api/connect';
+import { ManageButton, type ManageItem } from '../../src/ManageButton';
 import { pickSquarePhoto } from '../../src/photos';
 import { AttendanceLine, RsvpButton, SportAvatar } from '../../src/sports/cards';
 import { useEventPeople } from '../../src/sports/hooks';
@@ -21,7 +28,13 @@ import { isPastTime, splitPast } from '../../src/calendar/past';
 import { PastToggle, usePastToggle } from '../../src/calendar/PastToggle';
 import { categoryInfo, leaders } from '../../src/sports/categories';
 import { activeSeasons, dateRange, eligible, gradesLabel, schoolToday, seasonState, shortDay, signupState } from '../../src/sports/seasons';
-import { EventRow, StarButton, Tag } from '../../src/sports/ui';
+import { Board } from '../../src/sports/team/Board';
+import { Roster } from '../../src/sports/team/Roster';
+import { TabBar, isTab, type TabKey } from '../../src/sports/team/TabBar';
+import { TeamChat } from '../../src/sports/team/TeamChat';
+import { TeamPhotos } from '../../src/sports/team/TeamPhotos';
+import { useTeamFeed } from '../../src/sports/team/useTeamFeed';
+import { EventRow, GOLD, GOLD_LIGHT, NAVY, StarButton, Tag } from '../../src/sports/ui';
 import { TicketButtons, useTicketsOnSale } from '../../src/tickets/parts';
 import { Button, C, Card, H, Loading, P, s } from '../../src/ui';
 
@@ -31,9 +44,12 @@ const confirm = (title: string, ok: string, go: () => void) => {
   Alert.alert(title, undefined, [{ text: 'Cancel', style: 'cancel' }, { text: ok, style: 'destructive', onPress: go }]);
 };
 const fail = (e: any) => Alert.alert('Activities', e?.message ?? String(e));
+const Label = ({ title }: { title: string }) => (
+  <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted, letterSpacing: 0.5, marginTop: 4 }}>{title.toUpperCase()}</Text>
+);
 
 export default function SportPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab: asked } = useLocalSearchParams<{ id: string; tab?: string }>();
   const [sport, setSport] = useState<Sport | null | undefined>(undefined);
   const [seasons, setSeasons] = useState<SportSeason[]>([]);
   const [events, setEvents] = useState<SportEvent[]>([]);
@@ -42,8 +58,11 @@ export default function SportPage() {
   const [me, setMe] = useState<Person | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
   const [following, setFollowing] = useState(false);
+  // The tab picked here, for the link that opened the page (a notification can open it on the Board).
+  const [picked, setPicked] = useState<{ for: string | undefined; tab: TabKey } | null>(null);
   const past = usePastToggle();
   const [refreshing, setRefreshing] = useState(false);
+  const scroll = useRef<ScrollView>(null);
 
   const today = schoolToday();
   const load = useCallback(async () => {
@@ -71,92 +90,195 @@ export default function SportPage() {
   const rsvp = useEventPeople(me, upcomingEvents);
   const onSale = useTicketsOnSale();
   useEffect(() => subscribeSports(() => { load(); rsvp.reload(); }), [load, rsvp.reload]);
-  const refresh = async () => { setRefreshing(true); await Promise.all([load(), rsvp.reload()]); setRefreshing(false); };
+
+  // Who's on the team decides the Board, Roster and Chat (demo builds, without the server, show them all).
+  const team = live ? teamAccess(sport, access, me, regs, kids) : { leader: !!sport && canManageSport(sport, access, me), onTeam: true, inChat: true };
+  const feed = useTeamFeed(id, team.onTeam, team.inChat, me?.id ?? null);
+  const approved = !!me && !me.pending;
+  const tabs: TabKey[] = ['home', 'schedule', ...(team.onTeam ? ['board', 'roster'] as const : []),
+    // The photo gallery is for approved accounts, never substitutes.
+    ...(approved && !isSubstitute(me) ? ['photos'] as const : []), ...(team.inChat ? ['chat'] as const : [])];
+  const want = picked && picked.for === asked ? picked.tab : isTab(asked) ? asked : 'home';
+  const tab: TabKey = tabs.includes(want) ? want : 'home';
+  const chatOpen = tab === 'chat';
+  useEffect(() => { if (chatOpen) feed.markSeen(); }, [chatOpen, feed.markSeen]);
+  // The chat opens at its newest messages, beside the box to write one.
+  useEffect(() => {
+    if (!chatOpen) return;
+    const t = setTimeout(() => scroll.current?.scrollToEnd({ animated: false }), 60);
+    return () => clearTimeout(t);
+  }, [chatOpen, feed.chat.length]);
+  const teamPhoto = useTeamPhoto(sport, load);
+  const refresh = async () => { setRefreshing(true); await Promise.all([load(), rsvp.reload(), feed.reload()]); setRefreshing(false); };
 
   if (sport === undefined) return <><Stack.Screen options={{ title: 'Activities' }} /><Loading /></>;
   if (!sport) return <View style={[s.screen, s.pad]}><Stack.Screen options={{ title: 'Activities' }} /><Card><H>That activity is gone</H></Card></View>;
 
-  const approved = !!me && !me.pending;
-  const manage = canManageSport(sport, access, me);
+  const manage = team.leader;
+  const isManager = !!access?.permissions.includes('sports.manage');
+  const category = categoryInfo(sport.category);
+  const leaderWord = leaders(sport.category, 2).toLowerCase();
   // Like every calendar in the app: past items stay out of view until asked for, then look greyed out.
   const schedule = splitPast(events, (e) => isPastTime(e.startsAt, e.endsAt));
-  const isManager = !!access?.permissions.includes('sports.manage');
   const toggleFollow = () => {
     if (!approved) { Alert.alert('Follow', 'Sign in on the Connect tab to follow activities.'); return; }
     setFollowing(!following);
     followSport(sport.id, !following).catch((e) => { setFollowing(following); fail(e); });
   };
+  const go = (t: TabKey) => { setPicked({ for: asked, tab: t }); scroll.current?.scrollTo({ y: 0, animated: false }); };
+  const gear: ManageItem[] = [
+    ...(manage && approved ? [{ icon: 'camera-outline' as const, label: sport.photoPath ? 'Change the team photo' : 'Add a team photo',
+      sub: 'Families and staff see it on the activity and its events', onPress: teamPhoto.ask }] : []),
+    ...(isManager ? [{ icon: 'create-outline' as const, label: 'Edit activity', sub: `Its name, category, description and ${leaderWord}`,
+      href: { pathname: '/activities/edit' as const, params: { id: sport.id } } }] : []),
+  ];
+  const eventRow = (e: SportEvent, isPast = false) => {
+    const people = rsvp.peopleFor(e);
+    const att = rsvp.attendanceFor(e);
+    return (
+      <EventRow key={e.id} e={e} past={isPast}
+        onPress={manage ? () => router.push({ pathname: '/activities/event', params: { sport: sport.id, id: e.id } }) : undefined}
+        footer={people.length || att.length || onSale.has(e.id) || manage ? (
+          <>
+            <AttendanceLine rows={att} />
+            <RsvpButton e={e} people={people} answers={rsvp.answers} onChange={rsvp.reload} />
+            <TicketButtons eventId={e.id} onSale={onSale.get(e.id)} buyer={canBuyTickets(me)} leader={manage} />
+          </>
+        ) : undefined} />
+    );
+  };
+  const pending = manage ? regs.filter((r) => r.status === 'pending').length : 0;
+  const latest = feed.bulletins[0];
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.primary} />}>
-      <Stack.Screen options={{ title: sport.name }} />
-
-      <Card style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-        <SportAvatar sport={sport} size={76} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink }}>{sport.name}</Text>
-          <Tag label={`${categoryInfo(sport.category).emoji} ${categoryInfo(sport.category).label}`} color={C.muted} />
-          {!!sport.description && <P muted>{sport.description}</P>}
-          {sport.coachIds.length > 0 && <P muted>{leaders(sport.category, sport.coachIds.length)}: {sport.coachIds.map(name).join(', ')}</P>}
-        </View>
-        <StarButton following={following} onPress={toggleFollow} />
-      </Card>
-      {manage && approved && <TeamPhotoLink sport={sport} onChange={load} />}
-      <P muted>{following ? 'You\'ll see its schedule in Activities and hear about changes and sign-ups.' : 'Follow to see its schedule in Activities and hear about changes and sign-ups.'}</P>
-
-      {seasons.length === 0 && <Card><P muted>No season is scheduled yet. Follow it to hear when sign-ups open.</P></Card>}
-      {seasons.map((season) => (
-        <SeasonCard key={season.id} season={season} today={today} kids={kids} regs={regs.filter((r) => r.seasonId === season.id)}
-          approved={approved} manage={manage} leader={categoryInfo(sport.category).leader.toLowerCase()} onChange={load} />
-      ))}
-
-      <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted, letterSpacing: 0.5, marginTop: 8 }}>SCHEDULE</Text>
-      {manage && (
-        <View style={s.row}>
-          <View style={{ flex: 2 }}>
-            <Button label="+ Add an event" onPress={() => router.push({ pathname: '/activities/event', params: { sport: sport.id } })} />
+    <>
+      <Stack.Screen options={{ title: sport.name, headerRight: () => <ManageButton app={sport.name} items={gear} /> }} />
+      <ScrollView ref={scroll} style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled" stickyHeaderIndices={[1]}
+        automaticallyAdjustKeyboardInsets refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.primary} />}>
+        <View style={{ backgroundColor: NAVY, borderRadius: 18, padding: 16, gap: 10, borderBottomWidth: 4, borderBottomColor: GOLD }}>
+          <View style={[s.row, { gap: 14 }]}>
+            <SportAvatar sport={sport} size={72} />
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }} numberOfLines={2}>{sport.name}</Text>
+              <Text style={{ color: GOLD_LIGHT, fontSize: 13, fontWeight: '700' }}>{category.emoji} {category.label}</Text>
+              {sport.coachIds.length > 0 && (
+                <Text style={{ color: '#fff', opacity: 0.85, fontSize: 13 }} numberOfLines={2}>
+                  {leaders(sport.category, sport.coachIds.length)}: {sport.coachIds.map(name).join(', ')}
+                </Text>
+              )}
+            </View>
+            <StarButton following={following} onPress={toggleFollow} onDark />
           </View>
-          <View style={{ flex: 1 }}>
-            <Button label="+ Season" kind="ghost" onPress={() => router.push({ pathname: '/activities/season', params: { sport: sport.id } })} />
-          </View>
+          {!!sport.description && <Text style={{ color: '#fff', opacity: 0.85, fontSize: 14, lineHeight: 19 }}>{sport.description}</Text>}
+          {teamPhoto.busy && <Text style={{ color: GOLD_LIGHT, fontWeight: '700' }}>Uploading the team photo…</Text>}
         </View>
-      )}
-      <PastToggle count={schedule.past.length} shown={past.shown} onToggle={past.toggle} />
-      {[...(past.shown ? schedule.past : []), ...schedule.upcoming].map((e) => {
-        const people = rsvp.peopleFor(e);
-        const att = rsvp.attendanceFor(e);
-        return (
-          <EventRow key={e.id} e={e} past={past.shown && schedule.past.includes(e)}
-            onPress={manage ? () => router.push({ pathname: '/activities/event', params: { sport: sport.id, id: e.id } }) : undefined}
-            footer={people.length || att.length || onSale.has(e.id) || manage ? (
-              <>
-                <AttendanceLine rows={att} />
-                <RsvpButton e={e} people={people} answers={rsvp.answers} onChange={rsvp.reload} />
-                <TicketButtons eventId={e.id} onSale={onSale.get(e.id)} buyer={canBuyTickets(me)} leader={manage} />
-              </>
-            ) : undefined} />
-        );
-      })}
-      {schedule.upcoming.length === 0 && <Card><P muted>Nothing coming up on the schedule.</P></Card>}
 
-      {manage && (
-        <ManagePanel sport={sport} seasons={seasons} regs={regs} isManager={isManager} onChange={load} />
-      )}
-    </ScrollView>
+        <TabBar tabs={tabs} value={tab} onChange={go} dot={feed.unread > 0 && !chatOpen ? 'chat' : null} />
+
+        <View style={{ gap: 12 }}>
+          {tab === 'home' && (
+            <>
+              {pending > 0 && (
+                <Nudge icon="person-add" color="#B45309" text={`${pending} sign-up${pending === 1 ? '' : 's'} waiting for you`} onPress={() => go('roster')} />
+              )}
+              {team.inChat && feed.unread > 0 && (
+                <Nudge icon="chatbubbles" color={C.primary} text={`${feed.unread} new message${feed.unread === 1 ? '' : 's'} in the parent chat`} onPress={() => go('chat')} />
+              )}
+
+              <Label title="Next up" />
+              {schedule.upcoming.length ? (
+                <>
+                  {eventRow(schedule.upcoming[0])}
+                  <Text style={more} onPress={() => go('schedule')} accessibilityRole="button">
+                    {schedule.upcoming.length > 1 ? `See the whole schedule (${schedule.upcoming.length} coming up) ›` : 'See the schedule ›'}
+                  </Text>
+                </>
+              ) : <Card><P muted>Nothing coming up on the schedule.</P></Card>}
+
+              {team.onTeam && latest && (
+                <>
+                  <Label title={`From the ${leaders(sport.category, sport.coachIds.length === 1 ? 1 : 2).toLowerCase()}`} />
+                  <Card onPress={() => go('board')} style={{ gap: 4, borderLeftWidth: latest.pinned ? 4 : 1, borderLeftColor: latest.pinned ? GOLD : C.line }}>
+                    {!!latest.title && <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{latest.title}</Text>}
+                    <Text style={{ color: C.ink, lineHeight: 20 }} numberOfLines={3}>{latest.body}</Text>
+                    <Text style={[more, { marginTop: 4 }]}>
+                      {feed.bulletins.length > 1 ? `Open the board (${feed.bulletins.length} posts) ›` : 'Open the board ›'}
+                    </Text>
+                  </Card>
+                </>
+              )}
+
+              <Label title={seasons.length > 1 ? 'Seasons and sign-ups' : 'Season and sign-ups'} />
+              {seasons.length === 0 && <Card><P muted>No season is scheduled yet. Follow it to hear when sign-ups open.</P></Card>}
+              {seasons.map((season) => (
+                <SeasonCard key={season.id} season={season} today={today} kids={kids} regs={regs.filter((r) => r.seasonId === season.id)}
+                  approved={approved} manage={manage} leader={category.leader.toLowerCase()} onChange={load} />
+              ))}
+              {approved && !following && (
+                <P muted>Follow it with the ★ to see its schedule in Activities and hear about changes and sign-ups.</P>
+              )}
+            </>
+          )}
+
+          {tab === 'schedule' && (
+            <>
+              {manage && (
+                <View style={s.row}>
+                  <View style={{ flex: 2 }}>
+                    <Button label="+ Add an event" onPress={() => router.push({ pathname: '/activities/event', params: { sport: sport.id } })} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button label="+ Season" kind="ghost" onPress={() => router.push({ pathname: '/activities/season', params: { sport: sport.id } })} />
+                  </View>
+                </View>
+              )}
+              <PastToggle count={schedule.past.length} shown={past.shown} onToggle={past.toggle} />
+              {past.shown && schedule.past.map((e) => eventRow(e, true))}
+              {schedule.upcoming.map((e) => eventRow(e))}
+              {schedule.upcoming.length === 0 && <Card><P muted>Nothing coming up on the schedule.</P></Card>}
+            </>
+          )}
+
+          {tab === 'board' && <Board sportId={sport.id} posts={feed.bulletins} leader={manage} leaders={leaderWord} onChange={feed.reload} />}
+          {tab === 'roster' && <Roster sportId={sport.id} leader={manage} regs={regs} seasons={seasons} onChange={load} />}
+          {tab === 'photos' && <TeamPhotos sportId={sport.id} name={sport.name} leader={manage} leaders={leaderWord} />}
+          {tab === 'chat' && (
+            <TeamChat sportId={sport.id} messages={feed.chat} meId={me?.id ?? null} leaderIds={sport.coachIds} leader={manage}
+              title={category.leader} leaders={leaderWord} onChange={feed.reload} />
+          )}
+        </View>
+      </ScrollView>
+    </>
   );
 }
 
-/** Coaches/directors and activity managers: take, choose or remove the team photo. */
-function TeamPhotoLink({ sport, onChange }: { sport: Sport; onChange: () => void }) {
+const more = { color: C.primary, fontWeight: '700' } as const;
+
+/** Something waiting on this person, as a tappable line on the Home tab. */
+function Nudge({ icon, color, text, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; color: string; text: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button"
+      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14,
+        backgroundColor: `${color}14`, borderWidth: 1, borderColor: `${color}55` }, pressed && { opacity: 0.8 }]}>
+      <Ionicons name={icon} size={20} color={color} />
+      <Text style={{ flex: 1, fontWeight: '700', color }}>{text}</Text>
+      <Ionicons name="chevron-forward" size={18} color={color} />
+    </Pressable>
+  );
+}
+
+/** Coaches/directors and activity managers: take, choose or remove the team photo (from the header's gear). */
+function useTeamPhoto(sport: Sport | null | undefined, onChange: () => void) {
   const [busy, setBusy] = useState(false);
   const choose = async (camera: boolean) => {
+    if (!sport) return;
     const photo = await pickSquarePhoto(camera);
     if (!photo) return;
     setBusy(true);
     try { await uploadSportPhoto(sport.id, photo, sport.photoPath); onChange(); } catch (e) { fail(e); } finally { setBusy(false); }
   };
   const ask = () => {
+    if (!sport) return;
     if (Platform.OS === 'web') { choose(false); return; }
     Alert.alert('Team photo', 'Families and staff see it on this activity and its events.', [
       { text: 'Take a photo', onPress: () => choose(true) },
@@ -166,11 +288,7 @@ function TeamPhotoLink({ sport, onChange }: { sport: Sport; onChange: () => void
       { text: 'Cancel', style: 'cancel' as const },
     ]);
   };
-  return (
-    <Text style={{ color: C.primary, fontWeight: '700' }} onPress={busy ? undefined : ask} accessibilityRole="button">
-      {busy ? 'Uploading the team photo…' : sport.photoPath ? 'Change the team photo' : '+ Add a team photo'}
-    </Text>
-  );
+  return { busy, ask };
 }
 
 /** A season: dates, grades, details, info link and, for parents, each child's sign-up. */
@@ -250,64 +368,6 @@ function ChildSignUp({ kid, season, reg, open, leader, onChange }: {
           </View>
         </>
       )}
-    </View>
-  );
-}
-
-/** Coaches/directors and activity managers: sign-ups to decide, the schedule and seasons; managers also who leads it and the activity. */
-function ManagePanel({ sport, seasons, regs, isManager, onChange }: {
-  sport: Sport; seasons: SportSeason[]; regs: SportRegistration[]; isManager: boolean; onChange: () => void;
-}) {
-  const [q, setQ] = useState('');
-  const [staff, setStaff] = useState<Person[]>([]);
-  useEffect(() => { if (isManager) listUsers().then((ps) => setStaff(ps.filter((p) => ['admin', 'teacher', 'staff'].includes(p.schoolRole)))); }, [isManager]);
-  const pending = regs.filter((r) => r.status === 'pending');
-  const registered = regs.filter((r) => r.status === 'registered');
-  const seasonName = (sid: string) => seasons.find((x) => x.id === sid)?.name ?? '';
-  const matches = q.trim().length < 2 ? [] : staff.filter((p) => !sport.coachIds.includes(p.id)
-    && `${p.firstName} ${p.lastName}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 5);
-
-  return (
-    <View style={{ gap: 12, marginTop: 8 }}>
-      <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted, letterSpacing: 0.5 }}>MANAGE {sport.name.toUpperCase()}</Text>
-      <Card style={{ gap: 8 }}>
-        <H>Sign-ups</H>
-        {pending.length === 0 && <P muted>No sign-ups waiting.</P>}
-        {pending.map((r) => (
-          <View key={r.id} style={{ gap: 4, borderTopWidth: 1, borderColor: C.line, paddingTop: 8 }}>
-            <Text style={{ fontWeight: '700', color: C.ink }}>{name(r.studentId)} · {seasonName(r.seasonId)}</Text>
-            <P muted>From {name(r.requestedBy)}{r.note ? `: “${r.note}”` : ''}</P>
-            <View style={[s.row, { justifyContent: 'flex-end' }]}>
-              <Button label="Decline" kind="ghost" onPress={() => confirm(`Decline ${name(r.studentId)}'s sign-up?`, 'Decline',
-                () => decideSportRegistration(r.id, false).then(onChange).catch(fail))} />
-              <Button label="Approve" onPress={() => decideSportRegistration(r.id, true).then(onChange).catch(fail)} />
-            </View>
-          </View>
-        ))}
-        {registered.length > 0 && <P muted>Registered ({registered.length}): {registered.map((r) => name(r.studentId)).join(', ')}</P>}
-      </Card>
-
-      {isManager && (
-        <Card style={{ gap: 8 }}>
-          <H>{leaders(sport.category, 2)}</H>
-          {sport.coachIds.length === 0 && <P muted>No {leaders(sport.category, 2).toLowerCase()} yet. Sign-ups go to the activity managers until there are.</P>}
-          {sport.coachIds.map((cid) => (
-            <View key={cid} style={[s.row, { justifyContent: 'space-between' }]}>
-              <Text style={{ color: C.ink, fontWeight: '600' }}>{name(cid)}</Text>
-              <Text style={{ color: C.danger, fontWeight: '700' }} onPress={() => setSportCoach(sport.id, cid, false).then(onChange).catch(fail)}>Remove</Text>
-            </View>
-          ))}
-          <TextInput style={s.input} placeholder={`Add a ${categoryInfo(sport.category).leader.toLowerCase()}: search faculty and staff`} value={q} onChangeText={setQ}
-            accessibilityLabel="Search faculty and staff" />
-          {matches.map((p) => (
-            <Text key={p.id} style={{ color: C.primary, fontWeight: '700', paddingVertical: 4 }}
-              onPress={() => { setQ(''); setSportCoach(sport.id, p.id, true).then(onChange).catch(fail); }}>
-              + {p.firstName} {p.lastName}
-            </Text>
-          ))}
-        </Card>
-      )}
-      {isManager && <Button label="Edit activity" kind="ghost" onPress={() => router.push({ pathname: '/activities/edit', params: { id: sport.id } })} />}
     </View>
   );
 }
