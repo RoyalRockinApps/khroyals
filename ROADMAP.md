@@ -146,9 +146,9 @@ Ongoing after release; bugs reported in beta and after release go here too.
   app that only opens from a link the school shares (it doesn't show in search); it needs a request
   to Apple. Decide with the school before publishing (Phase 4).
 - [ ] Add notification switches for Activities and Ask the School? (Phase 5)
-- [ ] Should Family accounts see the F.A.Q.s? They moved from the Info tab (now Planner) to Ask the School
-  (`app/questions/faq.tsx`), and Family accounts don't get the Ask the School tile. The F.A.Q.s
-  screen itself is open to everyone, so a link elsewhere would do it without opening Ask the School.
+- [ ] Should Family accounts see the F.A.Q.s? They're at the bottom of Ask the School
+  (`src/questions/FaqSection.tsx`), and Family accounts don't get the Ask the School tile. Ask the School
+  shows them the F.A.Q.s under its message, so a link elsewhere would do it without opening Ask the School.
 - [ ] Ask FACTS how a developer gets a vendor subscription key for the SIS API, and
   what it costs ([FACTS partners](https://factsmgt.com/become-a-partner/)).
 - [ ] Blackbaud: which product does the school use, and what should flow to the app (donation
@@ -211,6 +211,7 @@ Working in the app and on the server today.
 | Volunteer | Invites | Leaders invite people by name (with a note) to help with an opportunity, or post one only for the people they invite; each answers Say Yes! or Deny, the leader is told and follows each one (waiting, said no, said yes, checked in, done), and after a no invites someone else or deletes the draft |
 | Volunteer | Check-in and analytics | Volunteers scan the leader's QR code (one per opportunity, or one for a whole event) when they arrive and when they're done (reminded as it starts); leaders mark who came, no-shows and hours; Volunteer Leaders and directors see hours, show-up rate, unmarked shifts and who's doing a lot, for the last 30 days, this or last school year or all time; everyone sees their own hours |
 | Ask the School | Questions | Ask and follow up; routers assign to staff; ages turn amber and red |
+| Ask the School | Your questions and F.A.Q.s | Your questions with the school's latest answer right under Ask a question, then every F.A.Q. below |
 | Student | Student app | A dashboard for each child (a drop-down at the top, oldest first) or the student themselves: general information (tap the photo to take, choose or remove it), attendance this school year (tap absences, times late or left early for those days), and grades with the overall average and letter; each class opens a graph of its average through the semester or year to date and every grade. Read from a copy of the school's student information system (`sis_import`; sample data until FACTS is connected). Parents read each child's messages with teachers |
 | Student | Ask the Teacher | Students message the teachers of their classes; teachers reply or start a conversation; parents and admins with Student messages can read |
 | Student | Assignments | Teachers assign work to a class; students add their own, sorted overdue / today / coming up, and check them off privately |

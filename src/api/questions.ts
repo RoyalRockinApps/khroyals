@@ -11,6 +11,16 @@ export async function listQuestions(): Promise<SchoolQuestion[]> {
   return ((await run(sb().from('school_questions').select('*').order('updated_at', { ascending: false })))).map(toQuestion);
 }
 
+/** The school's latest reply to each of these questions, by question id (for showing answers in the list). */
+export async function latestAnswers(ids: string[]): Promise<Map<string, QuestionMessage>> {
+  const out = new Map<string, QuestionMessage>();
+  if (!live || !current || !ids.length) return out;
+  const rows = await run(sb().from('school_question_messages').select('*').in('question_id', ids).eq('from_school', true)
+    .order('created_at', { ascending: false }));
+  for (const m of rows.map(toQuestionMessage)) if (!out.has(m.questionId)) out.set(m.questionId, m);
+  return out;
+}
+
 export async function getQuestion(id: string): Promise<{ question: SchoolQuestion | null; messages: QuestionMessage[] }> {
   const [q, m] = await Promise.all([
     run(sb().from('school_questions').select('*').eq('id', id).maybeSingle()),

@@ -584,7 +584,11 @@ start) work from Ask the School → *All questions*: oldest waiting first, with 
 after a day and red after three, and they assign each question to a faculty or staff
 member, who sees it under *Assigned to me* and answers it. Only the asker, the
 assignee and routers can see a question. Routers are told about new questions,
-assignees about assignments and follow-ups, and askers about answers.
+assignees about assignments and follow-ups, and askers about answers. Under *+ Ask a
+question*, *Your questions* lists each one with the school's latest answer, and the
+F.A.Q.s follow below as one list that opens question by question (`src/questions/FaqSection.tsx`;
+the old F.A.Q.s screen sends people here). People who can't ask (signed out, Family accounts)
+still see the F.A.Q.s under the message.
 
 **Demo data** (accounts like `u-eng@demo.khroyals.test` with groups and posts) is
 only created with `supabase_setup.mjs --demo`, for local or throwaway projects. The

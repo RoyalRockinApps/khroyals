@@ -37,6 +37,11 @@ PAGES = [
     'videophotography-policy',
 ]
 
+# Buttons the app leaves out of a page, by page and label (the app's own flows replace them).
+LEAVE_OUT = {
+    'contact-us': {'SCHEDULE A TOUR'},   # Ask the School → F.A.Q.s → Contact Us: no tour scheduling from the app
+}
+
 OUT = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else 'schools/khroyals/content/site'
 CACHE = sys.argv[sys.argv.index('--cache') + 1] if '--cache' in sys.argv else None
 
@@ -476,8 +481,11 @@ def main():
     for pid in PAGES:
         path = '/' + pid
         title = page_title(path)
+        sections = page_sections(fetch(path), BASE + path)
+        for sec in sections:
+            sec['blocks'] = [b for b in sec['blocks'] if not (b.get('type') == 'button' and b.get('label') in LEAVE_OUT.get(pid, ()))]
         write(f'pages/{pid}.json', {'_meta': meta(path), 'page': {'id': pid, 'title': title, 'sourceUrl': BASE + path},
-                                    'sections': page_sections(fetch(path), BASE + path)})
+                                    'sections': sections})
         index.append({'id': pid, 'title': title})
     write('pages/index.json', {'pages': index, 'aliases': {'early-childhood-education': 'early-learning-academy'}})
     # Metro needs static imports, so emit a typed map of every page.
