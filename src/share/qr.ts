@@ -12,9 +12,12 @@ export const SCHOOL_WEBSITE = SCHOOL.website.url;
 export type Run = { dark: boolean; length: number };
 export type QrRows = { size: number; rows: Run[][] };
 
-/** Encode text (medium error correction, so a scratched or glared screen still scans) as rows of runs. */
-export function qrRows(text: string): QrRows {
-  const qr = qrcode(0, 'M');
+/**
+ * Encode text as rows of runs: medium error correction, so a scratched or glared screen still scans, or high ('H')
+ * when a logo covers the middle (up to about 30% of it can be lost and it still reads).
+ */
+export function qrRows(text: string, level: 'M' | 'H' = 'M'): QrRows {
+  const qr = qrcode(0, level);
   qr.addData(text);
   qr.make();
   const size = qr.getModuleCount();

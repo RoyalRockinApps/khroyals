@@ -171,7 +171,7 @@ Working in the app and on the server today.
 | School site | Website content in-app | All 23 pages, 55 news posts, home page and videos imported from khroyals.com |
 | School site | News | News articles (Apps → News) |
 | School site | Calendar | 2026–27 dates, "Show past events" toggle, group calendars |
-| School site | Share tab | QR code, share sheet and link to khroyals.com |
+| School site | Share tab | A school pass with the shield in its QR code; share the app, website, calendar or latest Royal News; share, copy or save the pass as an image |
 | School site | Handbook | The table of contents with each section folded until tapped; search opens and highlights every section it's in; works signed out |
 | Royals Connect | Groups | Chat, Discussion Board, Announcements and Q&A styles, each action's "who can" set separately |
 | Royals Connect | Moderation | Lock, approval queues, slow mode, quiet hours, mutes, pinning, audit log |

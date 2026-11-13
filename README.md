@@ -121,7 +121,7 @@ src/attendance/       Classes: marks, a class's roll in words, school-day steppi
 src/checkin/          checking students in and out: reasons, pickup-list picker, field trip lists
 src/handbook/         Handbook reader: pages, paragraphs, sections, search
 src/questions/        Ask the School gate and helpers
-src/share/            QR codes drawn with plain views (qrcode-generator encodes)
+src/share/            the Share tab's pass and what it shares; QR codes drawn with plain views (qrcode-generator)
 src/calendar/         past events: the school's date, "Show past events", greyed-out style
 src/ScreenEdge.tsx    the thin red line around every light screen (navigators' screenLayout)
 src/sports/           Activities: categories, season and sign-up rules, sample data, shared pieces
@@ -321,10 +321,15 @@ staff confirm pickups. Nothing is tappable while the line is closed. The car lin
 app: Apple has to grant the entitlement before iPhone builds include it; simulator
 builds have it already. Setup and Apple's approval steps: DEVELOPING.md §8.
 
-**Share** (the second tab). A QR code for the school website (khroyals.com) that
-anyone can scan with a phone camera, plus *Share the link* (the phone's share sheet)
-and *Open the website*. The code is drawn with plain views (`src/share/QrCode.tsx`),
-so no native module is needed. **News** moved from its tab to Apps → News.
+**Share** (the second tab). A pass in the school's colors (`src/share/Pass.tsx`: the
+name in the newsletter's script, the motto, a QR code with the shield in its middle, and a
+ticket's tear line) that anyone can scan with a phone camera. Chips pick what it opens
+(`src/share/targets.ts`): *Get the app* (the web app), the website, the school calendar PDF
+and the latest Royal News issue, each only when it has a public link. *Share* opens the
+phone's share sheet, *Copy link* the clipboard, and *Save image* makes a picture of the pass
+for a flyer or the newsletter (`react-native-view-shot`; the share sheet's Save Image on
+phones, a download on the web). The code is drawn with plain views (`src/share/QrCode.tsx`;
+with the shield it uses high error correction). **News** moved from its tab to Apps → News.
 
 **Car line** (Apps → Car Line). Parents tap *I'm in the car line* for the children
 they're picking up; staff on car line duty see arrivals live and tap *Picked up*

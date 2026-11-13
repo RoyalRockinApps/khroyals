@@ -46,6 +46,7 @@
     "expo-location": "~57.0.21",
     "expo-notifications": "~57.0.23",
     "expo-router": "~57.0.29",
+    "expo-sharing": "~57.0.26",
     "expo-status-bar": "~57.0.1",
     "expo-task-manager": "~57.0.21",
     "expo-video": "~57.0.5",
@@ -58,6 +59,7 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^4.0.0",
+    "react-native-view-shot": "5.1.0",
     "react-native-web": "^0.21.2",
     "react-native-webview": "13.16.1",
     "zod": "^4.6.7"

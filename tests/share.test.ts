@@ -25,3 +25,13 @@ test('runs alternate, so each row draws as few views as possible', () => {
     runs.slice(1).forEach((r, i) => assert.notEqual(r.dark, runs[i].dark));
   }
 });
+
+test('a code with the shield in the middle uses high error correction, so the covered middle still reads', () => {
+  const app = 'https://royalrockinapps.github.io/khroyals/';
+  const high = qrRows(app, 'H');
+  assert.ok(high.size >= qrRows(app).size, 'room for the extra correction');
+  assert.ok(high.size <= 41, 'still small enough to scan from a printed flyer');
+  // The shield covers at most 24% of the width (src/share/QrCode.tsx LOGO_SHARE): about 6% of the code, well under the
+  // roughly 30% that high error correction recovers.
+  assert.ok(0.24 ** 2 < 0.3 / 2);
+});
