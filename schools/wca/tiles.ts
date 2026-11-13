@@ -10,4 +10,4 @@ export const TILES = {
   student: require('./assets/apps/student.png'),
   teachers: require('./assets/apps/teachers.png'),
   volunteer: require('./assets/apps/volunteer.png'),
-} as Partial<Record<'activities' | 'assignments' | 'calendar' | 'carline' | 'handbook' | 'market' | 'news' | 'questions' | 'student' | 'teachers' | 'volunteer', number>>;
+} as Partial<Record<'activities' | 'assignments' | 'calendar' | 'carline' | 'feedback' | 'handbook' | 'lunch' | 'market' | 'news' | 'photos' | 'questions' | 'student' | 'teachers' | 'volunteer', number>>;

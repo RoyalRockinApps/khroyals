@@ -39,8 +39,8 @@ const ALL_APPS: App[] = [
   // Teachers' classes: roll, assignments, messages from students, subs and check-out lists.
   { label: 'Classes', icon: 'easel', color: SCHOOL.theme.dark, href: '/attendance', staffOnly: true },
   { label: 'Activities', image: TILES.activities, icon: 'basketball', color: SCHOOL.theme.dark, href: '/activities' },
-  { label: 'Photos', icon: 'images', color: SCHOOL.theme.dark, href: '/photos' },
-  { label: 'Lunch Visits', icon: 'restaurant', color: SCHOOL.theme.dark, href: '/lunch', student: false },
+  { label: 'Photos', image: TILES.photos, icon: 'images', color: SCHOOL.theme.dark, href: '/photos' },
+  { label: 'Lunch Visits', image: TILES.lunch, icon: 'restaurant', color: SCHOOL.theme.dark, href: '/lunch', student: false },
   { label: 'Volunteer', image: TILES.volunteer, icon: 'hand-left', color: SCHOOL.theme.dark, href: '/volunteer', student: false, inStaffView: false },
   { label: 'Marketplace', image: TILES.market, icon: 'pricetags', color: SCHOOL.theme.dark, href: '/market', family: false, student: false, inStaffView: false },
   { label: 'News', image: TILES.news, icon: 'newspaper', color: SCHOOL.theme.dark, href: '/news', sub: true, inStaffView: false },
@@ -50,7 +50,7 @@ const ALL_APPS: App[] = [
   // Parents' Folder is on top of the page; the tile is the senders' side (forms, bulletins and notes).
   { label: 'Folder', icon: 'folder-open', color: SCHOOL.theme.dark, href: '/forms', staffOnly: true },
   { label: 'Handbook', image: TILES.handbook, icon: 'book', color: SCHOOL.theme.dark, href: '/handbook', sub: true, inStaffView: false },
-  { label: 'Feedback', icon: 'chatbubble-ellipses', color: SCHOOL.theme.dark, href: '/feedback', sub: true },
+  { label: 'Feedback', image: TILES.feedback, icon: 'chatbubble-ellipses', color: SCHOOL.theme.dark, href: '/feedback', sub: true },
   { label: 'Ask the Teacher', image: TILES.teachers, icon: 'chatbubbles', color: SCHOOL.theme.dark, href: '/teachers', family: false, studentApp: true },
   { label: 'Assignments', image: TILES.assignments, icon: 'checkbox', color: SCHOOL.theme.dark, href: '/assignments', family: false, studentApp: true },
   { label: 'Admin', icon: 'shield-checkmark', color: NAVY, href: '/admin', adminOnly: true },
