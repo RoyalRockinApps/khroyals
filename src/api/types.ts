@@ -578,3 +578,28 @@ export type Board = {
 export type BoardItem = { id: string; boardId: string; kind: 'note' | 'photo'; body: string; color: string; image: string | null; photo: string; position: number; createdAt: string };
 export type BoardPost = { id: string; boardId: string; authorId: string | null; title: string; body: string; pinned: boolean; createdAt: string; updatedAt: string };
 export type BoardChatMessage = { id: string; boardId: string; authorId: string; body: string; createdAt: string };
+
+/**
+ * Who an announcement goes to (the Announcements app; announcement_send checks it): everyone, roles, grades or academies
+ * (their students and/or parents), classes (teacher boards' students and/or parents), a group, or picked people.
+ */
+export type Audience =
+  | { kind: 'everyone' }
+  | { kind: 'roles'; roles: string[] }
+  | { kind: 'grades'; grades: number[]; parents: boolean; students: boolean }
+  | { kind: 'academies'; academies: string[]; parents: boolean; students: boolean }
+  | { kind: 'classes'; boards: string[]; parents: boolean; students: boolean }
+  | { kind: 'group'; group: string }
+  | { kind: 'people'; people: string[] };
+/**
+ * An announcement: a push and bell notification (`push`) and/or a splash page shown once when people open the app
+ * (`splash`: an uploaded graphic, or a template with a headline). The counts are for senders only.
+ */
+export type Announcement = {
+  id: string; title: string; body: string; audienceLabel: string; audience: Audience | null; urgent: boolean; link: string | null;
+  push: boolean; sendAt: string; sentAt: string | null; reach: number | null; cancelledAt: string | null; createdAt: string;
+  splash: boolean; splashImage: string | null; splashImageUrl: string; splashTemplate: string | null; splashPhoto: string | null;
+  splashPhotoUrl: string; splashHeadline: string; splashText: string; splashButton: string; splashStartsOn: string | null; splashEndsOn: string | null;
+  sender?: string | null; opened?: number; seen?: number; closed?: number; tapped?: number;
+};
+export type Academy = { id: string; name: string; minGrade: number; maxGrade: number };

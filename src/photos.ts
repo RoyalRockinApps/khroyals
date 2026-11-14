@@ -67,3 +67,19 @@ export async function pickGalleryPhotos(limit = 30): Promise<{ full: string; thu
   }
   return out;
 }
+
+/**
+ * Pick a finished graphic for a splash page (from the library, as it is: a tall one fills a phone best), shrunk to
+ * 1600 px on its long side, as base64 JPEG with a data link to preview it. Null when cancelled.
+ */
+export async function pickSplashPicture(): Promise<{ base64: string; uri: string; width: number; height: number } | null> {
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+  const asset = result.canceled ? null : result.assets[0];
+  if (!asset) return null;
+  const k = Math.min(1, 1600 / Math.max(asset.width, asset.height));
+  const width = Math.round(asset.width * k), height = Math.round(asset.height * k);
+  const ctx = ImageManipulator.manipulate(asset.uri);
+  if (k < 1) ctx.resize({ width, height });
+  const out = await (await ctx.renderAsync()).saveAsync({ compress: 0.85, format: SaveFormat.JPEG, base64: true });
+  return out.base64 ? { base64: out.base64, uri: `data:image/jpeg;base64,${out.base64}`, width, height } : null;
+}

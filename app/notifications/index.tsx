@@ -57,7 +57,7 @@ function PhoneStatus({ status, onChange }: { status: { permission: Permission; d
  * their groups, announcements, Marketplace, Volunteer, Ask the School) and the
  * ones this phone showed by itself (car line), newest first. New ones are marked;
  * swipe or tap ✕ to delete one, or clear them all. People who send the school's
- * notifications (push.send) start one here too (app/notifications/send.tsx).
+ * notifications (push.send) start an announcement here too (the Announcements app).
  */
 export default function NotificationsScreen() {
   const [person, setPerson] = useState<Person | null | undefined>(undefined);
@@ -155,7 +155,7 @@ export default function NotificationsScreen() {
       style={s.screen} contentContainerStyle={s.pad} data={items} keyExtractor={(n) => n.id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.primary} />}
       ListHeaderComponent={<>{header}
-        {sender && <Button label="📣 Send a notification" onPress={() => router.push('/notifications/send')} />}
+        {sender && <Button label="📣 Send an announcement" onPress={() => router.push('/announcements/new')} />}
         <PhoneStatus status={status} onChange={load} />
         {items.length > 0 && <P muted>Swipe a notification sideways (or tap ✕) to delete it.</P>}</>}
       ListEmptyComponent={<Card><H>No notifications yet</H><P muted>New posts in your groups, messages from the school and updates from your apps will show up here.</P></Card>}

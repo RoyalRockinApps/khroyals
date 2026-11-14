@@ -6,6 +6,7 @@ import { isSchoolStaff, live, onAuthChange, session } from '../src/api/connect';
 import { AccountGate, useAccountGate } from '../src/AccountGate';
 import type { Gate } from '../src/gate';
 import { AlertTakeover } from '../src/alerts/AlertTakeover';
+import { SplashGate } from '../src/announcements/SplashGate';
 import { LocationConsent } from '../src/alerts/LocationConsent';
 import { offerDndAccess } from '../src/alerts/loudness';
 import { syncCarPass } from '../src/carline/carPass';
@@ -81,6 +82,8 @@ export default function Root() {
       {/* Teachers and staff: asked once about sharing their location with alert answers, and an
           active critical alert covers the app until they answer it. */}
       <LocationConsent />
+      {/* An announcement's splash page, once, when the app opens (under a critical alert, never over one). */}
+      <SplashGate open={open && !leaving} skip={board} />
       <AlertTakeover />
       {/* Which apps people open, for the Admin portal's App usage (counts only). */}
       <UsageTracker />

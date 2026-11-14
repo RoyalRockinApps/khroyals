@@ -5286,6 +5286,121 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
 });
 
+test('announcements: senders reach an audience now or later; a splash page shows once to each person it went to', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const admin = await uid('u-admin');
+  const tenthParents = `'{"kind":"grades","grades":[10],"parents":true}'::jsonb`;
+  const send = (title: string, body: string, audience: string, more = '') => `select announcement_send('${title}', '${body}', ${audience}, 'x'${more}) as id`;
+  const mine = async (a: string) => (await rows(`select title, data from my_notifications() where data->>'announcementId' = '${a}'`));
+
+  // Only push.send holders, in a session verified with the authenticator app.
+  for (const who of ['u-eng', 'u-p01']) {
+    await as(who);
+    await rejects(send('Hi', 'Hello', `'{"kind":"everyone"}'`), /permission/);
+  }
+  await as('u-admin');
+  await rejects(send('Hi', 'Hello', `'{"kind":"everyone"}'`), /MFA_REQUIRED/);
+
+  // Who it reaches is counted before sending: 10th graders' parents (with a login), the sender left out.
+  await as('u-admin', true);
+  await asSuper();
+  const expected = (await one(`select count(distinct g.guardian_id)::int as n from guardians g join profiles c on c.id = g.student_id
+    join profiles p on p.id = g.guardian_id where c.grade = 10 and c.school_role = 'student' and p.school_role is not null and not p.managed
+      and app.is_guardian_of(c.id, g.guardian_id) and g.guardian_id <> '${admin}'`)).n;
+  await as('u-admin', true);
+  assert.equal((await one(`select announcement_reach(${tenthParents}) as n`)).n, expected);
+  assert.ok(expected > 0);
+  await rejects(`select announcement_reach('{"kind":"grades","grades":[]}')`, /at least one grade/);
+  await rejects(`select announcement_reach('{"kind":"grades","grades":[10]}')`, /parents, the students, or both/);
+  await rejects(`select announcement_reach('{"kind":"nobody"}')`, /Choose who/);
+
+  // Sent now, with a link: on Rosa's bell (Ava is in 10th), opening the calendar; not Priya's (9th grade).
+  const picture = (await one(send('Picture day', 'Uniforms, please.', tenthParents, `, false, '/calendar'`))).id;
+  await rejects(send('Bad', 'Click here', tenthParents, `, false, 'https://example.com'`), /check constraint/);
+  await as('u-p01');
+  const got = await mine(picture);
+  assert.deepEqual(got.map((n) => n.title), ['Picture day']);
+  assert.equal(notificationHref(got[0].data), '/calendar');
+  await as('u-p07');
+  assert.equal((await mine(picture)).length, 0);
+  assert.equal((await one(`select announcement_view('${picture}') as a`)).a, null, 'only the people it went to open it');
+
+  // To everyone, no link: one notification; tapping it opens the announcement.
+  await as('u-admin', true);
+  const snow = (await one(send('Snow day', 'No school tomorrow.', `'{"kind":"everyone"}'`, ', true'))).id;
+  await asSuper();
+  assert.deepEqual((await rows(`select audience, urgent from notifications where data->>'announcementId' = '${snow}'`)), [{ audience: 'everyone', urgent: true }]);
+  await as('u-p07');
+  assert.equal(notificationHref((await mine(snow))[0].data), `/announcement/${snow}`);
+  assert.equal((await one(`select announcement_view('${snow}') as a`)).a.title, 'Snow day');
+
+  // Scheduled: nothing goes out until its time, once; a stopped one never does.
+  await as('u-admin', true);
+  const later = `, false, null, true, app.school_today() + 1, '08:00'`;
+  const field = (await one(send('Field day', 'Wear sneakers.', `'{"kind":"roles","roles":["parent","teacher"]}'`, later))).id;
+  const dropped = (await one(send('Never', 'Not this.', `'{"kind":"everyone"}'`, later))).id;
+  await rejects(send('Late', 'Too late.', `'{"kind":"everyone"}'`, `, false, null, true, app.school_today() - 1, '08:00'`), /from now on/);
+  await one(`select announcement_cancel('${dropped}')`);
+  await rejects(`select announcement_cancel('${dropped}')`, /already stopped/);
+  await asSuper();
+  assert.equal((await rows(`select 1 from notifications where data->>'announcementId' in ('${field}', '${dropped}')`)).length, 0);
+  await db.exec(`update announcements set send_at = now() - interval '1 minute' where id in ('${field}', '${dropped}')`);
+  assert.equal((await one(`select app.send_due_announcements() as n`)).n, 1);
+  assert.equal((await one(`select app.send_due_announcements() as n`)).n, 0, 'once');
+  assert.deepEqual((await rows(`select audience, roles from notifications where data->>'announcementId' = '${field}'`)), [{ audience: 'roles', roles: ['parent', 'teacher'] }]);
+  assert.equal((await rows(`select 1 from notifications where data->>'announcementId' = '${dropped}'`)).length, 0);
+
+  // A splash page (a template, no notification): parents see it until each closes it or taps its button.
+  await as('u-admin', true);
+  const splash = (s: string) => `(jsonb_build_object('startsOn', app.school_today(), 'endsOn', app.school_today() + 4) || '${s}'::jsonb)`;
+  const spirit = (await one(send('Spirit Week', '', `'{"kind":"roles","roles":["parent"]}'`,
+    `, false, '/calendar', false, null, null, ${splash('{"template":"gold","headline":"Spirit Week!","text":"Dress up all week.","button":"See the days"}')}`))).id;
+  await rejects(send('No graphic', '', `'{"kind":"everyone"}'`, `, false, null, false, null, null, ${splash('{"image":"nobody/x.jpg"}')}`), /Upload the picture first/);
+  await rejects(send('Nothing', '', `'{"kind":"everyone"}'`, `, false, null, false`), /notification, show a splash page, or both/);
+  await asSuper();
+  assert.equal((await rows(`select 1 from notifications where data->>'announcementId' = '${spirit}'`)).length, 0);
+  await as('u-p01');
+  assert.equal((await one(`select my_splash() as s`)).s.splashHeadline, 'Spirit Week!');
+  await one(`select splash_mark('${spirit}', 'seen')`);
+  assert.equal((await one(`select my_splash() as s`)).s.id, spirit, 'seeing it is not closing it');
+  await one(`select splash_mark('${spirit}', 'tapped')`);
+  assert.equal((await one(`select my_splash() as s`)).s, null, 'tapping the button closes it too');
+  await as('u-p07');
+  await one(`select splash_mark('${spirit}', 'closed')`);
+  assert.equal((await one(`select my_splash() as s`)).s, null);
+  await as('u-s01');
+  assert.equal((await one(`select my_splash() as s`)).s, null, 'parents only');
+  assert.equal((await rows(`select 1 from announcements`)).length, 0, 'only senders read the table');
+  await rejects(`insert into announcements (title, audience) values ('x', '{"kind":"everyone"}')`, /permission denied/);
+
+  // An uploaded graphic shows only from its first day; a stopped one stops showing.
+  await asSuper();
+  await db.exec(`insert into storage.objects (bucket_id, name) values ('announcements', '${admin}/fair.jpg')`);
+  await as('u-admin', true);
+  await one(send('Book fair', '', `'{"kind":"people","people":["${await uid('u-p01')}"]}'`,
+    `, false, null, false, null, null, (jsonb_build_object('startsOn', app.school_today() + 1, 'endsOn', app.school_today() + 2) || '{"image":"${admin}/fair.jpg"}'::jsonb)`));
+  const lunch = (await one(send('Lunch menu', '', `'{"kind":"people","people":["${await uid('u-p01')}"]}'`,
+    `, false, null, false, null, null, ${splash(`{"image":"${admin}/fair.jpg"}`)}`))).id;
+  await as('u-p01');
+  assert.equal((await one(`select my_splash() as s`)).s.id, lunch);
+  await as('u-admin', true);
+  await one(`select announcement_cancel('${lunch}')`);
+  await as('u-p01');
+  assert.equal((await one(`select my_splash() as s`)).s, null);
+
+  // The history: counts only.
+  await as('u-admin', true);
+  const list = (await one(`select announcements_list() as l`)).l as any[];
+  const of = (x: string) => list.find((a) => a.id === x);
+  assert.deepEqual([of(spirit).seen, of(spirit).closed, of(spirit).tapped], [2, 2, 1]);
+  assert.equal(of(picture).reach, expected);
+  assert.ok(of(dropped).cancelledAt && !of(dropped).sentAt);
+  assert.ok(!JSON.stringify(list).includes('Rosa'), 'no names');
+
+  await asSuper();
+  await db.exec(`delete from announcements; delete from storage.objects where bucket_id = 'announcements'`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

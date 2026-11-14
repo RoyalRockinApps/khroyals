@@ -10,6 +10,18 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      announcement_views: {
+        Row: { announcement_id: string; closed_at: string | null; seen_at: string; tapped_at: string | null; user_id: string }
+        Insert: { announcement_id: string; closed_at?: string | null; seen_at?: string; tapped_at?: string | null; user_id: string }
+        Update: { announcement_id?: string; closed_at?: string | null; seen_at?: string; tapped_at?: string | null; user_id?: string }
+        Relationships: []
+      }
+      announcements: {
+        Row: { audience: Json; audience_label: string; body: string; cancelled_at: string | null; created_at: string; created_by: string | null; id: string; link: string | null; push: boolean; reach: number | null; send_at: string; sent_at: string | null; splash: boolean; splash_button: string; splash_ends_on: string | null; splash_headline: string; splash_image: string | null; splash_photo: string | null; splash_starts_on: string | null; splash_template: string | null; splash_text: string; title: string; urgent: boolean }
+        Insert: { audience: Json; audience_label?: string; body?: string; cancelled_at?: string | null; created_at?: string; created_by?: string | null; id?: string; link?: string | null; push?: boolean; reach?: number | null; send_at?: string; sent_at?: string | null; splash?: boolean; splash_button?: string; splash_ends_on?: string | null; splash_headline?: string; splash_image?: string | null; splash_photo?: string | null; splash_starts_on?: string | null; splash_template?: string | null; splash_text?: string; title: string; urgent?: boolean }
+        Update: { audience?: Json; audience_label?: string; body?: string; cancelled_at?: string | null; created_at?: string; created_by?: string | null; id?: string; link?: string | null; push?: boolean; reach?: number | null; send_at?: string; sent_at?: string | null; splash?: boolean; splash_button?: string; splash_ends_on?: string | null; splash_headline?: string; splash_image?: string | null; splash_photo?: string | null; splash_starts_on?: string | null; splash_template?: string | null; splash_text?: string; title?: string; urgent?: boolean }
+        Relationships: []
+      }
       academies: {
         Row: { id: string; max_grade: number; min_grade: number; name: string; position: number }
         Insert: { id: string; max_grade: number; min_grade: number; name: string; position?: number }
@@ -3176,6 +3188,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      announcement_cancel: { Args: { p_id: string }; Returns: undefined }
+      announcement_reach: { Args: { p_audience: Json }; Returns: number }
+      announcement_send: {
+        Args: { p_audience: Json; p_audience_label?: string; p_body: string; p_link?: string; p_push?: boolean; p_send_on?: string; p_send_time?: string; p_splash?: Json; p_title: string; p_urgent?: boolean }
+        Returns: string
+      }
+      announcement_view: { Args: { p_id: string }; Returns: Json }
+      announcements_list: { Args: never; Returns: Json }
+      my_splash: { Args: never; Returns: Json }
+      splash_mark: { Args: { p_action: string; p_id: string }; Returns: undefined }
       board_chat_delete: { Args: { p_id: string }; Returns: undefined }
       board_chat_send: {
         Args: { p_board: string; p_body: string }

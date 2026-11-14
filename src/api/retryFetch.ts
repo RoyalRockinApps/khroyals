@@ -12,7 +12,7 @@ import { isNetworkError } from './errors';
 
 /** The app's read-only database functions (all STABLE in supabase/migrations). */
 export const READ_ONLY_RPCS = new Set([
-  'my_boards', 'board_view', 'study_decks_list', 'study_notes_list', 'study_subjects', 'absence_list', 'my_folder_notes', 'sent_folder_notes', 'parent_note_teachers', 'parent_notes_list', 'lunch_allergy_notes', 'lunch_my_kids', 'lunch_rules', 'lunch_slots', 'lunch_visitors', 'my_lunch_visits', 'admin_family_requests', 'attendance_overview', 'admin_list_people', 'admin_list_sections', 'admin_section_students', 'admin_similar_students',
+  'announcement_reach', 'announcements_list', 'announcement_view', 'my_splash', 'my_boards', 'board_view', 'study_decks_list', 'study_notes_list', 'study_subjects', 'absence_list', 'my_folder_notes', 'sent_folder_notes', 'parent_note_teachers', 'parent_notes_list', 'lunch_allergy_notes', 'lunch_my_kids', 'lunch_rules', 'lunch_slots', 'lunch_visitors', 'my_lunch_visits', 'admin_family_requests', 'attendance_overview', 'admin_list_people', 'admin_list_sections', 'admin_section_students', 'admin_similar_students',
   'carline_board', 'carline_config', 'checkin_students', 'checkin_today', 'checkout_event_options', 'checkout_list',
   'checkout_my_lists', 'checkout_my_students', 'checkout_people', 'class_attendance_roll', 'feedback_list', 'carline_today', 'child_assignments', 'child_pickup_people', 'critical_alert_status',
   'form_status', 'gallery_album_people', 'group_abilities', 'group_post_stats', 'market_terms', 'my_access', 'my_calendar', 'my_hidden_groups', 'archived_groups', 'my_class_attendance', 'my_class_students', 'my_forms', 'my_groups', 'my_notifications',

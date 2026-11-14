@@ -310,12 +310,26 @@ sign-in the iPhone and Android apps ask permission to show notifications; the pa
 says when they're off and links to Settings.
 
 **Push** goes through Expo's free push service: new posts notify group members
-(per-group preferences), and staff with *Send notifications* send to everyone, a role,
-or a group from the bell page (*Send a notification*, `app/notifications/send.tsx`).
+(per-group preferences), and staff with *Send notifications* send announcements from the
+**Announcements** app (below; the bell page's *Send an announcement* opens it).
 `supabase/functions/send-push` delivers them (deployed by the setup script). Phones
 register after sign-in once the build has an Expo project id (`eas init` →
 `extra.eas.projectId`) and that Expo project has an APNs key (iPhone) or Firebase
 credentials (Android); see DEVELOPING.md §7.
+
+**Announcements** (the Main Page's Staff view, for staff with *Send notifications*, an admin power, so behind the
+authenticator code; `app/announcements`). One place for the school's messages: a **push and bell notification**, a
+**splash page**, or both. It goes to everyone, roles, grades or academies (their parents and/or students), classes (a
+teacher board's families), a group or picked people, with how many people that reaches before sending; now or at a set
+day and time (Central; `app.send_due_announcements` every minute). Tapping it opens a screen in the app (Calendar,
+the newsletter, Volunteer…) or the announcement itself (`app/announcement/[id]`). An **urgent** one reaches phones in
+quiet hours or with school notifications off; otherwise announcements follow the person's school notifications setting
+and quiet hours. A **splash page** is a full-screen page people see once when they open the app (or come back to it)
+between two days, then close (✕ or Continue) to carry on: an uploaded graphic (a tall one, made in Canva…) or a template
+(navy, gold, red or confetti, with an optional photo, a headline and words), with an optional button to its screen. It's
+remembered on every device once closed, shows one at a time, and never over a critical alert (`src/announcements/
+SplashGate.tsx`). The app lists what's scheduled (cancel it), the splash pages showing (stop them) and what went out, with
+counts only: reached, opened, splash pages seen and button taps.
 
 **CarPlay** (iPhone). On the car's screen, KH Royals shows today's car line for the
 parent's children with their pickup numbers: *I'm here* checks everyone in (with the

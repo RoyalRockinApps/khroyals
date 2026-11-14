@@ -51,3 +51,12 @@ test("students see only their apps, including Ask the Teacher", () => {
   assert.deepEqual(labels({ staffView: false, family: false, admin: false, student: true }), ['Student', 'Calendar', 'Ask the Teacher']);
   assert.deepEqual(elevated({ staffView: false, family: false, admin: false, student: true }), []);
 });
+
+test('Announcements: in the staff view, only for people who send the school\'s notifications', () => {
+  const tiles = [...TILES, { label: 'Announcements', announce: true as const }];
+  const see = (v: Parameters<typeof visibleTiles>[1]) => visibleTiles(tiles, v).map((t) => t.label);
+  assert.ok(see({ staffView: true, family: false, admin: true, announce: true }).includes('Announcements'));
+  assert.ok(!see({ staffView: true, family: false, admin: true, announce: false }).includes('Announcements'));
+  assert.ok(!see({ staffView: false, family: false, admin: true, announce: true }).includes('Announcements'), 'not on the Standard view');
+  assert.ok(!see({ staffView: false, family: false, admin: false, student: true, announce: true }).includes('Announcements'));
+});

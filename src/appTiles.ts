@@ -9,6 +9,7 @@
  *   teacher side of the first two from Classes, and Study is the student's own.
  * - `inStaffView: false` tiles (Student, News, Marketplace, Volunteer, Handbook) are left out of the
  *   staff view; staff find them on the Standard view.
+ * - `announce` tiles (Announcements) show only in staff view, to people who send the school's notifications.
  * - Substitutes see only the tiles marked `sub` (their Sub Days and the public apps); `subOnly`
  *   tiles are theirs alone.
  *
@@ -16,24 +17,26 @@
  * group in the order the tiles are listed.
  */
 export type TileRules = {
-  family?: false; student?: false; inStaffView?: false; staffOnly?: true; adminOnly?: true; staffVersion?: true; studentApp?: true; sub?: true; subOnly?: true;
+  family?: false; student?: false; inStaffView?: false; staffOnly?: true; adminOnly?: true; staffVersion?: true; studentApp?: true; sub?: true; subOnly?: true; announce?: true;
 };
 
 /**
  * `staffView`: a teacher, staff member or admin with the Main Page switch on Staff.
  * `student`: a student account. `substitute`: a Substitute account. `admin`: has admin powers.
+ * `announce`: sends the school's notifications (Send notifications, push.send).
  */
-export type Viewer = { staffView: boolean; family: boolean; admin: boolean; student?: boolean; substitute?: boolean };
+export type Viewer = { staffView: boolean; family: boolean; admin: boolean; student?: boolean; substitute?: boolean; announce?: boolean };
 
 export function visibleTiles<T extends TileRules>(tiles: T[], v: Viewer): (T & { elevated: boolean })[] {
   return tiles
     .filter((t) => (t.subOnly || v.substitute ? !!v.substitute && !!t.sub
       : v.staffView && t.inStaffView === false ? false
       : t.adminOnly ? v.staffView && v.admin
+      : t.announce ? v.staffView && !!v.announce
       : t.staffOnly ? v.staffView
       : t.studentApp ? !!v.student
       : v.student ? t.student !== false
       : !(v.family && t.family === false)))
-    .map((t) => ({ ...t, elevated: v.staffView && !!(t.staffOnly || t.adminOnly || t.staffVersion) }))
+    .map((t) => ({ ...t, elevated: v.staffView && !!(t.staffOnly || t.adminOnly || t.staffVersion || t.announce) }))
     .sort((a, b) => Number(b.elevated) - Number(a.elevated));
 }

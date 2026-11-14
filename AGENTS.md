@@ -444,6 +444,18 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   exercised, reaches someone's bell and phone, and opens something (or is listed as tell-only).
   The bell's red count (`my_unread_count`, `src/comms/unread.ts`) is the unopened ones on the
   bell page, kept live by realtime; opening the bell page clears it.
+- **Announcements** (`announcements`, `announcement_views`; the Announcements app, `app/announcements`, a Staff-view tile for
+  `push.send` holders, an admin power, so `aal2`; the bell page's *Send an announcement* and old `/notifications/send` links
+  open it): a push and bell notification and/or a splash page to an audience (`app.check_audience`, `app.in_audience`:
+  everyone, roles, grades, academies, classes, a group, people; the kinds, templates and links are in both
+  `src/announcements/kinds.ts` and the database's checks, `tests/announcements.test.ts`), now or at a time
+  (`announcement_send`, `app.send_due_announcements` by cron). Links are screens in the app only, never websites. Their
+  notifications carry `data.announcementId` (so `app.wants_push` treats them as school announcements: urgent ones always
+  push). **Splash pages** (`my_splash`, `splash_mark`; `src/announcements/SplashGate.tsx`, mounted in `app/_layout.tsx`
+  before `AlertTakeover`) show once per person until closed, one at a time, only to approved accounts, never on the car
+  line's big screen or over a critical alert. Graphics are in the private `announcements` bucket, read by the people
+  it went to. Results are counts only, never names. Don't use a splash page for safety or consent messages (alerts,
+  pickup, forms keep their own screens).
 - **New tables need explicit grants.** Supabase no longer auto-grants new `public`
   tables to the Data API (from Oct 30, 2026), so the migration that creates a table must
   `grant select … to authenticated` (and `anon` if signed-out visitors read it) and
@@ -469,8 +481,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   on top (below), tiles for what needs attention (`staff_today`'s admin counts),
   its sections (People, Students, Classes, Admins & roles, Activity log; each its own screen, `app/admin/[section].tsx`,
   listed in `SECTIONS` in `src/admin/sections.tsx` with the permission that opens it), recent activity, and the tools in
-  other apps. An admin tool that belongs to an app goes in that app (sending a notification on the bell page,
-  `app/notifications/send.tsx`; routing questions in Ask the School → All questions; the Alert map in Alerts)
+  other apps. An admin tool that belongs to an app goes in that app (announcements in the Announcements app,
+  `app/announcements`; routing questions in Ask the School → All questions; the Alert map in Alerts)
   and in the portal's *Your tools in other apps* list (`ELSEWHERE` in `src/admin/sections.tsx`). A whole admin
   screen goes behind `MfaGate`; a tool on a screen everyone uses asks in place with `VerifyCard`
   (`needsCodeFor` / `mayHave` in `src/comms/mfa.ts`), never "go verify in the Admin portal".

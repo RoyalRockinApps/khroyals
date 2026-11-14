@@ -67,6 +67,8 @@ export function notificationHref(data: Record<string, unknown> | null | undefine
   if (data.feedbackId) return `/feedback/${data.feedbackId}`;
   if (data.absenceId) return '/forms/excused-absence';
   if (data.lunchVisitId) return '/lunch';
+  // An announcement opens its link (a screen in the app), else the announcement itself.
+  if (data.announcementId) return typeof data.link === 'string' && /^\/[A-Za-z]/.test(data.link) ? data.link : `/announcement/${data.announcementId}`;
   if (data.boardId) return `/board/${data.boardId}${data.boardPostId ? '?show=news' : ''}`;
   if (data.sportId && data.bulletinId) return `/activities/${data.sportId}?tab=board`;
   if (data.sportId) return `/activities/${data.sportId}`;

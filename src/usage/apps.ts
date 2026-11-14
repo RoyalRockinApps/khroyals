@@ -37,6 +37,7 @@ export const USAGE_APPS: UsageApp[] = [
   { key: 'profile', label: 'Profile', paths: ['profile'] },
   { key: 'children', label: 'My children', paths: ['children'] },
   { key: 'notifications', label: 'Notifications', paths: ['notifications'] },
+  { key: 'announcements', label: 'Announcements', paths: ['announcements', 'announcement'] },
 ];
 
 /** Routes that aren't an app people use (finishing a sign-in link). */

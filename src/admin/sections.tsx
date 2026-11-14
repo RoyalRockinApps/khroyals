@@ -416,7 +416,7 @@ function Audit() {
  */
 type Icon = ComponentProps<typeof Ionicons>['name'];
 export const ELSEWHERE: { perm: string; label: string; where: string; href: Href; icon: Icon }[] = [
-  { perm: 'push.send', label: 'Send a notification', where: 'Notifications (the bell)', href: '/notifications/send', icon: 'megaphone-outline' },
+  { perm: 'push.send', label: 'Announcements: notifications and splash pages', where: 'Announcements (Staff view)', href: '/announcements', icon: 'megaphone-outline' },
   { perm: 'push.send', label: 'A/B tests', where: `${SCHOOL.newsName} → the gear`, href: '/experiments', icon: 'flask-outline' },
   { perm: 'alerts.send', label: 'Send critical alerts', where: 'Alerts', href: '/alerts', icon: 'warning-outline' },
   { perm: 'alerts.map', label: 'Alert map', where: 'Alerts', href: '/alerts/map', icon: 'wifi-outline' },

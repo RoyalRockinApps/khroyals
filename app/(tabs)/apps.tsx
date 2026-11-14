@@ -10,10 +10,11 @@ import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } fr
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  isFamily, isSchoolStaff, isSubstitute, listAlerts, me, myAccess, onAuthChange, session, subscribeAlerts, type CriticalAlert, type Person,
+  isFamily, isSchoolStaff, isSubstitute, listAlerts, live, me, myAccess, onAuthChange, session, subscribeAlerts, type CriticalAlert, type Person,
 } from '../../src/api/connect';
 import { TILES } from '@school/tiles';
 import { alertKind } from '../../src/alerts/kinds';
+import { mayHave } from '../../src/comms/mfa';
 import { PAGES } from '../../src/handbook/handbook';
 import { visibleTiles, type TileRules } from '../../src/appTiles';
 import { GOLD, NAVY } from '../../src/sports/ui';
@@ -34,6 +35,8 @@ const ALL_APPS: App[] = [
   // Marketplace, News, Ask the School · Calendar, Handbook, Feedback. Staff-only and students' tiles sit beside them.
   { label: 'Sub Days', icon: 'briefcase', color: SCHOOL.theme.dark, href: '/sub', subOnly: true, sub: true },
   { label: 'Alerts', icon: 'warning', color: '#B42318', href: '/alerts', staffOnly: true },
+  // Push and bell notifications and splash pages, for people who send the school's notifications.
+  { label: 'Announcements', icon: 'megaphone', color: SCHOOL.theme.dark, href: '/announcements', announce: true },
   { label: 'Student', image: TILES.student, icon: 'school', color: SCHOOL.theme.dark, href: '/student', family: false, inStaffView: false },
   { label: 'Car Line', image: TILES.carline, icon: 'car', color: SCHOOL.theme.dark, href: '/carline', staffVersion: true, student: false },
   // Teachers' classes: roll, assignments, messages from students, subs and check-out lists.
@@ -84,14 +87,19 @@ function useActiveAlerts(staff: boolean) {
   return active;
 }
 
-/** Staff with admin powers (a tier or single permissions) get the admin portal's tile in staff view. */
+/**
+ * Staff with admin powers (a tier or single permissions) get the admin portal's tile in staff view, and those who send
+ * the school's notifications the Announcements tile.
+ */
 function useHasAdmin(staff: boolean) {
-  const [admin, setAdmin] = useState(false);
+  const [powers, setPowers] = useState({ admin: false, announce: false });
   useEffect(() => {
-    if (!staff) { setAdmin(false); return; }
-    myAccess().then((a) => setAdmin(!!a && (!!a.tier || a.granted.length > 0))).catch(() => setAdmin(false));
+    if (!staff) { setPowers({ admin: false, announce: false }); return; }
+    if (!live) { setPowers({ admin: false, announce: true }); return; }  // demo builds: try Announcements (nothing is really sent)
+    myAccess().then((a) => setPowers({ admin: !!a && (!!a.tier || a.granted.length > 0), announce: mayHave(a, 'push.send') }))
+      .catch(() => setPowers({ admin: false, announce: false }));
   }, [staff]);
-  return admin;
+  return powers;
 }
 
 export default function Apps() {
@@ -99,11 +107,11 @@ export default function Apps() {
   const staff = isSchoolStaff(person);
   // Active alerts show in both views: staff on Standard still need to see them.
   const active = useActiveAlerts(staff);
-  const admin = useHasAdmin(staff);
+  const { admin, announce } = useHasAdmin(staff);
   const [staffSetting, setStaffSetting] = useStaffViewSetting();
   const staffView = staff && staffSetting;
   const student = !!person && !person.pending && person.schoolRole === 'student';
-  const apps = visibleTiles(APPS, { staffView, family: isFamily(person), admin, student, substitute: isSubstitute(person) });
+  const apps = visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
   // Three tiles across on phones, up to five on iPads and tablets.
   const columns = Math.max(3, Math.min(5, Math.floor(useContentWidth() / 140)));
   return (
