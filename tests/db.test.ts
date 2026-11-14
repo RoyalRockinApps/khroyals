@@ -5260,6 +5260,32 @@ test('bulletin boards: one for each academy and teacher; its class reads it, its
     delete from storage.objects where bucket_id = 'boards'`);
 });
 
+test("forms: once a form is past its due date it can't be signed, changed or reminded about", async () => {
+  const ava = (await one(`select ${id('u-s01')} as u`)).u as string;
+  const sign = (form: string, agree: boolean) => `select * from form_sign('${form}', '${ava}', ${agree}, '{}'::jsonb, 'Rosa Reyes')`;
+  await as('u-eng');
+  const trip = await one(`select * from form_send('Pumpkin patch', 'Bring a jacket.', null, app.school_today(), 'section', 'eng10-p3')`);
+  const quiz = await one(`select * from form_send('Quiz night', 'Snacks provided.', null, app.school_today(), 'section', 'eng10-p3')`);
+
+  // Due today: it can still be signed.
+  await as('u-p01');
+  await one(sign(trip.id, true));
+
+  // From the next day it can't: no signature, no change of answer, no reminders to sign it.
+  await asSuper();
+  await db.exec(`update forms set due_on = app.school_today() - 1 where id in ('${trip.id}', '${quiz.id}')`);
+  await as('u-p01');
+  await rejects(sign(trip.id, false), /was due .*, so it can't be signed anymore/);
+  await rejects(sign(quiz.id, true), /can't be signed anymore/);
+  assert.equal((await one(`select agreed from form_responses where form_id = '${trip.id}' and student_id = '${ava}'`)).agreed, true);
+  assert.equal((await rows(`select 1 from form_responses where form_id = '${quiz.id}'`)).length, 0);
+  await as('u-eng');
+  await rejects(`select form_remind('${quiz.id}')`, /past due, so families can't sign it/);
+
+  await asSuper();
+  await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
+});
+
 /** Functions that send notifications, by their latest definition (the helpers that pass one on are left out). */
 function notificationSenders(): string[] {
   const latest = new Map<string, string>();

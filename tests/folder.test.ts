@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { FolderNote } from '../src/api/folderNotes';
 import type { MyForm } from '../src/api/types';
 import { coverLine } from '../src/schoolForms/coverLine';
-import { pastForms, pastNotes } from '../src/schoolForms/folderLists';
+import { pastForms, pastNotes, formExpired } from '../src/schoolForms/folderLists';
 
 const today = '2026-11-11';
 const signed = (at: string) => ({ agreed: true, answers: {}, signature: 'Rosa Reyes', signedAt: at, signedBy: 'Rosa Reyes' });
@@ -66,4 +66,10 @@ test("the closed folder's cover says what's inside", () => {
   assert.equal(coverLine(2, 0), '2 to sign');
   assert.equal(coverLine(1, 1), '1 to sign · 1 new note');
   assert.equal(coverLine(0, 3), '3 new notes');
+});
+
+test("a form expires the day after it's due, or when the school closes it; then nobody signs it", () => {
+  assert.equal(formExpired({ status: 'open', dueOn: '2026-11-13' }, '2026-11-13'), false, 'still due today');
+  assert.equal(formExpired({ status: 'open', dueOn: '2026-11-12' }, '2026-11-13'), true);
+  assert.equal(formExpired({ status: 'closed', dueOn: '2026-11-20' }, '2026-11-13'), true);
 });

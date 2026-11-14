@@ -1,7 +1,8 @@
 /**
  * One form. A parent reads it and signs for each of their children it went to (agree,
  * answering the questions, or decline), by typing their full name; they can change it
- * while the form is open, and see whether its fee has been paid. Its sender sees every
+ * until it expires (closed by the school, or past its due date: then nobody signs it), and
+ * see whether its fee has been paid. Its sender sees every
  * student's signature, records payments as they come in (how much, how, where it was
  * handed in, and when), reminds the families still to sign, and closes it.
  */
@@ -13,6 +14,8 @@ import {
   closeForm, errorText, formStatus, isSchoolStaff, myForms, remindForm, signForm,
   type FormStatus, type MyForm, type Person,
 } from '../../src/api/connect';
+import { schoolToday } from '../../src/calendar/past';
+import { formExpired } from '../../src/schoolForms/folderLists';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
 import { FormHeader, GREEN, Progress, QuestionInput, SignatureLine } from '../../src/schoolForms/parts';
 import { PaymentEditor, PaymentLine } from '../../src/schoolForms/PaymentEditor';
@@ -62,7 +65,7 @@ function SignCard({ form, child, me, onSigned }: { form: MyForm; child: MyForm['
   const [answers, setAnswers] = useState<Record<string, string>>(done?.answers ?? {});
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
-  const open = form.status === 'open';
+  const open = !formExpired(form, schoolToday());
 
   const submit = async (agree: boolean) => {
     const missing = agree && form.questions.find((q) => q.required && !answers[q.id]?.trim());
@@ -102,7 +105,8 @@ function SignCard({ form, child, me, onSigned }: { form: MyForm; child: MyForm['
             onPress={() => ask(`Decline for ${child.name}?`, 'The school will see that you declined.', 'Decline', () => submit(false))} />
         </>
       )}
-      {!done && !open && <P muted>This form closed before it was signed.</P>}
+      {!done && !open && <P muted>{form.status === 'closed' ? 'This form closed before it was signed.'
+        : `This form was due ${dueDay(form.dueOn)}, so it can't be signed anymore.`}</P>}
       {!!form.feeCents && <PaymentLine fee={form.feeCents} payment={child.payment} />}
     </Card>
   );
@@ -115,6 +119,7 @@ function Status({ status, onChange }: { status: FormStatus; onChange: () => void
   const declined = status.students.filter((x) => x.response && !x.response.agreed);
   const waiting = status.students.filter((x) => !x.response);
   const open = status.status === 'open';
+  const pastDue = open && formExpired(status, schoolToday());
   const fee = status.feeCents;
   const paid = status.students.filter((x) => x.payment);
 
@@ -171,8 +176,12 @@ function Status({ status, onChange }: { status: FormStatus; onChange: () => void
       {group('Not yet', waiting, C.accent)}
       {group('Declined', declined, C.danger)}
       {group('Agreed', agreed, GREEN)}
-      {open && waiting.length > 0 && <Button label="Remind the families still to sign" onPress={remind} />}
+      {open && !pastDue && waiting.length > 0 && <Button label="Remind the families still to sign" onPress={remind} />}
+      {pastDue && <P muted>{`It was due ${dueDay(status.dueOn)}, so families can't sign it anymore.`}</P>}
       {open ? <Button kind="ghost" label="Close form" onPress={close} /> : <P muted>This form is closed.</P>}
     </Card>
   );
 }
+
+/** "Fri, Nov 14". */
+const dueDay = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });

@@ -15,7 +15,9 @@ export const NOTE_DAYS = 14;
 export type PastForm = { form: MyForm; why: 'signed' | 'expired' | 'removed'; on: string; label: string; canPutBack: boolean };
 
 const signedAll = (f: MyForm) => f.children.length > 0 && f.children.every((c) => c.response);
-const expired = (f: MyForm, today: string) => f.status === 'closed' || f.dueOn < today;
+/** Closed by the school, or past its due date: it can't be signed (or a signature changed) anymore. */
+export const formExpired = (f: Pick<MyForm, 'status' | 'dueOn'>, today: string) => f.status === 'closed' || f.dueOn < today;
+const expired = formExpired;
 const lastSigned = (f: MyForm) => f.children.map((c) => c.response?.signedAt ?? '').sort().pop() ?? '';
 const daysFrom = (day: string, today: string) => Math.round((Date.parse(`${today}T12:00:00Z`) - Date.parse(`${day}T12:00:00Z`)) / 86_400_000);
 const short = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });

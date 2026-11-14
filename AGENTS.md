@@ -259,7 +259,9 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   class sections they lead, coaches and directors to their activity seasons' registered students
   (`app.can_manage_sport`), and `forms.send` holders to grades or the whole school (`form_send`).
   Parents sign once per child (`form_sign`, `app.signs_form`: guardians only, never Family accounts);
-  either parent's signature counts. A form can't be changed once sent; senders see signatures in
+  either parent's signature counts. Nobody signs an expired form (past its due date, or closed), nor changes an answer on
+  one, and its sender can't remind about it (`form_sign`, `form_remind`; the app's `formExpired` in `src/schoolForms/folderLists.ts`).
+  A form can't be changed once sent; senders see signatures in
   `form_status` and remind or close it. Screens read `my_forms` / `sent_forms` / `form_status`.
   A form's fee (`forms.fee_cents`) is paid outside the app; senders record each child's payment
   (`form_record_payment`: amount, method, where it was handed in, date) and parents see their own.

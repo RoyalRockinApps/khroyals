@@ -188,8 +188,8 @@ function PastRow({ x, onPutBack }: { x: ReturnType<typeof pastForms>['past'][num
       <Text style={{ color: C.muted }}>{[x.label, f.sentTo].filter(Boolean).join(' · ')}</Text>
       <View style={[s.row, { flexWrap: 'wrap', gap: 10 }]}>
         {f.children.map((c) => (
-          <Text key={c.studentId} style={{ fontWeight: '700', color: c.response ? (c.response.agreed ? GREEN : C.danger) : C.accent }}>
-            {c.name}: {c.response ? (c.response.agreed ? 'signed' : 'declined') : 'to sign'}
+          <Text key={c.studentId} style={{ fontWeight: '700', color: c.response ? (c.response.agreed ? GREEN : C.danger) : x.canPutBack ? C.accent : C.muted }}>
+            {c.name}: {c.response ? (c.response.agreed ? 'signed' : 'declined') : x.canPutBack ? 'to sign' : 'not signed'}
           </Text>
         ))}
       </View>
