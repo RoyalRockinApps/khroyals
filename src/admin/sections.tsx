@@ -12,7 +12,7 @@ import {
   adminClearAvatar, adminDeleteRole, adminDeleteUser, adminFamilyLinks, adminLinkGuardian, adminListPeople, adminRoles, adminSaveRole, adminSetAccess,
   adminSetCarlineDuty, adminSetDirector, adminSetVolunteerLead, adminUpdateProfile, getUser, listAudit, me, permissionCatalog,
   ROLE_LABELS,
-  type Access, type AdminPerson, type AdminRole, type FamilyLink, type PeopleFilter, type PermissionInfo,
+  type Access, type AdminPerson, type AdminRole, type FamilyLink, type PeopleFilter, type PermissionInfo, type StaffToday,
 } from '../api/connect';
 import { GradePicker } from '../comms/GradePicker';
 import { gradeLabel } from '../comms/grades';
@@ -462,3 +462,12 @@ export function AdminsSection() {
 
 export const ActivitySection = Audit;
 export const PEOPLE_FILTERS = FILTERS.map(([k]) => k);
+
+/** What needs attention, by the staff_today key that counts it and the permission that shows it. */
+export const NEEDS: { key: keyof StaffToday; perm: string; label: string; href: Href }[] = [
+  { key: 'accountsWaiting', perm: 'people.approve', label: 'Accounts waiting for approval', href: { pathname: '/admin/[section]', params: { section: 'people', filter: 'pending' } } },
+  { key: 'familyRequests', perm: 'people.family', label: 'Family requests', href: '/admin/students' },
+  { key: 'questionsToRoute', perm: 'questions.manage', label: 'Questions to route', href: '/questions' },
+  { key: 'feedbackNew', perm: 'feedback.triage', label: 'New feedback', href: '/feedback' },
+  { key: 'absencesToSee', perm: 'checkin.manage', label: 'Absence reports to mark seen', href: '/forms/excused-absence' },
+];

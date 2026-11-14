@@ -16,7 +16,7 @@ import {
   adminListPeople, adminListSections, listAudit, me, onSiteToday, staffToday, usageSummary,
   type Access, type AdminSection, type OnSiteToday, type PeopleFilter, type StaffToday,
 } from '../../src/api/connect';
-import { ELSEWHERE, SECTIONS, actionLabel, personName } from '../../src/admin/sections';
+import { ELSEWHERE, NEEDS, SECTIONS, actionLabel, personName } from '../../src/admin/sections';
 import { MfaGate } from '../../src/comms/MfaGate';
 import { OnSiteCard } from '../../src/onsite/OnSiteCard';
 import { onSiteTitle } from '../../src/onsite/labels';
@@ -29,14 +29,6 @@ const GOOD = '#15803D';
 /** People counts for the section tiles' notes. */
 const COUNTED: PeopleFilter[] = ['all', 'pending', 'staff', 'parents', 'family', 'students', 'admins'];
 
-/** What needs attention, by the staff_today key that counts it and the permission that shows it. */
-const NEEDS: { key: keyof StaffToday; perm: string; label: string; href: Href }[] = [
-  { key: 'accountsWaiting', perm: 'people.approve', label: 'Accounts waiting for approval', href: { pathname: '/admin/[section]', params: { section: 'people', filter: 'pending' } } },
-  { key: 'familyRequests', perm: 'people.family', label: 'Family requests', href: '/admin/students' },
-  { key: 'questionsToRoute', perm: 'questions.manage', label: 'Questions to route', href: '/questions' },
-  { key: 'feedbackNew', perm: 'feedback.triage', label: 'New feedback', href: '/feedback' },
-  { key: 'absencesToSee', perm: 'checkin.manage', label: 'Absence reports to mark seen', href: '/forms/excused-absence' },
-];
 
 type Dash = {
   today: StaffToday; onsite: OnSiteToday | null; people: Partial<Record<PeopleFilter, number>> | null; classes: AdminSection[] | null; activity: any[] | null;

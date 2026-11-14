@@ -3,7 +3,8 @@
  * the tab bar. Teachers, staff and admins get a Standard / Staff switch at the top (everyone else a thin gold bar): Staff
  * shows the staff versions (marked in gold), Standard the apps as parents see them. Parents
  * (and staff with children here, on Standard) get their Folder on top, closed until tapped
- * (src/schoolForms/MainFolder.tsx); the Folder tile is the senders' side, in Staff view.
+ * (src/schoolForms/MainFolder.tsx); the Folder tile is the senders' side, in Staff view. Staff with admin powers get the
+ * Admin portal on the Staff view as a card the Folder's size (src/admin/AdminButton.tsx).
  */
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
 import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } from 'react-native';
@@ -13,6 +14,7 @@ import {
   isFamily, isSchoolStaff, isSubstitute, listAlerts, live, me, myAccess, onAuthChange, session, subscribeAlerts, type CriticalAlert, type Person,
 } from '../../src/api/connect';
 import { TILES } from '@school/tiles';
+import { AdminButton } from '../../src/admin/AdminButton';
 import { alertKind } from '../../src/alerts/kinds';
 import { mayHave } from '../../src/comms/mfa';
 import { PAGES } from '../../src/handbook/handbook';
@@ -58,7 +60,6 @@ const ALL_APPS: App[] = [
   { label: 'Assignments', image: TILES.assignments, icon: 'checkbox', color: SCHOOL.theme.dark, href: '/assignments', family: false, studentApp: true },
   // Students' own notes and flash cards (private to them).
   { label: 'Study', icon: 'library', color: SCHOOL.theme.dark, href: '/study', family: false, studentApp: true },
-  { label: 'Admin', icon: 'shield-checkmark', color: NAVY, href: '/admin', adminOnly: true },
 ];
 /** The Handbook only for a school whose handbook is in the app. */
 const APPS = ALL_APPS.filter((a) => a.href !== '/handbook' || PAGES.length > 0);
@@ -88,14 +89,14 @@ function useActiveAlerts(staff: boolean) {
 }
 
 /**
- * Staff with admin powers (a tier or single permissions) get the admin portal's tile in staff view, and those who send
+ * Staff with admin powers (a tier or single permissions) get the Admin portal's card in staff view, and those who send
  * the school's notifications the Announcements tile.
  */
 function useHasAdmin(staff: boolean) {
   const [powers, setPowers] = useState({ admin: false, announce: false });
   useEffect(() => {
     if (!staff) { setPowers({ admin: false, announce: false }); return; }
-    if (!live) { setPowers({ admin: false, announce: true }); return; }  // demo builds: try Announcements (nothing is really sent)
+    if (!live) { setPowers({ admin: true, announce: true }); return; }  // demo builds show them (nothing is really sent)
     myAccess().then((a) => setPowers({ admin: !!a && (!!a.tier || a.granted.length > 0), announce: mayHave(a, 'push.send') }))
       .catch(() => setPowers({ admin: false, announce: false }));
   }, [staff]);
@@ -132,6 +133,7 @@ export default function Apps() {
           <Ionicons name="chevron-forward" size={22} color="#fff" />
         </Pressable>
       ))}
+      {staffView && admin && <AdminButton />}
       {!student && !isSubstitute(person) && <MainFolder person={person} staffView={staffView} />}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {apps.map((a) => (
