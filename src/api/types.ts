@@ -498,11 +498,16 @@ export type SchoolForm = {
   /** The fee per child, or null for none. */
   feeCents: number | null;
 };
-/** For a parent: a form and each of their children it went to. */
+/**
+ * For a parent: a form and each of their children it went to. For a student (`readOnly`): the form sent for them, with
+ * only when a parent answered it (`answeredAt`; never the answers, signature or payment).
+ */
 export type MyForm = SchoolForm & {
-  children: { studentId: string; name: string; response: FormSignature | null; payment: FormPayment | null }[];
+  children: { studentId: string; name: string; response: FormSignature | null; payment: FormPayment | null; answeredAt?: string | null }[];
   /** When this parent took it out of their Folder (it's back with null). */
   removedAt?: string | null;
+  /** A student's own form: their parents sign it. */
+  readOnly?: boolean;
 };
 /** For a sender: a form they sent, with counts. */
 export type SentForm = SchoolForm & { students: number; agreed: number; declined: number; paid: number; collectedCents: number };

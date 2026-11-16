@@ -42,6 +42,15 @@ test('Done & removed holds the last 30 days only', () => {
   assert.deepEqual(past.map((x) => [x.form.id, x.canPutBack]), [['removed then expired', false], ['a month ago', false]]);
 });
 
+test("a student's own form leaves their folder once a parent has answered it", () => {
+  const own = (id: string, answeredAt: string | null): MyForm => ({
+    ...form(id), readOnly: true, children: [{ studentId: 'me', name: 'Ava', response: null, payment: null, answeredAt }],
+  });
+  const { inFolder, past } = pastForms([own('waiting', null), own('answered', '2026-11-10T15:00:00Z')], today);
+  assert.deepEqual(inFolder.map((f) => f.id), ['waiting']);
+  assert.deepEqual(past.map((x) => [x.form.id, x.why, x.label]), [['answered', 'signed', 'Signed Nov 10']]);
+});
+
 const note = (id: string, sentAt: string, o: Partial<FolderNote> = {}): FolderNote => ({
   id, kind: 'bulletin', title: id, body: '', from: 'Jennifer Lee', sentAt, children: ['Ava'], classes: ['English 10'], readAt: null, removedAt: null, ...o,
 });
@@ -66,6 +75,8 @@ test("the closed folder's cover says what's inside", () => {
   assert.equal(coverLine(2, 0), '2 to sign');
   assert.equal(coverLine(1, 1), '1 to sign · 1 new note');
   assert.equal(coverLine(0, 3), '3 new notes');
+  assert.equal(coverLine(2, 1, true), '2 for your parents to sign · 1 new note', "a student's folder");
+  assert.equal(coverLine(0, 0, true), 'Nothing new');
 });
 
 test("a form expires the day after it's due, or when the school closes it; then nobody signs it", () => {

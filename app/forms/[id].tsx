@@ -4,7 +4,8 @@
  * until it expires (closed by the school, or past its due date: then nobody signs it), and
  * see whether its fee has been paid. Its sender sees every
  * student's signature, records payments as they come in (how much, how, where it was
- * handed in, and when), reminds the families still to sign, and closes it.
+ * handed in, and when), reminds the families still to sign, and closes it. A student (from their read-only Folder)
+ * reads a form sent for them and sees whether their parents have answered it, never the answers.
  */
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
@@ -24,7 +25,7 @@ import { SectionTitle } from '../../src/volunteer/parts';
 import { Button, C, Card, Field, Loading, P, ask, s } from '../../src/ui';
 
 export default function FormScreen() {
-  return <FormsGate title="Form">{(me) => <Form me={me} />}</FormsGate>;
+  return <FormsGate title="Form" students>{(me) => <Form me={me} />}</FormsGate>;
 }
 
 function Form({ me }: { me: Person }) {
@@ -50,11 +51,31 @@ function Form({ me }: { me: Person }) {
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       <FormHeader form={form} />
-      {data.mine?.children.map((c) => (
-        <SignCard key={c.studentId} form={data.mine!} child={c} me={me} onSigned={load} />
-      ))}
+      {data.mine?.children.map((c) => (data.mine!.readOnly
+        ? <ForParents key={c.studentId} form={data.mine!} answeredAt={c.answeredAt ?? null} />
+        : <SignCard key={c.studentId} form={data.mine!} child={c} me={me} onSigned={load} />))}
       {data.status && <Status status={data.status} onChange={load} />}
     </ScrollView>
+  );
+}
+
+/** A student's own form: their parents sign it; whether they have (and when), and what it asks. */
+function ForParents({ form, answeredAt }: { form: MyForm; answeredAt: string | null }) {
+  const open = !formExpired(form, schoolToday());
+  const day = answeredAt && new Date(answeredAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return (
+    <Card style={{ gap: 10 }}>
+      <SectionTitle icon="people-outline" title="For your parents to sign" tint={answeredAt ? GREEN : C.accent} />
+      <P>{answeredAt ? `Your parents answered it on ${day}.`
+        : open ? 'Your parents sign this form in the app. Remind them if it’s still waiting.'
+        : form.status === 'closed' ? 'This form closed before it was signed.' : `This form was due ${dueDay(form.dueOn)}.`}</P>
+      {form.questions.length > 0 && (
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontWeight: '800', color: C.ink }}>It asks</Text>
+          {form.questions.map((q) => <P key={q.id} muted>• {q.prompt}</P>)}
+        </View>
+      )}
+    </Card>
   );
 }
 

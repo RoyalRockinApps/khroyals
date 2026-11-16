@@ -1,4 +1,7 @@
-/** Forms screens render inside this: signed in, approved, and a parent or a member of staff (never Family or students). */
+/**
+ * Forms screens render inside this: signed in, approved, and a parent or a member of staff (never Family accounts). A
+ * screen a student's read-only Folder opens (a form, a bulletin) lets students in too with `students`.
+ */
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Stack, router } from 'expo-router';
@@ -9,7 +12,9 @@ import { SCHOOL } from '../school';
 /** Parents sign forms; faculty and staff send them (and sign for their own children). */
 export const usesForms = (p: Person | null | undefined) => !!p && !p.pending && !isFamily(p) && (p.schoolRole === 'parent' || isSchoolStaff(p));
 
-export function FormsGate({ title, children }: { title: string; children: (me: Person) => React.ReactNode }) {
+const isStudent = (p: Person) => !p.pending && p.schoolRole === 'student';
+
+export function FormsGate({ title, students = false, children }: { title: string; students?: boolean; children: (me: Person) => React.ReactNode }) {
   const [me, setMe] = useState<Person | null | undefined>();
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => session().then((p) => { setMe(p); setError(null); }).catch((e) => setError(errorText(e))), []);
@@ -29,6 +34,6 @@ export function FormsGate({ title, children }: { title: string; children: (me: P
     </Card>,
   );
   if (me.pending) return box(<Card><H>Waiting for approval</H><P muted>Forms open once the school office approves your account.</P></Card>);
-  if (!usesForms(me)) return box(<Card><H>For parents and staff</H><P muted>Forms go to the parents of {SCHOOL.name} students.</P></Card>);
+  if (!usesForms(me) && !(students && isStudent(me))) return box(<Card><H>For parents and staff</H><P muted>Forms go to the parents of {SCHOOL.name} students.</P></Card>);
   return <>{header}{children(me)}</>;
 }

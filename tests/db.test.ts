@@ -2456,16 +2456,23 @@ test('forms: teachers, coaches and the office send them; parents sign for each c
   assert.deepEqual(await told('u-p05', trip.id), [], 'her child is not in the class');
   assert.deepEqual(await told('u-gran', trip.id), [], 'Family accounts are not parents');
 
-  // Rosa sees it for Ava; parents of other children, Family accounts and students see nothing.
+  // Rosa sees it for Ava; parents of other children and Family accounts see nothing.
   await as('u-p01');
   const mine = (await one(`select my_forms() as f`)).f;
   assert.deepEqual(mine.map((f: any) => [f.title, f.sentTo, f.author, f.children.map((c: any) => [c.name, c.response])]),
     [['Zoo field trip', 'English 10 – Period 3', 'Jennifer Taylor', [['Ava', null]]]]);
-  for (const who of ['u-p05', 'u-gran', 'u-s01']) {
+  for (const who of ['u-p05', 'u-gran']) {
     await as(who);
     assert.deepEqual((await one(`select my_forms() as f`)).f, [], who);
     assert.equal((await rows(`select 1 from forms`)).length, 0, who);
   }
+  // Ava reads the form sent for her in her read-only Folder: only whether her parents have answered, and she can't remove it.
+  await as('u-s01');
+  assert.deepEqual((await one(`select my_forms() as f`)).f.map((f: any) => [f.title, f.readOnly, f.removedAt, f.children]),
+    [['Zoo field trip', true, null, [{ studentId: ava, name: 'Ava', response: null, payment: null, answeredAt: null }]]]);
+  assert.equal((await rows(`select 1 from forms`)).length, 1, 'the form itself');
+  assert.equal((await rows(`select 1 from form_recipients`)).length, 1, 'her own row only');
+  await rejects(`select form_remove('${trip.id}')`, /isn't in your folder/);
 
   // Rosa signs for Ava: required answers, valid choices and a typed name; only for her own child.
   await as('u-p01');
@@ -2480,6 +2487,13 @@ test('forms: teachers, coaches and the office send them; parents sign for each c
   const signed = await one(sign(ava, true, { q1: 'yes', q3: 'Maybe', extra: 'dropped' }));
   assert.deepEqual([signed.agreed, signed.answers, signed.signature], [true, { q1: 'yes', q3: 'Maybe' }, 'Rosa Reyes'], 'signing again replaces it');
   await rejects(`insert into form_responses (form_id, student_id, agreed, signature) values ('${trip.id}', '${ava}', true, 'x')`, /permission denied/);
+  // Ava sees that it was answered, never the answers, signature or payment, and can't sign it herself.
+  await as('u-s01');
+  const forAva = (await one(`select my_forms() as f`)).f[0].children[0];
+  assert.ok(forAva.answeredAt, 'answered');
+  assert.deepEqual([forAva.response, forAva.payment], [null, null]);
+  assert.equal((await rows(`select 1 from form_responses`)).length, 0);
+  await rejects(sign(ava, true, { q1: 'yes' }, 'Ava Reyes'), /Only a parent of a student/);
   await as('u-gran');
   await rejects(sign(ava, true, { q1: 'yes' }, 'June Reyes'), /Only a parent of a student/);
 
@@ -4743,7 +4757,18 @@ test('the Folder: teachers post class bulletins and write notes to a family; onl
   rosa = await mine();
   assert.equal(rosa.find((n) => n.id === bulletin).removedAt, null, 'put back');
 
-  // Jennifer sees who it went to and how many parents opened each; only she deletes, and it leaves every folder.
+  // Ava (in the class) reads the bulletin in her read-only Folder, never the note to her parents, and can't take it out.
+  await as('u-s01');
+  assert.deepEqual((await mine()).map((n) => [n.kind, n.title, n.children, n.classes]), [['bulletin', 'Poetry week', [], ['English 10 – Period 3']]]);
+  await one(`select folder_note_read('${bulletin}')`);
+  assert.ok((await mine())[0].readAt, 'opened');
+  await rejects(`select folder_note_read('${note}')`, /isn't in your folder/);
+  await rejects(`select folder_note_remove('${bulletin}')`, /isn't in your folder/);
+  assert.deepEqual((await rows(`select kind from folder_notes`)).map((n) => n.kind), ['bulletin'], 'the note is hidden from her');
+  assert.equal((await rows(`select 1 from folder_note_sections`)).length, 1);
+
+  // Jennifer sees who it went to and how many parents opened each (Ava's opening doesn't count); only she deletes, and it
+  // leaves every folder.
   await as('u-eng');
   const sent = (await one(`select sent_folder_notes() as n`)).n as any[];
   assert.deepEqual(sent.map((n) => [n.kind, n.read]), [['note', 1], ['bulletin', 0]]);

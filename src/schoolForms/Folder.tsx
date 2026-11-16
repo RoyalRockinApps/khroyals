@@ -10,7 +10,8 @@
  * teachers' notes and class bulletins (newest first; a note is a yellow sticky note), then the forms to sign. The papers
  * behind peek out above the top one, so it's clear there are more. Swipe sideways (or use the arrows) to go through
  * them; tap one to read it (and sign a form). Swipe a paper up, or tap its Remove, to take it out of the folder after
- * confirming (`onRemove`, `onRemoveNote`); the newsletter stays. With Reduce Motion on, it opens and shuts at once.
+ * confirming (`onRemove`, `onRemoveNote`); the newsletter stays. A student's folder is `readOnly`: nothing comes out of
+ * it, and its forms are for their parents to sign. With Reduce Motion on, it opens and shuts at once.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Easing, PanResponder, Pressable, StyleSheet, Text, View, type PanResponderGestureState } from 'react-native';
@@ -46,7 +47,7 @@ const ExtraLines = createContext(0);
 
 export function Folder({
   news, notes = [], forms, onRemove, onRemoveNote, onDragging, open = true, onClosed, onOpenPaper = (href) => router.push(href), onDark,
-  height = HEIGHT, corners,
+  height = HEIGHT, corners, readOnly = false,
 }: {
   /** The newsletter's latest issue, always first (null when there's none). */
   news: NewsletterSummary | null;
@@ -70,6 +71,8 @@ export function Folder({
   height?: number;
   /** Buttons on the pocket's bottom corners once it's open (the Main Page's × and +). */
   corners?: { left?: ReactNode; right?: ReactNode };
+  /** A student's folder: papers can't be removed, and forms are for their parents to sign. */
+  readOnly?: boolean;
 }) {
   const papers = useMemo<Paper[]>(() => [
     ...(news ? [{ kind: 'news', issue: news } as const] : []),
@@ -138,12 +141,13 @@ export function Folder({
             <View style={[styles.slot, styles.paper, { alignItems: 'center', justifyContent: 'center' }]}>
               <Ionicons name="checkmark-circle-outline" size={40} color={INSIDE} />
               <Text style={styles.title}>Your folder is clear</Text>
-              <Text style={styles.details}>New forms, notes and class bulletins from the school will appear here.</Text>
+              <Text style={styles.details}>{readOnly ? 'Class bulletins and forms for your parents will appear here.'
+                : 'New forms, notes and class bulletins from the school will appear here.'}</Text>
             </View>
           ) : (
             <ExtraLines.Provider value={Math.max(0, Math.floor((height - HEIGHT) / 22))}>
               <Stack key={paperKey(papers[at])} papers={papers} at={at} page={page} height={height} onGo={go} onRemove={onRemove}
-                onRemoveNote={onRemoveNote ?? (() => {})} onDragging={onDragging} onOpen={onOpenPaper} />
+                onRemoveNote={onRemoveNote ?? (() => {})} onDragging={onDragging} onOpen={onOpenPaper} readOnly={readOnly} />
             </ExtraLines.Provider>
           ))}
           <Pocket />
@@ -162,7 +166,7 @@ export function Folder({
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <Shield size={88} />
                 <Text style={styles.coverTitle}>Class Folder</Text>
-                <Text style={styles.coverCount}>{coverLine(toSign, unread)}</Text>
+                <Text style={styles.coverCount}>{coverLine(toSign, unread, readOnly)}</Text>
               </View>
               <Animated.View style={[StyleSheet.absoluteFill, styles.dark, shadeOutside]} />
             </Animated.View>
@@ -181,7 +185,9 @@ export function Folder({
           </Pressable>
           <View style={{ alignItems: 'center', flex: 1 }}>
             <Text style={[styles.meta, styles.center, onDark && styles.onDark]}>{at + 1} of {papers.length} papers</Text>
-            <Text style={[styles.meta, styles.center, { fontSize: 12 }, onDark && styles.onDark]}>Swipe sideways for the next · swipe a paper up to remove it</Text>
+            <Text style={[styles.meta, styles.center, { fontSize: 12 }, onDark && styles.onDark]}>
+              {readOnly ? 'Swipe sideways for the next' : 'Swipe sideways for the next · swipe a paper up to remove it'}
+            </Text>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Next paper" onPress={() => go(1)} style={{ padding: 12 }}>
             <Ionicons name="chevron-forward" size={24} color={onDark ? '#fff' : INSIDE} />
@@ -196,9 +202,9 @@ const paperKey = (p: Paper) => (p.kind === 'news' ? `news:${p.issue.id}` : p.kin
 const edgeColor = (p: Paper) => (p.kind === 'news' ? TRIM : p.kind === 'note' ? (p.note.kind === 'note' ? STICKY_EDGE : OUTSIDE) : INSIDE);
 
 /** The top paper, which moves with a swipe, and the papers behind it peeking out above. */
-function Stack({ papers, at, page, height, onGo, onRemove, onRemoveNote, onDragging, onOpen }: {
+function Stack({ papers, at, page, height, onGo, onRemove, onRemoveNote, onDragging, onOpen, readOnly }: {
   papers: Paper[]; at: number; page: number; height: number; onGo: (by: number) => void; onRemove: (form: MyForm) => void;
-  onRemoveNote: (note: FolderNote) => void; onDragging?: (on: boolean) => void; onOpen: (href: Href) => void;
+  onRemoveNote: (note: FolderNote) => void; onDragging?: (on: boolean) => void; onOpen: (href: Href) => void; readOnly: boolean;
 }) {
   const top = papers[at];
   const [pan] = useState(() => new Animated.ValueXY());
@@ -224,9 +230,10 @@ function Stack({ papers, at, page, height, onGo, onRemove, onRemoveNote, onDragg
   };
   const release = (g: PanResponderGestureState) => {
     calls.current.onDragging?.(false);
-    // Up: far enough, or a quick flick.
+    // Up: far enough, or a quick flick (a read-only folder's papers just settle back).
     if (-g.dy > Math.abs(g.dx) && (-g.dy > UP || (g.vy < -0.8 && -g.dy > 30))) {
       back();
+      if (readOnly) return;
       if (top.kind === 'form') remove(top.form);
       else if (top.kind === 'note') removeNote(top.note);
     } else if (papers.length > 1 && (Math.abs(g.dx) > SIDEWAYS || Math.abs(g.vx) > 0.8)) {
@@ -240,13 +247,13 @@ function Stack({ papers, at, page, height, onGo, onRemove, onRemoveNote, onDragg
   const responder = useMemo(() => PanResponder.create({
     // Clearly sideways, or clearly up; leave taps to the paper and downward drags to the screen.
     onMoveShouldSetPanResponderCapture: (_, g) => (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2)
-      || (g.dy < -12 && -g.dy > Math.abs(g.dx) * 1.2),
+      || (!readOnly && g.dy < -12 && -g.dy > Math.abs(g.dx) * 1.2),
     onPanResponderGrant: () => { dragged.current = true; calls.current.onDragging?.(true); },
     onPanResponderMove: (_, g) => pan.setValue({ x: g.dx, y: Math.min(0, g.dy) }),
     onPanResponderRelease: (_, g) => release(g),
     onPanResponderTerminate: () => { calls.current.onDragging?.(false); back(); },
     onPanResponderTerminationRequest: () => false,
-  }), [top, papers.length, page]);
+  }), [top, papers.length, page, readOnly]);
 
   const behind = Array.from({ length: Math.min(BEHIND, papers.length - 1) }, (_, k) => k + 1);
   const tilt = pan.x.interpolate({ inputRange: [-page, 0, page], outputRange: ['-10deg', '0deg', '10deg'] });
@@ -269,9 +276,9 @@ function Stack({ papers, at, page, height, onGo, onRemove, onRemoveNote, onDragg
           ? <NewsPaper issue={top.issue} place={`${at + 1} of ${papers.length}`} onOpen={tapped(() => onOpen(`/royal-news/${top.issue.id}`))} />
           : top.kind === 'note'
             ? <NotePaper note={top.note} place={`${at + 1} of ${papers.length}`} onOpen={tapped(() => onOpen(`/forms/note/${top.note.id}` as Href))}
-                onRemove={tapped(() => removeNote(top.note))} />
+                onRemove={readOnly ? undefined : tapped(() => removeNote(top.note))} />
             : <FormPaper form={top.form} place={`${at + 1} of ${papers.length}`} onOpen={tapped(() => onOpen(`/forms/${top.form.id}`))}
-                onRemove={tapped(() => remove(top.form))} />}
+                onRemove={readOnly ? undefined : tapped(() => remove(top.form))} />}
       </Animated.View>
     </>
   );
@@ -300,8 +307,11 @@ function NewsPaper({ issue, place, onOpen }: { issue: NewsletterSummary; place: 
   );
 }
 
-/** A form to sign, with Remove at its top right (beside the part you tap, not in it). */
-function FormPaper({ form, place, onOpen, onRemove }: { form: MyForm; place: string; onOpen: () => void; onRemove: () => void }) {
+/**
+ * A form to sign, with Remove at its top right (beside the part you tap, not in it). Without `onRemove` (a student's
+ * folder) it can't be removed, and it says their parents sign it.
+ */
+function FormPaper({ form, place, onOpen, onRemove }: { form: MyForm; place: string; onOpen: () => void; onRemove?: () => void }) {
   const extra = useContext(ExtraLines);
   return (
     <View style={styles.sheet}>
@@ -315,23 +325,27 @@ function FormPaper({ form, place, onOpen, onRemove }: { form: MyForm; place: str
         <Text style={styles.meta}>{[form.sentTo, dueText(form)].filter(Boolean).join(' · ')}</Text>
         <View style={styles.rule} />
         <Text style={styles.details} numberOfLines={3 + extra}>{form.details}</Text>
-        <Text style={styles.children} numberOfLines={2}>{form.children.map((child) => child.name).join(', ')}</Text>
-        <Text style={styles.open}>Tap to open and sign ↗</Text>
+        {onRemove
+          ? <Text style={styles.children} numberOfLines={2}>{form.children.map((child) => child.name).join(', ')}</Text>
+          : <Text style={styles.children}>For your parents to sign</Text>}
+        <Text style={styles.open}>{onRemove ? 'Tap to open and sign ↗' : 'Tap to read it ↗'}</Text>
       </Pressable>
-      <Pressable onPress={onRemove} accessibilityRole="button" accessibilityLabel={`Remove ${form.title} from your folder`} hitSlop={10}
-        style={({ pressed }) => [styles.row, styles.remove, pressed && { opacity: 0.6 }]}>
-        <Ionicons name="trash-outline" size={17} color={C.danger} />
-        <Text style={{ color: C.danger, fontWeight: '700', fontSize: 13 }}>Remove</Text>
-      </Pressable>
+      {onRemove && (
+        <Pressable onPress={onRemove} accessibilityRole="button" accessibilityLabel={`Remove ${form.title} from your folder`} hitSlop={10}
+          style={({ pressed }) => [styles.row, styles.remove, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="trash-outline" size={17} color={C.danger} />
+          <Text style={{ color: C.danger, fontWeight: '700', fontSize: 13 }}>Remove</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
 /**
  * A teacher's note (a yellow sticky note: who it's from and which child it's about) or a class bulletin (a sheet headed
- * with its classes), New until it's opened, with Remove at its top right.
+ * with its classes), New until it's opened, with Remove at its top right (none in a student's folder).
  */
-function NotePaper({ note, place, onOpen, onRemove }: { note: FolderNote; place: string; onOpen: () => void; onRemove: () => void }) {
+function NotePaper({ note, place, onOpen, onRemove }: { note: FolderNote; place: string; onOpen: () => void; onRemove?: () => void }) {
   const extra = useContext(ExtraLines);
   const sticky = note.kind === 'note';
   const tint = sticky ? '#8A6A00' : OUTSIDE;
@@ -361,11 +375,13 @@ function NotePaper({ note, place, onOpen, onRemove }: { note: FolderNote; place:
         {!sticky && <Text style={styles.meta}>From {note.from} · {place}</Text>}
         <Text style={[styles.open, { color: tint }]}>Tap to read it ↗</Text>
       </Pressable>
-      <Pressable onPress={onRemove} accessibilityRole="button" accessibilityLabel={`Remove this ${sticky ? 'note' : 'bulletin'} from your folder`} hitSlop={10}
-        style={({ pressed }) => [styles.row, styles.remove, pressed && { opacity: 0.6 }]}>
-        <Ionicons name="trash-outline" size={17} color={C.danger} />
-        <Text style={{ color: C.danger, fontWeight: '700', fontSize: 13 }}>Remove</Text>
-      </Pressable>
+      {onRemove && (
+        <Pressable onPress={onRemove} accessibilityRole="button" accessibilityLabel={`Remove this ${sticky ? 'note' : 'bulletin'} from your folder`} hitSlop={10}
+          style={({ pressed }) => [styles.row, styles.remove, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="trash-outline" size={17} color={C.danger} />
+          <Text style={{ color: C.danger, fontWeight: '700', fontSize: 13 }}>Remove</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

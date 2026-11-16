@@ -373,7 +373,7 @@ hours live in `app.settings` (`carline_latitude`, `carline_longitude`,
 E-Learning days on the school calendar are skipped. The zone starts at the school's
 street address; move it to the car line entrance.
 
-**Folder** (the top of the Main Page; parents, and staff with children here on Standard).
+**Folder** (the top of the Main Page; parents, staff with children here on Standard, and students, read-only).
 A bi-fold folder in the school's colors, closed, saying what's new inside. Tap it: the page
 behind blurs, the folder comes up, and its cover, with the school's shield, lifts from its
 right edge and swings open to the left, as tall as the screen allows; tap anywhere outside
@@ -387,6 +387,10 @@ sign it, and swipe a paper up (or tap Remove) to take it out of your folder afte
 confirming. Signed, expired and removed forms leave the folder and wait under *Done &
 removed* for 30 days (notes and bulletins after two weeks); a removed one still open can be
 put back. Removing only hides it for you: the school still sees whether a form is signed.
+**Students** get the Folder too, read-only: the newsletter, their classes' bulletins and the
+forms sent for them ("For your parents to sign", and whether a parent has answered, never
+the answers). They can't remove papers, sign forms or write notes (no + button), and
+teachers' notes to their parents stay with the parents.
 
 **The Folder in Staff view** (the Folder tile) is the senders' side, in three tabs: *Forms*
 (+ New form; the ones families can still sign, soonest due first, with how many have signed,
@@ -397,7 +401,8 @@ their forms alone. Absence reports are in Classes, with the roll.
 **Class bulletins and notes** (the Folder's Bulletins tab in Staff view, or *Bulletin* on a
 class in Classes). A teacher posts a bulletin (a title and what to say) to the
 classes they lead, or writes a note to one student's parents. Each lands in those parents'
-Folders and they're told; students and other families never see a note. The teacher sees
+Folders and they're told; a bulletin also shows in its students' read-only Folders, but
+students and other families never see a note. The teacher sees
 how many parents have read each, and deletes it if needed. Notes parents write to them (the
 Class Folder's +) arrive under *From parents* (and on the bell), marked Seen for the parent once
 opened; *Reply* answers with a note into that family's Folder. Only that parent and teacher see them.

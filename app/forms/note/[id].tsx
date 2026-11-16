@@ -1,7 +1,8 @@
 /**
  * One class bulletin or teacher's note, opened from the Folder or its notification. Parents read the whole thing (a
- * note is a yellow sticky note), which marks it read for them, and take it out of their folder or put it back. Its
- * author sees who it went to and how many parents have opened it, and deletes it.
+ * note is a yellow sticky note), which marks it read for them, and take it out of their folder or put it back. A
+ * student reads a bulletin from their read-only Folder (it's marked read for them; nothing else). Its author sees who it
+ * went to and how many parents have opened it, and deletes it.
  */
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
@@ -19,10 +20,11 @@ const day = (at: string) => new Date(at).toLocaleDateString('en-US', { weekday: 
 
 export default function NoteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <FormsGate title="Note">{(me) => <Note id={id} me={me} />}</FormsGate>;
+  return <FormsGate title="Note" students>{(me) => <Note id={id} me={me} />}</FormsGate>;
 }
 
-function Note({ id }: { id: string; me: Person }) {
+function Note({ id, me }: { id: string; me: Person }) {
+  const student = me.schoolRole === 'student';
   const [mine, setMine] = useState<FolderNote | null | undefined>(undefined);
   const [sent, setSent] = useState<SentFolderNote | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,10 +87,11 @@ function Note({ id }: { id: string; me: Person }) {
             onPress={busy ? undefined : del}>Delete this {sticky ? 'note' : 'bulletin'}</Text>
         </Card>
       )}
-      {mine && (mine.removedAt
+      {mine && !student && (mine.removedAt
         ? <Button label="Put it back in my folder" onPress={() => remove(false)} disabled={busy} />
         : <Button kind="ghost" label="Remove it from my folder" onPress={() => remove(true)} disabled={busy} />)}
-      {mine && <P muted>{sticky ? 'Only you and the other parent see this note.' : 'Every family in the class gets this bulletin.'} To answer, write to the teacher or the office.</P>}
+      {mine && <P muted>{student ? 'Everyone in the class and their parents get this bulletin. Questions? Ask your teacher.'
+        : `${sticky ? 'Only you and the other parent see this note.' : 'Every family in the class gets this bulletin.'} To answer, write to the teacher or the office.`}</P>}
     </ScrollView>
   );
 }

@@ -1,5 +1,6 @@
 /**
- * The Folder at the top of the Main Page, for parents (and staff with children here, on the Standard view): closed, a
+ * The Folder at the top of the Main Page, for parents (and staff with children here, on the Standard view), and
+ * read-only for students (their class bulletins and the forms sent for them; no +, Remove or Done & removed): closed, a
  * folder in the school's colors saying what's new inside. Tapping it blurs the page behind, brings the Folder
  * (src/schoolForms/Folder.tsx) up from where the card was, as tall as the screen allows, and swings its cover open;
  * tapping anywhere outside it (or the × on its bottom left corner) swings it shut and puts it back. The + on its bottom
@@ -32,10 +33,13 @@ const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
 
 type Data = { news: NewsletterSummary | null; forms: MyForm[]; notes: FolderNote[] };
 
-/** Whether this person gets the Folder on the Main Page: parents, and staff with children here (Standard view). */
+/** A student's Folder: read-only. */
+export const readOnlyFolder = (p: Person | null | undefined) => !!p && !p.pending && p.schoolRole === 'student';
+
+/** Whether this person gets the Folder on the Main Page: parents, staff with children here (Standard view), and students. */
 function useFolderData(person: Person | null, staffView: boolean) {
   const [data, setData] = useState<Data | null>(null);
-  const eligible = !!person && usesForms(person) && !staffView;
+  const eligible = !!person && (usesForms(person) || readOnlyFolder(person)) && !staffView;
   const load = useCallback(async () => {
     if (!eligible) { setData(null); return; }
     try {
@@ -50,6 +54,7 @@ function useFolderData(person: Person | null, staffView: boolean) {
 
 export function MainFolder({ person, staffView }: { person: Person | null; staffView: boolean }) {
   const { data, setData, load } = useFolderData(person, staffView);
+  const readOnly = readOnlyFolder(person);
   const [shown, setShown] = useState(false);     // the overlay is up
   const [open, setOpen] = useState(false);       // the cover is open (or opening)
   const [dragging, setDragging] = useState(false);
@@ -67,10 +72,10 @@ export function MainFolder({ person, staffView }: { person: Person | null; staff
   const forms = pastForms(data.forms, today).inFolder;
   const notes = pastNotes(data.notes, today).inFolder;
   const unread = notes.filter((n) => !n.readAt).length;
-  const line = coverLine(forms.length, unread);
+  const line = coverLine(forms.length, unread, readOnly);
   // As tall as the screen allows: room for the paper count under it (with more than one paper) and Done & removed.
   const papers = (data.news ? 1 : 0) + notes.length + forms.length;
-  const room = Dimensions.get('window').height - insets.top - insets.bottom - 28 - (papers > 1 ? 60 : 0) - 40 - 36;
+  const room = Dimensions.get('window').height - insets.top - insets.bottom - 28 - (papers > 1 ? 60 : 0) - (readOnly ? 0 : 40) - 36;
   const height = Math.round(Math.max(400, Math.min(680, room)));
 
   const show = () => {
@@ -132,7 +137,7 @@ export function MainFolder({ person, staffView }: { person: Person | null; staff
           accessibilityLabel={menu ? 'Close the menu' : 'Close the folder'} />
         <View style={styles.center} pointerEvents="box-none">
           <Animated.View style={[styles.sheet, content]}>
-            <Folder news={data.news} notes={notes} forms={forms} open={open} onClosed={closed} height={height}
+            <Folder news={data.news} notes={notes} forms={forms} open={open} onClosed={closed} height={height} readOnly={readOnly}
               onRemove={take} onRemoveNote={takeNote} onDragging={setDragging} onOpenPaper={go} onDark
               corners={{
                 // × closes the folder.
@@ -142,8 +147,8 @@ export function MainFolder({ person, staffView }: { person: Person | null; staff
                     <Ionicons name="close" size={22} color="#fff" />
                   </Pressable>
                 ),
-                // + writes to a teacher or tells the office about an absence; its choices open above it.
-                right: (
+                // + writes to a teacher or tells the office about an absence; its choices open above it (parents only).
+                right: !readOnly && (
                   <>
                     {menu && (
                       <View style={styles.menu}>
@@ -159,9 +164,11 @@ export function MainFolder({ person, staffView }: { person: Person | null; staff
                   </>
                 ),
               }} />
-            <View style={[styles.links, dragging && { opacity: 0.4 }]}>
-              <Text style={styles.link} accessibilityRole="link" onPress={() => go('/forms')}>Done & removed ›</Text>
-            </View>
+            {!readOnly && (
+              <View style={[styles.links, dragging && { opacity: 0.4 }]}>
+                <Text style={styles.link} accessibilityRole="link" onPress={() => go('/forms')}>Done & removed ›</Text>
+              </View>
+            )}
           </Animated.View>
         </View>
       </Modal>

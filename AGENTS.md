@@ -280,15 +280,19 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   Signed, expired (past due or closed) and removed forms leave it and stay under Done & removed for 30 days
   (`src/schoolForms/folderLists.ts`, `tests/folder.test.ts`). A parent removes a form (swipe it up, or Remove, after
   confirming) for themselves only (`form_removals`, `form_remove`; `my_forms` → `removedAt`) and can put it back; the
-  school still sees whether it was signed.
+  school still sees whether it was signed. **Students get it read-only** (`readOnly` on `Folder`; `readOnlyFolder` in
+  MainFolder): the newsletter, their classes' bulletins and the forms sent for them (`my_forms` → `readOnly`, with only
+  `answeredAt`: never the answers, signature, agree/decline or payment), and no +, Remove, swipe-up or Done & removed; the
+  form and bulletin screens let them in (`FormsGate students`). They never sign, remove or write notes.
 - **Class bulletins and teachers' notes** (`folder_notes`, `folder_note_sections`, `folder_note_readers`; the Folder's
   Bulletins tab in Staff view, and *Bulletin* on a class card in Classes; `app/forms/write.tsx`, `app/forms/note/[id].tsx`;
   old `/forms/notes` links redirect to the tab): a section's lead teacher
   (or `forms.send`) posts a bulletin to their classes (`folder_bulletin_send`), and a teacher of a student's sections writes
   a note to that student's parents (`folder_note_send`, `app.teaches`). Only those students' parents read them
-  (`app.folder_note_parents`: guardians, never Family accounts; students never), in their Folder for two weeks
-  (`my_folder_notes`); opening one marks it read (`folder_note_read`) and they remove it for themselves (`folder_note_remove`).
-  The author sees how many parents opened each (`sent_folder_notes`) and deletes it (`folder_note_delete`).
+  (`app.folder_note_parents`: guardians, never Family accounts), in their Folder for two weeks (`my_folder_notes`), and a
+  bulletin's students read it too, read-only (`app.reads_folder_note`); a teacher's note is never a student's. Opening one
+  marks it read (`folder_note_read`); parents remove it for themselves (`folder_note_remove`, never students).
+  The author sees how many parents opened each (`sent_folder_notes`; students' opens don't count) and deletes it (`folder_note_delete`).
   **Notes to teachers** (`parent_notes`; the open Class Folder's + button → Note to a teacher, `app/forms/to-teacher.tsx`;
   teachers read them in the Folder's From parents tab, `app/forms/from-parent/[id].tsx`): a child's parent (never
   Family accounts) writes to one of the teachers of the child's sections (`parent_note_teachers`, `parent_note_send`,

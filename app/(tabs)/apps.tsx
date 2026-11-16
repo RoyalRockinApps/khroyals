@@ -3,7 +3,7 @@
  * the tab bar. Teachers, staff and admins get a Standard / Staff switch at the top (everyone else a thin gold bar): Staff
  * shows the staff versions (marked in gold), Standard the apps as parents see them. Parents
  * (and staff with children here, on Standard) get their Folder on top, closed until tapped
- * (src/schoolForms/MainFolder.tsx); the Folder tile is the senders' side, in Staff view. Staff with admin powers get the
+ * (src/schoolForms/MainFolder.tsx), and students a read-only one; the Folder tile is the senders' side, in Staff view. Staff with admin powers get the
  * Admin portal on the Staff view as a card the Folder's size (src/admin/AdminButton.tsx).
  */
 import { useCallback, useEffect, useState, type ComponentProps } from 'react';
@@ -134,7 +134,7 @@ export default function Apps() {
         </Pressable>
       ))}
       {staffView && admin && <AdminButton />}
-      {!student && !isSubstitute(person) && <MainFolder person={person} staffView={staffView} />}
+      {!isSubstitute(person) && <MainFolder person={person} staffView={staffView} />}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {apps.map((a) => (
           <Pressable key={a.label} onPress={() => router.push(a.href)} accessibilityRole="button"
