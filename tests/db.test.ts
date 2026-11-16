@@ -4017,7 +4017,12 @@ test('lunch visits: the office opens lunch times, families book after reading th
   const little = await one(`select * from lunch_window_save(null, 'K–2nd lunch', array[1,2,3,4,5], '10:45', '11:15', 0, 2, 10)`);
 
   // Rosa sees Ava's open lunches (not the K–2nd one), reads the allergy notes, and books with one guest.
+  await asSuper();
+  const face = (await one(`select avatar_url from profiles where id = '${ava}'`)).avatar_url as string | null;
+  await db.exec(`update profiles set avatar_url = 'children/${ava}/face.jpg' where id = '${ava}'`);
   await as('u-p01');
+  assert.deepEqual((await rows(`select first_name, avatar_url from lunch_my_kids()`)).find((k) => k.first_name === 'Ava'),
+    { first_name: 'Ava', avatar_url: `children/${ava}/face.jpg` }, 'her photo, for the circle');
   const slots = await rows(`select * from lunch_slots('${ava}', '${ymd}', 1)`);
   assert.deepEqual(slots.map((x) => [x.name, x.spots_left]), [['Upper school lunch', 3]]);
   const notes = await one(`select * from lunch_allergy_notes('${w.id}', '${ava}')`);
@@ -4070,6 +4075,7 @@ test('lunch visits: the office opens lunch times, families book after reading th
   await one(`select lunch_window_delete('${little.id}')`);
   await asSuper();
   await db.exec(`delete from lunch_visits; update student_details set allergies = '' where student_id = '${ava}'`);
+  await db.query(`update profiles set avatar_url = $1 where id = $2`, [face, ava]);
 });
 
 test("student records: the school's system fills them in, and only the student and their parents read them", async () => {

@@ -645,7 +645,10 @@ the paper excuse or a PDF from the clinic, when they report it or up to 30 days 
 replace or remove it. Only the child's parents and the office open it; teachers see that there is one.
 
 **Lunch visits** (Apps → Lunch Visits). Parents, and grandparents or other family the office linked,
-book a time to come eat lunch with their child. The office (*Lunch visits* permission) sets the lunch
+book a time to come eat lunch with their child. Each child is a circle with their face and name (tap one
+to pick whose times show; family accounts see initials, since a child's photo opens only for their parents
+and staff), and the open times are blocks on a week calendar for the next three weeks: an open block shows
+its start and the visitor spots left and books with a tap, your visits are green and full ones grey. The office (*Lunch visits* permission) sets the lunch
 times open to visits (weekdays, time, grades and how many visitors a day, guests included), closes
 days (no-school days on the calendar are closed already) and writes the rules. Before booking, the
 visitor sees the allergy notes for that lunch, their child's own and the allergies among the students

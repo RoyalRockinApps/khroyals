@@ -1,12 +1,14 @@
 /** Lunch visits: internal API implementation. Screens import the connect facade. */
 import { live, rpc, run, sb } from './client';
 import { current } from './session';
+import { avatarUrl, signAvatars } from './storage';
 
 export type LunchWindow = {
   id: string; name: string; weekdays: number[]; startTime: string; endTime: string; gradeFrom: number; gradeTo: number; capacity: number; active: boolean;
 };
 export type LunchSlot = { day: string; windowId: string; name: string; startTime: string; endTime: string; spotsLeft: number; myVisit: string | null };
-export type LunchKid = { id: string; firstName: string; lastName: string; grade: number | null };
+/** avatar: the photo's signed web address, or '' (no photo, or one this person can't open: initials instead). */
+export type LunchKid = { id: string; firstName: string; lastName: string; grade: number | null; avatar: string };
 export type MyLunchVisit = {
   id: string; day: string; windowName: string; startTime: string; endTime: string; student: string; visitor: string; guests: number;
   note: string; status: 'booked' | 'cancelled'; cancelReason: string; mine: boolean;
@@ -45,7 +47,9 @@ export async function setLunchRules(rules: string) { await rpc('lunch_set_rules'
 /** The children the signed-in person may visit at lunch (their own; family: the ones the office linked). */
 export async function lunchKids(): Promise<LunchKid[]> {
   if (!live || !current) return [];
-  return (await rpc('lunch_my_kids')).map((k) => ({ id: k.id, firstName: k.first_name, lastName: k.last_name, grade: k.grade }));
+  const kids = await rpc('lunch_my_kids');
+  await signAvatars(kids.map((k) => k.avatar_url)).catch(() => {});
+  return kids.map((k) => ({ id: k.id, firstName: k.first_name, lastName: k.last_name, grade: k.grade, avatar: avatarUrl(k.avatar_url) }));
 }
 export async function lunchSlots(studentId: string, from: string, days = 21): Promise<LunchSlot[]> {
   if (!live || !current) return [];

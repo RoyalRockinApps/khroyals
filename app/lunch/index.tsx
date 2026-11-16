@@ -1,7 +1,8 @@
 /**
- * Lunch visits. Parents and family the school linked pick a child and see the lunch times open to
- * them over the next three weeks (the office sets the days, times, grades and how many visitors),
- * book one after reading the allergy notes (app/lunch/book.tsx), and see or call off their visits.
+ * Lunch visits. Parents and family the school linked pick a child (a circle with their face and name,
+ * src/lunch/KidCircles.tsx) and see the lunch times open to them over the next three weeks as blocks on
+ * a week calendar (src/lunch/LunchCalendar.tsx; the office sets the days, times, grades and how many
+ * visitors), book one after reading the allergy notes (app/lunch/book.tsx), and see or call off their visits.
  * Teachers and staff see who's coming each day, with each child's allergies; lunch.manage holders
  * set the lunch times, closed days and rules (app/lunch/settings.tsx) and can cancel a visit.
  */
@@ -14,11 +15,12 @@ import {
 } from '../../src/api/connect';
 import { clock } from '../../src/absences/labels';
 import { schoolToday } from '../../src/calendar/past';
-import { Pills } from '../../src/feedback/ui';
 import { addDays } from '../../src/info/today';
 import { gradeLabel } from '../../src/comms/grades';
+import { KidCircles } from '../../src/lunch/KidCircles';
+import { LunchCalendar } from '../../src/lunch/LunchCalendar';
 import { ManageButton } from '../../src/ManageButton';
-import { C, Card, Chip, H, Loading, P, ask, s } from '../../src/ui';
+import { Avatar, C, Card, H, Loading, P, ask, s } from '../../src/ui';
 
 const longDay = (d: string) => new Date(`${d}T12:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 const span = (a: string, b: string) => `${clock(a)}–${clock(b)}`;
@@ -26,8 +28,10 @@ const span = (a: string, b: string) => `${clock(a)}–${clock(b)}`;
 export default function Lunch() {
   const [me, setMe] = useState<Person | null | undefined>(undefined);
   const [kids, setKids] = useState<LunchKid[]>([]);
+  const [ready, setReady] = useState(false);   // the children are in (until then, nothing says there are none)
   const [kid, setKid] = useState<string | null>(null);
-  const [slots, setSlots] = useState<LunchSlot[] | null>(null);
+  // The open times and whose they are, so another child's calendar starts fresh (LunchCalendar's key).
+  const [slots, setSlots] = useState<{ kid: string; list: LunchSlot[] } | null>(null);
   const [mine, setMine] = useState<MyLunchVisit[]>([]);
   const [manage, setManage] = useState(false);
   const [day, setDay] = useState(schoolToday());
@@ -42,10 +46,11 @@ export default function Lunch() {
       setKids(k); setMine(v); setManage(!!a?.permissions.includes('lunch.manage'));
       setKid((cur) => cur ?? k[0]?.id ?? null);
     } catch (e) { Alert.alert('Lunch visits', errorText(e)); }
+    setReady(true);
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useFocusEffect(useCallback(() => {
-    if (kid) lunchSlots(kid, schoolToday(), 21).then(setSlots).catch(() => setSlots([]));
+    if (kid) lunchSlots(kid, schoolToday(), 21).then((list) => setSlots({ kid, list })).catch(() => setSlots({ kid, list: [] }));
   }, [kid]));
   const staff = isSchoolStaff(me ?? null);
   useFocusEffect(useCallback(() => {
@@ -58,31 +63,38 @@ export default function Lunch() {
       <ManageButton app="Lunch Visits" items={[{ icon: 'options-outline', label: 'Lunch times, closed days and rules', href: '/lunch/settings' }]} />
     ) : undefined,
   }} />;
-  if (me === undefined) return <>{header}<Loading /></>;
+  if (me === undefined || (me && !me.pending && !ready)) return <>{header}<Loading /></>;
   if (!live || !me || me.pending) return <View style={[s.screen, s.pad]}>{header}<Card><P muted>Sign in to visit at lunch.</P></Card></View>;
 
   const callOff = (v: { id: string }, what: string, office = false) => ask(office ? 'Cancel this visit?' : 'Call off this visit?', what, office ? 'Cancel visit' : 'Call off',
-    () => cancelLunchVisit(v.id, office ? 'Cancelled by the school office.' : '').then(() => { load(); if (staff) lunchVisitors(day).then(setVisitors); if (kid) lunchSlots(kid, schoolToday(), 21).then(setSlots); })
+    () => cancelLunchVisit(v.id, office ? 'Cancelled by the school office.' : '').then(() => { load(); if (staff) lunchVisitors(day).then(setVisitors); if (kid) lunchSlots(kid, schoolToday(), 21).then((list) => setSlots({ kid, list })); })
       .catch((e) => Alert.alert('Not changed', errorText(e))));
-  const byDay = new Map<string, LunchSlot[]>();
-  (slots ?? []).forEach((x) => byDay.set(x.day, [...(byDay.get(x.day) ?? []), x]));
   const upcoming = mine.filter((v) => v.status === 'booked');
+  // Visits name the child by first name; their circle's photo, unless two of the children share it.
+  const faceOf = (first: string) => { const k = kids.filter((x) => x.firstName === first); return k.length === 1 ? k[0] : null; };
+  const book = (x: LunchSlot) => router.push({ pathname: '/lunch/book', params: { window: x.windowId, day: x.day, student: kid!, name: x.name, time: span(x.startTime, x.endTime) } });
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
       {header}
 
       {kids.length > 0 && (<>
-        <H>Come eat lunch with {kids.length === 1 ? kids[0].firstName : 'your child'}</H>
-        {kids.length > 1 && <Pills options={kids.map((k) => ({ key: k.id, label: k.firstName }))} value={kid} onChange={setKid} />}
+        <H>{kids.length > 1 ? 'Who are you visiting?' : 'Come eat lunch with'}</H>
+        <KidCircles kids={kids} value={kid} onChange={setKid} />
         {upcoming.length > 0 && (
           <View style={{ gap: 8 }}>
             <Text style={{ fontWeight: '800', color: C.muted }}>YOUR VISITS</Text>
             {upcoming.map((v) => (
-              <Card key={v.id} style={{ gap: 4 }}>
-                <Text style={{ fontWeight: '800', color: C.ink }}>{longDay(v.day)} · {v.windowName}</Text>
-                <P muted>{span(v.startTime, v.endTime)} · with {v.student}{v.guests ? ` · ${v.guests} guest${v.guests > 1 ? 's' : ''}` : ''}{v.mine ? '' : ` · booked by ${v.visitor}`}</P>
-                {v.mine && <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="button" onPress={() => callOff(v, `${longDay(v.day)}, ${v.windowName}`)}>Call off</Text>}
+              <Card key={v.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                <View style={{ alignItems: 'center', width: 56, gap: 3 }}>
+                  <Avatar person={faceOf(v.student) ?? { firstName: v.student }} size={40} />
+                  <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '700', color: C.ink }}>{v.student}</Text>
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={{ fontWeight: '800', color: C.ink }}>{longDay(v.day)} · {v.windowName}</Text>
+                  <P muted>{span(v.startTime, v.endTime)}{v.guests ? ` · ${v.guests} guest${v.guests > 1 ? 's' : ''}` : ''}{v.mine ? '' : ` · booked by ${v.visitor}`}</P>
+                  {v.mine && <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="button" onPress={() => callOff(v, `${longDay(v.day)}, ${v.windowName}`)}>Call off</Text>}
+                </View>
               </Card>
             ))}
           </View>
@@ -91,24 +103,9 @@ export default function Lunch() {
           <Card key={v.id}><P muted>Cancelled: {longDay(v.day)}, {v.windowName}. {v.cancelReason}</P></Card>
         ))}
         <Text style={{ fontWeight: '800', color: C.muted, marginTop: 6 }}>OPEN LUNCH TIMES</Text>
-        {!slots ? <Loading /> : byDay.size === 0 ? <Card><P muted>No lunch times are open for visits in the next three weeks.</P></Card>
-          : [...byDay].map(([d, list]) => (
-            <View key={d} style={{ gap: 6 }}>
-              <Text style={{ fontWeight: '700', color: C.ink }}>{longDay(d)}</Text>
-              {list.map((x) => (
-                <Card key={x.windowId} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-                  onPress={x.myVisit || x.spotsLeft === 0 ? undefined : () => router.push({ pathname: '/lunch/book', params: { window: x.windowId, day: d, student: kid!, name: x.name, time: span(x.startTime, x.endTime) } })}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: C.ink }}>{x.name}</Text>
-                    <P muted>{span(x.startTime, x.endTime)}</P>
-                  </View>
-                  {x.myVisit ? <Chip label="✓ You’re coming" color="#15803D" />
-                    : x.spotsLeft === 0 ? <Chip label="Full" color={C.muted} />
-                    : <Text style={{ color: C.primary, fontWeight: '800' }}>{x.spotsLeft} spot{x.spotsLeft === 1 ? '' : 's'} · Book ›</Text>}
-                </Card>
-              ))}
-            </View>
-          ))}
+        {!slots || slots.kid !== kid ? <Loading />
+          : slots.list.length === 0 ? <Card><P muted>No lunch times are open for visits in the next three weeks.</P></Card>
+          : <LunchCalendar key={slots.kid} slots={slots.list} today={schoolToday()} span={21} onBook={book} />}
       </>)}
 
       {staff && (

@@ -3656,7 +3656,7 @@ export type Database = {
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }
-      lunch_my_kids: { Args: never; Returns: { first_name: string; grade: number; id: string; last_name: string }[] }
+      lunch_my_kids: { Args: never; Returns: { avatar_url: string; first_name: string; grade: number; id: string; last_name: string }[] }
       lunch_rules: { Args: never; Returns: string }
       lunch_set_rules: { Args: { p_rules: string }; Returns: undefined }
       lunch_slots: {
