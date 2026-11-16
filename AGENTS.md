@@ -246,7 +246,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   extended care, or **not sent home yet**. **Extended care**: the office (`people.family` or `checkin.manage`,
   `app.manages_extended_care`) sets each student's weekdays (`extended_care_set`) and its staff (`extended_care_set_staff`;
   staff only, not an admin power); they run a daily check-out list (`checkout_lists.extended_care`, `extended_care_list`,
-  `app.manages_checkout`), so a child goes only to someone on their pickup list. Dismissal ways are in both
+  `app.manages_checkout`), so a child goes only to someone on their pickup list; it's on the Extended care screen only, never
+  with the field trip lists (`checkout_my_lists` leaves it out). Dismissal ways are in both
   `src/onsite/labels.ts` and the database check (`tests/onsite.test.ts`). Counts on the card, names only on the office's screen.
 - **Class attendance** (`class_attendance`; the Classes app, `app/attendance`, which also holds the event check-out lists): a
   section's lead teacher marks each student present, late or absent (`class_attendance_mark`, today or the last two

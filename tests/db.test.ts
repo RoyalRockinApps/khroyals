@@ -4453,6 +4453,7 @@ test('on-site attendance: staff check in at school, the office signs visitors in
   assert.equal((await one(`select extended_care_roster() as r`)).r.length, 1);
   const care = (await one(`select extended_care_list() as id`)).id;
   assert.equal((await one(`select extended_care_list() as id`)).id, care, 'one list a day');
+  assert.ok(!(await one(`select checkout_my_lists() as l`)).l.some((l: any) => l.id === care), 'on its own screen, not with the field trips');
   const list = (await one(`select checkout_list('${care}') as l`)).l;
   assert.ok(!list.canDelete, 'only the office removes it');
   assert.deepEqual(list.students.map((s: any) => s.id), weekday ? [liv] : []);

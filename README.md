@@ -456,11 +456,14 @@ leader who started an event puts its opportunities in order, most important firs
 follow by date), changes the event, or removes it, which keeps its opportunities,
 on their own.
 
-**Classes** (Apps → Classes, the `app/attendance` screens; teachers and staff). A teacher's
-class sections (`rosters` with kind 'section', Admin portal → Classes) each show the day's roll
-at a glance: a bar of present / late / absent and "Roll not taken yet" until it's started, with
-*Take roll* and *Assignments* (that class's, and assigning more) along the bottom. Below them are
-*Messages* (the teacher side of Ask the Teacher, with the unread count) and *Substitutes*.
+**Classes** (Apps → Classes, the `app/attendance` screens; teachers and staff). The office's
+tools come first for the office (*Office*: All classes, every absence parents reported, Check a
+student in or out, On-Site Attendance). A teacher's class sections (`rosters` with kind 'section',
+Admin portal → Classes) each show the day's roll at a glance: a bar of present / late / absent and
+"Roll not taken yet" until it's started; tapping the card opens the roll (after dismissal, Going
+home), and *Assignments* (that class's, and assigning more) and *Bulletin* run along the bottom.
+Below them are *Messages* (the teacher side of Ask the Teacher, with the unread count), their
+students' reported absences, *Substitutes* and, for its staff, *Extended care*.
 Students keep Ask the Teacher and Assignments as their own apps (with Study, below). Tapping a class opens the roll: P, L or A for each student (tap again to clear) and
 *Mark the rest present*. The office's late arrivals and early check-outs (Check In &
 Out) show on the student's row, a late check-in counts as Late whatever the teacher
@@ -470,7 +473,8 @@ away; the last two weeks can still be changed. The office (`checkin.manage`) ope
 take roll for a teacher who's out, and *Check a student in or out* to record late
 arrivals and early pickups (with a reason, and only to someone on the child's pickup
 list; parents and the class's teachers are notified). Field trip and Activities event
-check-out lists sit below the classes.
+check-out lists sit below the classes (the last week's behind *Show past lists*; the daily
+Extended care list is on its own screen); people with no class, list or event don't see them.
 
 **On-Site Attendance** (the Admin portal's top card, *On-Site Attendance - Thursday,
 November 5*; the office, `checkin.manage`). One bar of everyone at school right now, staff,

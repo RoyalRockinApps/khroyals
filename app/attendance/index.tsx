@@ -1,12 +1,12 @@
 /**
- * Classes (Apps → Classes, the screen at /attendance), for teachers and staff: the class sections they
- * lead, each with today's roll at a glance (tap it to take roll and see the office's late arrivals and
- * early check-outs), its assignments and a bulletin to its families (the rest of what goes to families is in
- * the Folder, Staff view); messages from their students (Ask the Teacher); substitutes;
- * and check-out lists for field trips and Activities events. Students keep Ask the Teacher and
- * Assignments as their own apps; this is the teacher side of both. The office (checkin.manage) also
- * gets every class's roll, Check in & out, where it records late arrivals and early pickups, and On-Site Attendance
- * (who's at school now, and the visitor desk). The office and extended care staff get Extended care.
+ * Classes (Apps → Classes, the screen at /attendance), for teachers and staff. The office (checkin.manage) gets its
+ * tools first: every class's roll, every absence parents reported, Check in & out (late arrivals and early pickups) and
+ * On-Site Attendance (who's at school now, and the visitor desk). Then the class sections they lead, each with today's
+ * roll at a glance (tap it to take roll, or after dismissal to send students home) and its assignments and a bulletin
+ * to its families (the rest of what goes to families is in the Folder, Staff view); messages from their students (Ask
+ * the Teacher); their students' reported absences; substitutes; Extended care for its staff and the office; and
+ * check-out lists for field trips and Activities events. Students keep Ask the Teacher and Assignments as their own
+ * apps; this is the teacher side of both.
  */
 import { useCallback, useState, type ComponentProps } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
@@ -86,22 +86,25 @@ export default function Classes() {
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
       {header}
-      {office && <Row strong icon="school" title="All classes" sub="Every class's roll for the day" href="/attendance/all" />}
-      <Row icon="bed-outline" title="Absences reported by parents" href="/forms/excused-absence"
-        sub={office ? 'Every student’s, a day at a time; mark each seen' : 'Your students’, a day at a time'} />
-      {office && <Row icon="log-in-outline" title="Check a student in or out" sub="Late arrivals and early pickups, and today's list" href="/checkin" />}
-      {office && <Row icon="location-outline" title="On-Site Attendance" sub="Who’s at school now, and the visitor desk" href="/onsite" />}
-      {data.extendedCare && <Row icon="home-outline" title="Extended care" sub="Today’s check-out, and who stays which days" href="/extended-care" />}
+      {office && (
+        <>
+          <H>Office</H>
+          <Row strong icon="school" title="All classes" sub="Every class's roll for the day" href="/attendance/all" />
+          <Row icon="bed-outline" title="Absences reported by parents" sub="Every student’s, a day at a time; mark each seen" href="/forms/excused-absence" />
+          <Row icon="log-in-outline" title="Check a student in or out" sub="Late arrivals and early pickups, and today's list" href="/checkin" />
+          <Row icon="location-outline" title="On-Site Attendance" sub="Who’s at school now, and the visitor desk" href="/onsite" />
+        </>
+      )}
 
       {(classes.length > 0 || !office) && <H>Your classes</H>}
       {classes.length === 0
         ? !office && <P muted>{"You don't lead a class section yet. The office sets up sections in Admin portal → Classes."}</P>
         : classes.map((c) => {
           const n = coming(c.id);
+          // The card itself opens the roll (or Going home after dismissal), so its tools are the class's other things.
           return (
             <ClassCard key={c.id} c={c} onPress={() => router.push(`/attendance/${c.id}`)}>
-              <ClassTool first icon="clipboard-outline" label="Take roll" onPress={() => router.push(`/attendance/${c.id}`)} />
-              <ClassTool icon="checkbox-outline" label={n ? `Assignments · ${n}` : 'Assignments'}
+              <ClassTool first icon="checkbox-outline" label={n ? `Assignments · ${n}` : 'Assignments'}
                 onPress={() => router.push({ pathname: '/assignments', params: { section: c.id } })} />
               <ClassTool icon="megaphone-outline" label="Bulletin"
                 onPress={() => router.push({ pathname: '/forms/write', params: { kind: 'bulletin', section: c.id } })} />
@@ -113,9 +116,13 @@ export default function Classes() {
         <Row icon="chatbubbles-outline" title="Messages" href="/teachers" badge={unread}
           sub={classes.length ? 'Ask the Teacher: write to your students and answer theirs' : 'Every Ask the Teacher conversation'} />
       )}
+      {!office && classes.length > 0 && (
+        <Row icon="bed-outline" title="Absences reported by parents" sub="Your students’, a day at a time" href="/forms/excused-absence" />
+      )}
       {data.subs && <Row icon="people" title="Substitutes" sub="Schedule a sub, with your sub plans" href="/subs" />}
+      {data.extendedCare && <Row icon="home-outline" title="Extended care" sub="Today’s check-out, and who stays which days" href="/extended-care" />}
 
-      <CheckoutLists />
+      <CheckoutLists canStart={classes.length > 0} />
     </ScrollView>
   );
 }

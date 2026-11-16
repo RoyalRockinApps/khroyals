@@ -69,7 +69,8 @@ export default function SubDays() {
           </Pressable>
         </View>
       ))}
-      {now.length > 0 && <CheckoutLists />}
+      {/* On duty, a sub starts a list from the classes they cover (today only). */}
+      {now.length > 0 && <CheckoutLists canStart />}
 
       {coming.length > 0 && <H>{now.length > 0 ? 'Coming up' : 'Your sub days'}</H>}
       {coming.map((d) => (
