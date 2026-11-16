@@ -24,7 +24,7 @@ export function PastToggle({ count, shown, onToggle, noun = 'events' }: { count:
     <Pressable onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: shown }} hitSlop={6}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}>
       <Ionicons name={shown ? 'chevron-up' : 'time-outline'} size={16} color={C.muted} />
-      <Text style={{ color: C.muted, fontWeight: '700' }}>{shown ? `Hide past ${noun}` : `Show ${count} past ${noun}`}</Text>
+      <Text style={{ color: C.muted, fontWeight: '700' }}>{shown ? `Hide past ${noun}` : `Show ${count} past ${count === 1 && /^[a-z]+$/.test(noun) ? noun.replace(/ies$/, 'y').replace(/s$/, '') : noun}`}</Text>
     </Pressable>
   );
 }

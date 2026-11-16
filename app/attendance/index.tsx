@@ -1,54 +1,34 @@
 /**
- * Classes (Apps → Classes, the screen at /attendance), for teachers and staff. The office (checkin.manage) gets its
- * tools first: every class's roll, every absence parents reported, Check in & out (late arrivals and early pickups) and
+ * Classes (Apps → Classes, the screen at /attendance), for teachers and staff, in the look of the Staff view's homes
+ * (src/hub.tsx). A navy band counts their classes, the roll still to take and the absences reported, with the main thing
+ * to do as a gold button (take the next roll, or All classes for the office). The office (checkin.manage) gets its tools
+ * next as tiles: every class's roll, every absence parents reported, Check in & out (late arrivals and early pickups) and
  * On-Site Attendance (who's at school now, and the visitor desk). Then the class sections they lead, each with today's
  * roll at a glance (tap it to take roll, or after dismissal to send students home) and its assignments and a bulletin
- * to its families (the rest of what goes to families is in the Folder, Staff view); messages from their students (Ask
- * the Teacher); their students' reported absences; substitutes; Extended care for its staff and the office; and
- * check-out lists for field trips and Activities events. Students keep Ask the Teacher and Assignments as their own
- * apps; this is the teacher side of both.
+ * to its families (the rest of what goes to families is in the Folder, Staff view); then tiles for messages from their
+ * students (Ask the Teacher), their students' reported absences, substitutes and Extended care (its staff and the
+ * office); and check-out lists for field trips and Activities events. Students keep Ask the Teacher and Assignments as
+ * their own apps; this is the teacher side of both.
  */
-import { useCallback, useState, type ComponentProps } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Stack, router, useFocusEffect, type Href } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Stack, router, useFocusEffect } from 'expo-router';
 import {
-  isSchoolStaff, listAssignments, myAccess, myClassAttendance, session, teacherConversations,
-  type Assignment, type ClassRollSummary, type Person, type TeacherConversation,
+  isSchoolStaff, listAssignments, myAccess, myClassAttendance, session, staffToday, teacherConversations,
+  type Assignment, type ClassRollSummary, type Person, type StaffToday, type TeacherConversation,
 } from '../../src/api/connect';
 import { ClassCard, ClassTool } from '../../src/attendance/parts';
-import { isPastDay } from '../../src/calendar/past';
+import { isPastDay, schoolToday } from '../../src/calendar/past';
 import { CheckoutLists } from '../../src/checkin/CheckoutLists';
 import { mayHave } from '../../src/comms/mfa';
-import { Card, C, H, Loading, P, s } from '../../src/ui';
+import { Band, GoldButton, Heading, Stat, Stats, ToolGrid, ToolTile } from '../../src/hub';
+import { headerDate } from '../../src/info/today';
+import { Card, Loading, P, s } from '../../src/ui';
 
 type Data = {
   classes: ClassRollSummary[]; office: boolean; subs: boolean; messages: boolean; extendedCare: boolean;
-  assignments: Assignment[]; conversations: TeacherConversation[];
+  assignments: Assignment[]; conversations: TeacherConversation[]; today: StaffToday;
 };
-
-/** A way in to one of the hub's tools: an icon, what it is and a line about it. */
-function Row({ icon, title, sub, href, strong, badge }: {
-  icon: ComponentProps<typeof Ionicons>['name']; title: string; sub: string; href: Href; strong?: boolean; badge?: number;
-}) {
-  return (
-    <Pressable onPress={() => router.push(href)} accessibilityRole="button" accessibilityLabel={badge ? `${title}, ${badge} new` : title}
-      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14,
-        backgroundColor: strong ? C.primary : '#fff', borderWidth: strong ? 0 : 1, borderColor: C.line }, pressed && { opacity: 0.85 }]}>
-      <Ionicons name={icon} size={24} color={strong ? '#fff' : C.primary} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: strong ? '#fff' : C.ink, fontSize: 16, fontWeight: '800' }}>{title}</Text>
-        <Text style={{ color: strong ? '#fff' : C.muted, opacity: strong ? 0.85 : 1 }}>{sub}</Text>
-      </View>
-      {!!badge && (
-        <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: C.danger }}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>{badge > 9 ? '9+' : badge}</Text>
-        </View>
-      )}
-      <Ionicons name="chevron-forward" size={20} color={strong ? '#fff' : C.muted} />
-    </Pressable>
-  );
-}
 
 export default function Classes() {
   const [person, setPerson] = useState<Person | null | undefined>(undefined);
@@ -58,7 +38,7 @@ export default function Classes() {
     const p = await session().catch(() => null);
     setPerson(p);
     if (!isSchoolStaff(p)) return;
-    const [classes, a] = await Promise.all([myClassAttendance().catch(() => []), myAccess().catch(() => null)]);
+    const [classes, a, today] = await Promise.all([myClassAttendance().catch(() => []), myAccess().catch(() => null), staffToday().catch(() => ({}))]);
     const teaches = classes.length > 0;
     // Ask the Teacher's teacher side: their students' messages; `messages.review` reads every conversation.
     const messages = teaches || mayHave(a, 'messages.review');
@@ -70,7 +50,7 @@ export default function Classes() {
       classes, office: !!a?.permissions.includes('checkin.manage'), subs: teaches || !!a?.permissions.includes('subs.manage'), messages,
       extendedCare: !!p?.extendedCare || mayHave(a, 'people.family') || mayHave(a, 'checkin.manage'),
       assignments: assignments.filter((x) => x.ownerId === p!.id && x.rosterId && !(x.dueOn && isPastDay(x.dueOn))),
-      conversations: [...conversations],
+      conversations: [...conversations], today,
     });
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -79,32 +59,57 @@ export default function Classes() {
   if (person === undefined) return <>{header}<Loading /></>;
   if (!isSchoolStaff(person)) return <View style={[s.screen, s.pad]}>{header}<Card><P>Classes is for teachers and staff.</P></Card></View>;
   if (!data) return <>{header}<Loading /></>;
-  const { classes, office } = data;
+  const { classes, office, today } = data;
   const unread = data.conversations.filter((c) => c.unread).length;
   const coming = (id: string) => data.assignments.filter((x) => x.rosterId === id).length;
+  const toTake = classes.filter((c) => c.students > 0 && c.unmarked > 0);
+  const next = toTake[0];
+  const absences = office ? today.absencesToSee : today.absencesToday;
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
       {header}
+      <Band>
+        <Text style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: 12, fontWeight: '800', letterSpacing: 0.6 }}>{headerDate(schoolToday()).toUpperCase()}</Text>
+        {(classes.length > 0 || absences !== undefined || data.messages) && (
+          <Stats>
+            {classes.length > 0 && <Stat n={classes.length} label={classes.length === 1 ? 'Class' : 'Classes'} />}
+            {classes.length > 0 && <Stat n={toTake.length} label="Roll to take" alert />}
+            {absences !== undefined && <Stat n={absences} label={office ? 'Absences to see' : 'Reported absent'} alert={office} />}
+            {data.messages && (classes.length === 0 || absences === undefined) && <Stat n={unread} label="Unread messages" alert />}
+          </Stats>
+        )}
+        {next ? (
+          <GoldButton icon="checkbox" label={`Take roll · ${next.name}`} onPress={() => router.push(`/attendance/${next.id}`)} />
+        ) : office ? (
+          <GoldButton icon="school" label="All classes" onPress={() => router.push('/attendance/all')} />
+        ) : classes.length > 0 ? (
+          <Text style={{ color: '#fff', fontWeight: '800', textAlign: 'center' }}>✓ Roll is in for every class today</Text>
+        ) : null}
+      </Band>
+
       {office && (
         <>
-          <H>Office</H>
-          <Row strong icon="school" title="All classes" sub="Every class's roll for the day" href="/attendance/all" />
-          <Row icon="bed-outline" title="Absences reported by parents" sub="Every student’s, a day at a time; mark each seen" href="/forms/excused-absence" />
-          <Row icon="log-in-outline" title="Check a student in or out" sub="Late arrivals and early pickups, and today's list" href="/checkin" />
-          <Row icon="location-outline" title="On-Site Attendance" sub="Who’s at school now, and the visitor desk" href="/onsite" />
+          <Heading text="Office" />
+          <ToolGrid>
+            {next && <ToolTile icon="school" title="All classes" sub="Every class’s roll for the day" onPress={() => router.push('/attendance/all')} />}
+            <ToolTile icon="bed-outline" title="Absences" sub="Reported by parents; mark each seen" onPress={() => router.push('/forms/excused-absence')}
+              badge={today.absencesToSee} />
+            <ToolTile icon="log-in-outline" title="Check in or out" sub="Late arrivals and early pickups" onPress={() => router.push('/checkin')} />
+            <ToolTile icon="location-outline" title="On-Site Attendance" sub="Who’s at school now, and visitors" onPress={() => router.push('/onsite')} />
+          </ToolGrid>
         </>
       )}
 
-      {(classes.length > 0 || !office) && <H>Your classes</H>}
+      {(classes.length > 0 || !office) && <Heading text="Your classes" />}
       {classes.length === 0
-        ? !office && <P muted>{"You don't lead a class section yet. The office sets up sections in Admin portal → Classes."}</P>
+        ? !office && <Card><P muted>{"You don't lead a class section yet. The office sets up sections in Admin portal → Classes."}</P></Card>
         : classes.map((c) => {
           const n = coming(c.id);
           // The card itself opens the roll (or Going home after dismissal), so its tools are the class's other things.
           return (
             <ClassCard key={c.id} c={c} onPress={() => router.push(`/attendance/${c.id}`)}>
-              <ClassTool first icon="checkbox-outline" label={n ? `Assignments · ${n}` : 'Assignments'}
+              <ClassTool icon="checkbox-outline" label={n ? `Assignments · ${n}` : 'Assignments'}
                 onPress={() => router.push({ pathname: '/assignments', params: { section: c.id } })} />
               <ClassTool icon="megaphone-outline" label="Bulletin"
                 onPress={() => router.push({ pathname: '/forms/write', params: { kind: 'bulletin', section: c.id } })} />
@@ -112,15 +117,23 @@ export default function Classes() {
           );
         })}
 
-      {data.messages && (
-        <Row icon="chatbubbles-outline" title="Messages" href="/teachers" badge={unread}
-          sub={classes.length ? 'Ask the Teacher: write to your students and answer theirs' : 'Every Ask the Teacher conversation'} />
+      {(data.messages || (!office && classes.length > 0) || data.subs || data.extendedCare) && (
+        <>
+          <Heading text="More" />
+          <ToolGrid>
+            {data.messages && (
+              <ToolTile icon="chatbubbles-outline" title="Messages" badge={unread} onPress={() => router.push('/teachers')}
+                sub={classes.length ? 'Ask the Teacher, with your students' : 'Every Ask the Teacher conversation'} />
+            )}
+            {!office && classes.length > 0 && (
+              <ToolTile icon="bed-outline" title="Absences" sub="Your students’, reported by parents" onPress={() => router.push('/forms/excused-absence')}
+                badge={today.absencesToday} />
+            )}
+            {data.subs && <ToolTile icon="people" title="Substitutes" sub="Schedule a sub, with your sub plans" onPress={() => router.push('/subs')} />}
+            {data.extendedCare && <ToolTile icon="home-outline" title="Extended care" sub="Today’s check-out, and who stays" onPress={() => router.push('/extended-care')} />}
+          </ToolGrid>
+        </>
       )}
-      {!office && classes.length > 0 && (
-        <Row icon="bed-outline" title="Absences reported by parents" sub="Your students’, a day at a time" href="/forms/excused-absence" />
-      )}
-      {data.subs && <Row icon="people" title="Substitutes" sub="Schedule a sub, with your sub plans" href="/subs" />}
-      {data.extendedCare && <Row icon="home-outline" title="Extended care" sub="Today’s check-out, and who stays which days" href="/extended-care" />}
 
       <CheckoutLists canStart={classes.length > 0} />
     </ScrollView>

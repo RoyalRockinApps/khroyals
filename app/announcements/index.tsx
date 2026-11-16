@@ -1,6 +1,6 @@
 /**
  * Announcements (staff view, for people with Send notifications; an admin power, so behind the authenticator code). A
- * navy header counts what's scheduled, the splash pages showing now and what went out this month, with + New
+ * navy band (src/hub.tsx) counts what's scheduled, the splash pages showing now and what went out this month, with + New
  * announcement; "Start from" quick starts open the composer filled in (src/announcements/kinds.ts). Below, what's
  * scheduled, the splash pages showing now and what went out, each with a picture of it (the splash page, or a bell),
  * who it was for and what people did with it, as bars (counts only: opened, and for splash pages seen and button taps;
@@ -16,7 +16,8 @@ import { SplashThumb } from '../../src/announcements/Preview';
 import { schoolToday } from '../../src/calendar/past';
 import { clock } from '../../src/carline/time';
 import { MfaGate } from '../../src/comms/MfaGate';
-import { GOLD_LIGHT, NAVY } from '../../src/sports/ui';
+import { Band, GoldButton, Heading, Stat, Stats } from '../../src/hub';
+import { NAVY } from '../../src/sports/ui';
 import { confirmThen } from '../../src/sports/team/parts';
 import { oops } from '../../src/study/ui';
 import { Button, C, Card, Loading, P, s } from '../../src/ui';
@@ -58,19 +59,14 @@ function History() {
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad}>
-      <View style={{ backgroundColor: NAVY, borderRadius: 18, padding: 14, gap: 12 }}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+      <Band>
+        <Stats>
           <Stat n={scheduled.length} label="Scheduled" />
           <Stat n={showing.length} label="Splash showing" />
           <Stat n={thisMonth} label="Sent this month" />
-        </View>
-        <Pressable onPress={() => router.push('/announcements/new')} accessibilityRole="button"
-          style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: GOLD_LIGHT,
-            borderRadius: 12, paddingVertical: 13 }, pressed && { opacity: 0.85 }]}>
-          <Ionicons name="add" size={20} color={NAVY} />
-          <Text style={{ color: NAVY, fontWeight: '900', fontSize: 16 }}>New announcement</Text>
-        </Pressable>
-      </View>
+        </Stats>
+        <GoldButton icon="add" label="New announcement" onPress={() => router.push('/announcements/new')} />
+      </Band>
 
       <View style={{ gap: 6 }}>
         <Heading text="START FROM" />
@@ -102,19 +98,6 @@ function History() {
       )}
     </ScrollView>
   );
-}
-
-function Stat({ n, label }: { n: number; label: string }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 10 }}>
-      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900' }}>{n}</Text>
-      <Text numberOfLines={2} style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12, fontWeight: '600', lineHeight: 15 }}>{label}</Text>
-    </View>
-  );
-}
-
-function Heading({ text }: { text: string }) {
-  return <Text style={{ fontSize: 13, fontWeight: '800', color: C.muted, letterSpacing: 0.6, marginTop: 6 }}>{text}</Text>;
 }
 
 /** A thin bar with its label: "Opened 57%". */

@@ -15,7 +15,9 @@ import { checkoutEventOptions, checkoutListForEvent, errorText, myCheckoutLists,
 import { schoolToday } from '../calendar/past';
 import { clock } from '../carline/format';
 import { PAST_STYLE, PastToggle, usePastToggle } from '../calendar/PastToggle';
-import { Button, C, Card, H, Loading, P, s } from '../ui';
+import { Heading, IconTile, PillButton } from '../hub';
+import { NAVY } from '../sports/ui';
+import { C, Loading, s } from '../ui';
 import { dayLabel, progressLine } from './labels';
 
 const GREEN = '#15803D';
@@ -42,16 +44,19 @@ export function CheckoutLists({ canStart }: { canStart: boolean }) {
     const all = l.students > 0 && l.released >= l.students;
     return (
       <Pressable key={l.id} onPress={() => router.push(`/checkout/${l.id}`)} accessibilityRole="button"
-        style={({ pressed }) => [{ padding: 14, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line, gap: 6 },
+        style={({ pressed }) => [{ flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line },
           old && PAST_STYLE, pressed && { opacity: 0.85 }]}>
-        <View style={[s.row, { justifyContent: 'space-between', gap: 8 }]}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, flexShrink: 1 }}>{l.title}</Text>
-          <Text style={{ color: C.muted, fontWeight: '600' }}>{dayLabel(l.day)}</Text>
+        <IconTile icon={all ? 'checkmark-done' : 'bus-outline'} color={all ? GREEN : NAVY} />
+        <View style={{ flex: 1, gap: 5 }}>
+          <View style={[s.row, { justifyContent: 'space-between', gap: 8 }]}>
+            <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '800', color: C.ink, flexShrink: 1 }}>{l.title}</Text>
+            <Text style={{ color: C.muted, fontWeight: '600', fontSize: 13 }}>{dayLabel(l.day)}</Text>
+          </View>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' }}>
+            <View style={{ width: `${l.students ? Math.round((100 * l.released) / l.students) : 0}%`, height: 6, borderRadius: 3, backgroundColor: all ? GREEN : NAVY }} />
+          </View>
+          <Text style={{ fontSize: 13, color: all ? GREEN : C.muted, fontWeight: all ? '700' : '400' }}>{progressLine(l.released, l.students)}</Text>
         </View>
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: C.line, overflow: 'hidden' }}>
-          <View style={{ width: `${l.students ? Math.round((100 * l.released) / l.students) : 0}%`, height: 8, backgroundColor: all ? GREEN : C.primary }} />
-        </View>
-        <Text style={{ color: all ? GREEN : C.muted, fontWeight: all ? '700' : '400' }}>{progressLine(l.released, l.students)}</Text>
       </Pressable>
     );
   };
@@ -60,20 +65,27 @@ export function CheckoutLists({ canStart }: { canStart: boolean }) {
 
   return (
     <>
-      <H>Field trip & event check-out</H>
-      <P muted>Check each student out to someone on their pickup list; their parents are told.</P>
+      <Heading text="Field trip & event check-out" />
+      <Text style={{ color: C.muted, fontSize: 13, lineHeight: 18 }}>Check each student out to someone on their pickup list; their parents are told.</Text>
       {coming.map((l) => card(l))}
       {toStart.map((e) => (
-        <Card key={e.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Ionicons name="trophy-outline" size={22} color={C.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '700', color: C.ink }}>{e.title}</Text>
-            <P muted>{dayLabel(schoolToday(new Date(e.startsAt)))} · {clock(e.startsAt)} · its registered students</P>
+        <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: C.line }}>
+          <IconTile icon="trophy-outline" />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{e.title}</Text>
+            <Text style={{ fontSize: 13, color: C.muted }}>{dayLabel(schoolToday(new Date(e.startsAt)))} · {clock(e.startsAt)} · its registered students</Text>
           </View>
-          <Text style={{ color: C.primary, fontWeight: '700' }} accessibilityRole="button" onPress={() => { if (!busy) openEvent(e.id); }}>Start</Text>
-        </Card>
+          <PillButton icon="play" label="Start" onPress={() => { if (!busy) openEvent(e.id); }} />
+        </View>
       ))}
-      {canStart && <Button kind="ghost" label="+ Field trip or class event" onPress={() => router.push('/checkout/new')} />}
+      {canStart && (
+        <Pressable onPress={() => router.push('/checkout/new')} accessibilityRole="button" accessibilityLabel="New check-out list for a field trip or class event"
+          style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 16,
+            borderWidth: 1.5, borderStyle: 'dashed', borderColor: `${NAVY}55` }, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="add" size={20} color={NAVY} />
+          <Text style={{ color: NAVY, fontWeight: '800' }}>Field trip or class event</Text>
+        </Pressable>
+      )}
       <PastToggle count={earlier.length} shown={past.shown} onToggle={past.toggle} noun="lists" />
       {past.shown && earlier.map((l) => card(l, true))}
     </>

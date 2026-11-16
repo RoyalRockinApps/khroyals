@@ -460,14 +460,17 @@ leader who started an event puts its opportunities in order, most important firs
 follow by date), changes the event, or removes it, which keeps its opportunities,
 on their own.
 
-**Classes** (Apps → Classes, the `app/attendance` screens; teachers and staff). The office's
-tools come first for the office (*Office*: All classes, every absence parents reported, Check a
-student in or out, On-Site Attendance). A teacher's class sections (`rosters` with kind 'section',
+**Classes** (Apps → Classes, the `app/attendance` screens; teachers and staff). It has the look of
+Announcements (`src/hub.tsx`): a navy band with today's date, their classes, the roll still to take and the
+absences reported (the office: absences to see), and the next thing to do as a gold button (*Take roll* for the
+first class still to take, or *All classes* for the office). The office's tools come next as tiles (*Office*:
+All classes, every absence parents reported, Check in or out, On-Site Attendance). A teacher's class sections (`rosters` with kind 'section',
 Admin portal → Classes) each show the day's roll at a glance: a bar of present / late / absent and
 "Roll not taken yet" until it's started; tapping the card opens the roll (after dismissal, Going
 home), and *Assignments* (that class's, and assigning more) and *Bulletin* run along the bottom.
-Below them are *Messages* (the teacher side of Ask the Teacher, with the unread count), their
-students' reported absences, *Substitutes* and, for its staff, *Extended care*.
+Below them, as tiles under *More*, are *Messages* (the teacher side of Ask the Teacher, with the unread
+count), their students' reported absences, *Substitutes* and, for its staff, *Extended care*. A class's roll
+and All classes have the same navy band, with the day, the counts and, on the roll, *Roll* / *Going home*.
 Students keep Ask the Teacher and Assignments as their own apps (with Study, below). Tapping a class opens the roll: P, L or A for each student (tap again to clear) and
 *Mark the rest present*. The office's late arrivals and early check-outs (Check In &
 Out) show on the student's row, a late check-in counts as Late whatever the teacher

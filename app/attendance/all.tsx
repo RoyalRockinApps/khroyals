@@ -1,7 +1,7 @@
 /**
  * All classes, for the office (checkin.manage, behind the authenticator check): every class section's
  * roll for a school day, the ones without roll taken first, with its teacher. Tap one to see it, or to
- * take roll for a teacher who's out.
+ * take roll for a teacher who's out. A navy band (src/hub.tsx) has the day and how many classes have roll in.
  */
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
@@ -10,6 +10,7 @@ import { attendanceOverview, errorText, type ClassRollSummary } from '../../src/
 import { ClassCard, DayStepper } from '../../src/attendance/parts';
 import { schoolToday } from '../../src/calendar/past';
 import { MfaGate } from '../../src/comms/MfaGate';
+import { Band, Heading, Stat, Stats } from '../../src/hub';
 import { Card, Loading, P, s } from '../../src/ui';
 
 export default function AllClasses() {
@@ -34,15 +35,25 @@ function Overview() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const notTaken = (c: ClassRollSummary) => c.students > 0 && c.unmarked === c.students;
+  const taken = (c: ClassRollSummary) => c.students > 0 && c.unmarked === 0;
   const sorted = classes && [...classes].sort((a, b) => Number(notTaken(b)) - Number(notTaken(a)));
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
-      <DayStepper day={day} onChange={(d) => { setClasses(null); setDay(d); }} />
+      <Band>
+        <DayStepper dark day={day} onChange={(d) => { setClasses(null); setDay(d); }} />
+        {!!sorted && sorted.length > 0 && (
+          <Stats>
+            <Stat n={sorted.length} label="Classes" />
+            <Stat n={sorted.filter(taken).length} label="Roll taken" dot="#22C55E" />
+            <Stat n={sorted.filter(notTaken).length} label="Not taken yet" alert />
+          </Stats>
+        )}
+      </Band>
       {error ? <Card><P>{error}</P></Card> : !sorted ? <Loading />
-        : sorted.length === 0 ? <P muted>No class sections yet. Set them up in Admin portal → Classes.</P>
+        : sorted.length === 0 ? <Card><P muted>No class sections yet. Set them up in Admin portal → Classes.</P></Card>
         : (
           <>
-            <P muted>{`${sorted.filter(notTaken).length} of ${sorted.length} classes still need roll taken.`}</P>
+            <Heading text="Every class" />
             {sorted.map((c) => <ClassCard key={c.id} c={c} teacher onPress={() => router.push({ pathname: '/attendance/[id]', params: { id: c.id, day } })} />)}
           </>
         )}
