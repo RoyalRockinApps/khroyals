@@ -328,8 +328,12 @@ and quiet hours. A **splash page** is a full-screen page people see once when th
 between two days, then close (✕ or Continue) to carry on: an uploaded graphic (a tall one, made in Canva…) or a template
 (navy, gold, red or confetti, with an optional photo, a headline and words), with an optional button to its screen. It's
 remembered on every device once closed, shows one at a time, and never over a critical alert (`src/announcements/
-SplashGate.tsx`). The app lists what's scheduled (cancel it), the splash pages showing (stop them) and what went out, with
-counts only: reached, opened, splash pages seen and button taps.
+SplashGate.tsx`). The composer shows *What they'll see* on top as you type (the notification as it looks on a phone, and
+the splash page as a little phone; tap it to see it full screen), then numbered steps, with screens to open picked from a
+grid of icons, and a Send bar that says what goes to how many and when (or what's still missing). The app's home counts
+what's scheduled, showing and sent this month, offers quick starts (Early dismissal, Reminder, Event, Celebration: their
+[blanks] must be filled before it sends), and lists what's scheduled (cancel it), the splash pages showing (stop them) and
+what went out, each with a picture of it and bars for the counts: reached, opened, splash pages seen and button taps.
 
 **CarPlay** (iPhone). On the car's screen, KH Royals shows today's car line for the
 parent's children with their pickup numbers: *I'm here* checks everyone in (with the

@@ -7,7 +7,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { DESTINATIONS, KINDS, TEMPLATES, audienceLabel, audienceProblem, blankAudience } from '../src/announcements/kinds';
+import {
+  DESTINATIONS, KINDS, QUICK_STARTS, TEMPLATES, audienceLabel, audienceProblem, blankAudience, blanksLeft, dayWord, sendSummary,
+} from '../src/announcements/kinds';
 import { notificationHref } from '../src/comms/inbox';
 import { usageApp } from '../src/usage/apps';
 
@@ -53,4 +55,26 @@ test("an announcement's notification opens its screen, or the announcement itsel
   assert.equal(notificationHref({ announcementId: 'a1' }), '/announcement/a1');
   assert.equal(notificationHref({ announcementId: 'a1', link: 'https://example.com' }), '/announcement/a1');
   assert.equal(notificationHref({ announcementId: 'a1', link: '//example.com' }), '/announcement/a1');
+});
+
+test('quick starts are fill-in-the-blanks that the composer holds back until the blanks are filled', () => {
+  for (const q of QUICK_STARTS) {
+    assert.ok(blanksLeft(q.title, q.body), `${q.label} has blanks to fill`);
+    if (q.audience) assert.equal(audienceProblem(q.audience), null, `${q.label}'s audience can be sent`);
+    if (q.link) assert.ok(DESTINATIONS.some((d) => d.path === q.link), `${q.label} links a screen the composer offers`);
+    if (q.splash) assert.ok(q.splash.template in TEMPLATES);
+  }
+  assert.equal(blanksLeft('Early dismissal Wednesday', 'School lets out at 12:00.'), false);
+  assert.equal(blanksLeft('Early dismissal Wednesday', 'School lets out at [time].'), true);
+});
+
+test("the Send bar says what goes to how many, and when", () => {
+  assert.equal(sendSummary({ push: true, splash: false, urgent: false, reach: 412, when: null }), 'Notification to 412 people, now');
+  assert.equal(sendSummary({ push: true, splash: true, urgent: true, reach: 1, when: 'Tomorrow at 7:30 AM' }),
+    'Urgent notification and splash page to 1 person, Tomorrow at 7:30 AM');
+  assert.equal(sendSummary({ push: false, splash: true, urgent: false, reach: null, when: null }), 'Splash page, now');
+  assert.equal(dayWord('2026-11-16', '2026-11-16'), 'Today');
+  assert.equal(dayWord('2026-11-17', '2026-11-16'), 'Tomorrow');
+  assert.equal(dayWord('2026-11-20', '2026-11-16'), 'Fri, Nov 20');
+  assert.ok(KINDS.filter((k) => !k.more).length <= 4, 'the picker shows a short row before More');
 });

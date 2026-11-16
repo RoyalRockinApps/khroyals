@@ -1,19 +1,20 @@
 /**
- * The Announcements app's choices: who it's for, which screen tapping it opens, and the splash page templates. The
- * kinds, templates and links are also the database's checks (tests/announcements.test.ts compares). No app imports,
- * so tests run it.
+ * The Announcements app's choices: who it's for, which screen tapping it opens, the splash page templates, the quick
+ * starts on its history screen and the composer's one-line summary. The kinds, templates and links are also the
+ * database's checks (tests/announcements.test.ts compares). No app imports, so tests run it.
  */
 import type { Audience } from '../api/types';
 import { gradeLabel } from '../comms/grades';
 
-export const KINDS: { key: Audience['kind']; label: string }[] = [
+/** `more`: folded under More in the picker until opened (or picked). */
+export const KINDS: { key: Audience['kind']; label: string; more?: true }[] = [
   { key: 'everyone', label: 'Everyone' },
   { key: 'roles', label: 'Roles' },
   { key: 'grades', label: 'Grades' },
-  { key: 'academies', label: 'Academies' },
   { key: 'classes', label: 'Classes' },
-  { key: 'group', label: 'A group' },
-  { key: 'people', label: 'People' },
+  { key: 'academies', label: 'Academies', more: true },
+  { key: 'group', label: 'A group', more: true },
+  { key: 'people', label: 'People', more: true },
 ];
 
 export const ROLE_CHOICES: { key: string; label: string }[] = [
@@ -68,13 +69,18 @@ export function audienceLabel(a: Audience, names: Record<string, string> = {}): 
   }
 }
 
-/** Screens tapping an announcement (or its splash page's button) can open; none opens the announcement itself. */
-export const DESTINATIONS: { path: string; label: string }[] = [
-  { path: '/calendar', label: 'Calendar' }, { path: '/royal-news', label: 'Newsletter' }, { path: '/news', label: 'News' },
-  { path: '/photos', label: 'Photos' }, { path: '/activities', label: 'Activities' }, { path: '/volunteer', label: 'Volunteer' },
-  { path: '/lunch', label: 'Lunch Visits' }, { path: '/connect', label: 'Boards' }, { path: '/forms', label: 'Forms' },
-  { path: '/carline', label: 'Car Line' }, { path: '/handbook', label: 'Handbook' }, { path: '/questions', label: 'Ask the School' },
-  { path: '/market', label: 'Marketplace' }, { path: '/feedback', label: 'Feedback' },
+/**
+ * Screens tapping an announcement (or its splash page's button) can open, with their icons (Ionicons names) for the
+ * composer's grid; none opens the announcement itself.
+ */
+export const DESTINATIONS: { path: string; label: string; icon: string }[] = [
+  { path: '/calendar', label: 'Calendar', icon: 'calendar' }, { path: '/royal-news', label: 'Newsletter', icon: 'newspaper' },
+  { path: '/news', label: 'News', icon: 'reader' }, { path: '/photos', label: 'Photos', icon: 'images' },
+  { path: '/activities', label: 'Activities', icon: 'basketball' }, { path: '/volunteer', label: 'Volunteer', icon: 'hand-left' },
+  { path: '/lunch', label: 'Lunch Visits', icon: 'restaurant' }, { path: '/connect', label: 'Boards', icon: 'pin' },
+  { path: '/forms', label: 'Folder', icon: 'folder-open' }, { path: '/carline', label: 'Car Line', icon: 'car' },
+  { path: '/handbook', label: 'Handbook', icon: 'book' }, { path: '/questions', label: 'Ask the School', icon: 'help-circle' },
+  { path: '/market', label: 'Marketplace', icon: 'pricetags' }, { path: '/feedback', label: 'Feedback', icon: 'chatbubble-ellipses' },
 ];
 
 /** The splash page templates: a background, its words' color and the button's. */
@@ -86,3 +92,40 @@ export const TEMPLATES = {
 } as const;
 export type Template = keyof typeof TEMPLATES;
 export const templateOf = (t: string | null) => TEMPLATES[(t && t in TEMPLATES ? t : 'navy') as Template];
+
+/**
+ * The history screen's quick starts: a title, message and (for some) a splash page and audience to edit. The parts in
+ * [brackets] are blanks: the composer won't send while any are left (`blanksLeft`).
+ */
+export type QuickStart = {
+  key: string; label: string; icon: string; title: string; body: string; audience?: Audience; link?: string;
+  splash?: { template: Template; headline: string; text: string; button: string };
+};
+export const QUICK_STARTS: QuickStart[] = [
+  { key: 'dismissal', label: 'Early dismissal', icon: 'time-outline', title: 'Early dismissal [day]',
+    body: 'School lets out at [time] on [day] for [reason]. The car line opens 15 minutes before.',
+    audience: { kind: 'roles', roles: ['parent', 'teacher', 'staff'] }, link: '/carline' },
+  { key: 'reminder', label: 'Reminder', icon: 'notifications-outline', title: 'Reminder: [what]', body: '[What to remember, and when.]' },
+  { key: 'event', label: 'Event', icon: 'calendar-outline', title: '[Event] on [day]', body: 'Join us [when] at [where]. [What to bring or know.]',
+    link: '/calendar', splash: { template: 'navy', headline: '[Event]', text: '[Day, time and place.]', button: 'See the calendar' } },
+  { key: 'celebration', label: 'Celebration', icon: 'sparkles-outline', title: '[Good news]', body: '[What we’re celebrating.]',
+    splash: { template: 'confetti', headline: 'Congratulations!', text: '[What we’re celebrating.]', button: '' } },
+];
+
+/** Whether any of these still has a [blank] from a quick start in it. */
+export const blanksLeft = (...texts: string[]) => texts.some((t) => /\[[^\]]*\]/.test(t));
+
+/** "Today", "Tomorrow" or "Tue, Nov 18": a school day (YYYY-MM-DD) next to today. */
+export function dayWord(day: string, today: string) {
+  const next = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  if (day === today) return 'Today';
+  if (day === next) return 'Tomorrow';
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+/** The composer's Send bar: "Notification and splash page to 412 people, now". `when` is null for now. */
+export function sendSummary(o: { push: boolean; splash: boolean; urgent: boolean; reach: number | null; when: string | null }) {
+  const what = [o.push && (o.urgent ? 'urgent notification' : 'notification'), o.splash && 'splash page'].filter(Boolean).join(' and ');
+  const who = o.reach == null ? '' : ` to ${o.reach} ${o.reach === 1 ? 'person' : 'people'}`;
+  return `${what ? what[0].toUpperCase() + what.slice(1) : 'Nothing yet'}${who}, ${o.when ?? 'now'}`;
+}

@@ -1,7 +1,7 @@
 /**
- * Who an announcement is for: everyone, roles, grades, academies, classes (teachers' boards), a group or picked people;
- * for grades, academies and classes, their parents and/or the students. `onNames` hands back the names of what's
- * picked, for the label the history shows.
+ * Who an announcement is for: everyone, roles, grades, academies, classes (teachers' boards), a group or picked people
+ * (the last three folded under More until opened); for grades, academies and classes, their parents and/or the
+ * students. `onNames` hands back the names of what's picked, for the label the history shows.
  */
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -35,6 +35,7 @@ export function AudiencePicker({ value, onChange, onNames }: { value: Audience; 
   const [people, setPeople] = useState<Person[]>([]);
   const [q, setQ] = useState('');
   const kind = value.kind;
+  const [more, setMore] = useState(() => !!KINDS.find((k) => k.key === kind)?.more);
 
   useEffect(() => {
     if (kind === 'academies' && !academies.length) listAcademies().then(setAcademies).catch(() => {});
@@ -66,7 +67,10 @@ export function AudiencePicker({ value, onChange, onNames }: { value: Audience; 
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {KINDS.map((k) => <Chip key={k.key} label={k.label} on={kind === k.key} onPress={() => { setQ(''); onChange(blankAudience(k.key)); }} />)}
+        {KINDS.filter((k) => !k.more || more || kind === k.key).map((k) => (
+          <Chip key={k.key} label={k.label} on={kind === k.key} onPress={() => { setQ(''); onChange(blankAudience(k.key)); }} />
+        ))}
+        {!more && <Chip label="More" on={false} onPress={() => setMore(true)} />}
       </View>
 
       {value.kind === 'everyone' && <P muted>Every approved account: parents, students, staff and family.</P>}
