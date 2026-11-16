@@ -213,7 +213,7 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   activity's coaches and directors, `checkout_list_for_event`) or a teacher's own list from the sections they lead
   (`checkout_list_save`); `app.manages_checkout` decides who runs one. Parents are notified of every check-in and
   release (`app.notify_parents`). Reasons are in both `src/checkin/labels.ts` and the database check.
-- **Excused Absence** (`absence_reports`; `app/forms/excused-absence.tsx`, Forms → Forms to Send to Office, listed in
+- **Excused Absence** (`absence_reports`; `app/forms/excused-absence.tsx`, Folder → Forms to Send to Office, listed in
   `src/schoolForms/office.ts`; Classes → Absences reported by parents; old `/absences` links redirect there): only a
   child's parents (`app.is_guardian_of`, never Family accounts) report absent (one or several days), arriving late or leaving
   early, with a reason (`absence_report`, today to 90 days ahead) or call it off (`absence_cancel`). The office
@@ -269,7 +269,10 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   **The Folder** (`src/schoolForms/Folder.tsx`) sits closed at the top of the Main Page for parents, and for staff with
   children here on the Standard view (`src/schoolForms/MainFolder.tsx`); tapping it blurs the page (Android dims it: a
   Modal can't blur what's behind it there), brings it up and swings it open, and a tap outside closes it. The Folder tile
-  is the senders' side, in Staff view only; `app/forms` keeps Done & removed and the Forms to Send to Office. The open
+  is the senders' side, in Staff view only (`src/schoolForms/StaffFolder.tsx`: tabs Forms, Bulletins and From parents,
+  `?show=forms|notes|parents`; past-due and closed forms behind `PastToggle`, `sentFormLists`; the last two tabs only for
+  people who lead a section). Absence reports stay in Classes, not here. On the Standard view `app/forms` keeps Done &
+  removed and the Forms to Send to Office. The open
   folder fills the screen's height; a × on its pocket's bottom left closes it, and a + on the bottom right offers a note
   to a teacher or an Excused Absence. Its papers
   are a stack: the newsletter's latest issue always first, then teachers' notes and class bulletins, then forms to sign.
@@ -277,15 +280,16 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`src/schoolForms/folderLists.ts`, `tests/folder.test.ts`). A parent removes a form (swipe it up, or Remove, after
   confirming) for themselves only (`form_removals`, `form_remove`; `my_forms` → `removedAt`) and can put it back; the
   school still sees whether it was signed.
-- **Class bulletins and teachers' notes** (`folder_notes`, `folder_note_sections`, `folder_note_readers`; Classes →
-  Bulletins & notes, `app/forms/notes.tsx`, `app/forms/write.tsx`, `app/forms/note/[id].tsx`): a section's lead teacher
+- **Class bulletins and teachers' notes** (`folder_notes`, `folder_note_sections`, `folder_note_readers`; the Folder's
+  Bulletins tab in Staff view, and *Bulletin* on a class card in Classes; `app/forms/write.tsx`, `app/forms/note/[id].tsx`;
+  old `/forms/notes` links redirect to the tab): a section's lead teacher
   (or `forms.send`) posts a bulletin to their classes (`folder_bulletin_send`), and a teacher of a student's sections writes
   a note to that student's parents (`folder_note_send`, `app.teaches`). Only those students' parents read them
   (`app.folder_note_parents`: guardians, never Family accounts; students never), in their Folder for two weeks
   (`my_folder_notes`); opening one marks it read (`folder_note_read`) and they remove it for themselves (`folder_note_remove`).
   The author sees how many parents opened each (`sent_folder_notes`) and deletes it (`folder_note_delete`).
   **Notes to teachers** (`parent_notes`; the open Class Folder's + button → Note to a teacher, `app/forms/to-teacher.tsx`;
-  teachers read them under Bulletins & notes → From parents, `app/forms/from-parent/[id].tsx`): a child's parent (never
+  teachers read them in the Folder's From parents tab, `app/forms/from-parent/[id].tsx`): a child's parent (never
   Family accounts) writes to one of the teachers of the child's sections (`parent_note_teachers`, `parent_note_send`,
   `app.teaches`); the teacher is told, and opening it shows the parent Seen (`parent_note_read`). Only that parent and
   that teacher read it (`parent_notes_list`). The teacher answers with a note into the parents' Folder (Reply).

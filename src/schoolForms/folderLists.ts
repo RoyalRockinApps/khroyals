@@ -2,10 +2,11 @@
  * The Folder's two lists: the forms still in it (not signed for every child, not expired, not removed), and the ones
  * out of it from the last 30 days, under Done & removed: signed, expired (past due or closed by the school) or removed,
  * newest first. A removed form that's still open can be put back. Teachers' notes and class bulletins stay in it for
- * two weeks from when they were sent, or until they're removed (`pastNotes`). No app imports, so tests run it.
+ * two weeks from when they were sent, or until they're removed (`pastNotes`). The senders' side splits the forms they
+ * sent the same way (`sentFormLists`). No app imports, so tests run it.
  */
 import type { FolderNote } from '../api/folderNotes';
-import type { MyForm } from '../api/types';
+import type { MyForm, SentForm } from '../api/types';
 import { schoolToday } from '../calendar/past';
 
 export const PAST_DAYS = 30;
@@ -51,4 +52,16 @@ export function pastNotes(notes: FolderNote[], today: string): { inFolder: Folde
   }).filter((x) => daysFrom(x.on, today) <= PAST_DAYS)
     .sort((a, b) => (a.on < b.on ? 1 : a.on > b.on ? -1 : b.note.sentAt.localeCompare(a.note.sentAt)));
   return { inFolder, past };
+}
+
+/**
+ * A sender's forms (the Folder's Forms tab, Staff view): the ones families can still sign, soonest due first, and the
+ * rest (closed, or past their due date, so nobody signs them anymore), last due first.
+ */
+export function sentFormLists(forms: SentForm[], today: string): { open: SentForm[]; past: SentForm[] } {
+  const newer = (a: SentForm, b: SentForm) => b.createdAt.localeCompare(a.createdAt);
+  return {
+    open: forms.filter((f) => !formExpired(f, today)).sort((a, b) => a.dueOn.localeCompare(b.dueOn) || newer(a, b)),
+    past: forms.filter((f) => formExpired(f, today)).sort((a, b) => b.dueOn.localeCompare(a.dueOn) || newer(a, b)),
+  };
 }

@@ -177,8 +177,9 @@ function Status({ status, onChange }: { status: FormStatus; onChange: () => void
       {group('Declined', declined, C.danger)}
       {group('Agreed', agreed, GREEN)}
       {open && !pastDue && waiting.length > 0 && <Button label="Remind the families still to sign" onPress={remind} />}
-      {pastDue && <P muted>{`It was due ${dueDay(status.dueOn)}, so families can't sign it anymore.`}</P>}
-      {open ? <Button kind="ghost" label="Close form" onPress={close} /> : <P muted>This form is closed.</P>}
+      {/* Past its due date nobody signs it anyway, so there's nothing left to close. Payments can still be recorded. */}
+      {open && !pastDue && <Button kind="ghost" label="Close form" onPress={close} />}
+      {(pastDue || !open) && <P muted>{pastDue ? `It was due ${dueDay(status.dueOn)}, so families can't sign it anymore.` : 'It was closed, so families can’t sign it anymore.'}</P>}
     </Card>
   );
 }

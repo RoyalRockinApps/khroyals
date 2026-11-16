@@ -383,8 +383,14 @@ confirming. Signed, expired and removed forms leave the folder and wait under *D
 removed* for 30 days (notes and bulletins after two weeks); a removed one still open can be
 put back. Removing only hides it for you: the school still sees whether a form is signed.
 
-**Class bulletins and notes** (Classes → Bulletins & notes, or *Bulletin* on a class; the
-Folder tile in Staff view). A teacher posts a bulletin (a title and what to say) to the
+**The Folder in Staff view** (the Folder tile) is the senders' side, in three tabs: *Forms*
+(+ New form; the ones families can still sign, soonest due first, with how many have signed,
+and the closed and past-due ones behind *Show past forms*), *Bulletins* (bulletins and notes
+sent, with how many parents read each) and *From parents*. Staff who don't lead a class see
+their forms alone. Absence reports are in Classes, with the roll.
+
+**Class bulletins and notes** (the Folder's Bulletins tab in Staff view, or *Bulletin* on a
+class in Classes). A teacher posts a bulletin (a title and what to say) to the
 classes they lead, or writes a note to one student's parents. Each lands in those parents'
 Folders and they're told; students and other families never see a note. The teacher sees
 how many parents have read each, and deletes it if needed. Notes parents write to them (the
@@ -622,7 +628,7 @@ and the reply (`feedback_triage`); and keeps **Workshops** (`feedback_workshops`
 with a date and what students will do, that group reports for students to learn on by fixing
 real bugs and building requested features. New reports notify the triage team.
 
-**Excused Absence** (Forms → Forms to Send to Office). A parent reports that their child is absent (one day or several),
+**Excused Absence** (Folder → Forms to Send to Office, or the open Folder's +). A parent reports that their child is absent (one day or several),
 arriving late or leaving early, with a reason (sick, appointment, family, travel, other) and a note.
 The office and the child's teachers are told right away and see it, a day at a time, in Classes →
 Absences reported by parents and on the class roll; the office marks each one seen, and the parents

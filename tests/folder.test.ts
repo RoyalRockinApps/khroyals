@@ -2,9 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { FolderNote } from '../src/api/folderNotes';
-import type { MyForm } from '../src/api/types';
+import type { MyForm, SentForm } from '../src/api/types';
 import { coverLine } from '../src/schoolForms/coverLine';
-import { pastForms, pastNotes, formExpired } from '../src/schoolForms/folderLists';
+import { pastForms, pastNotes, formExpired, sentFormLists } from '../src/schoolForms/folderLists';
 
 const today = '2026-11-11';
 const signed = (at: string) => ({ agreed: true, answers: {}, signature: 'Rosa Reyes', signedAt: at, signedBy: 'Rosa Reyes' });
@@ -72,4 +72,19 @@ test("a form expires the day after it's due, or when the school closes it; then 
   assert.equal(formExpired({ status: 'open', dueOn: '2026-11-13' }, '2026-11-13'), false, 'still due today');
   assert.equal(formExpired({ status: 'open', dueOn: '2026-11-12' }, '2026-11-13'), true);
   assert.equal(formExpired({ status: 'closed', dueOn: '2026-11-20' }, '2026-11-13'), true);
+});
+
+test("the senders' side lists forms families can still sign first, soonest due, and the closed and past-due ones apart", () => {
+  const sent = (id: string, dueOn: string, o: Partial<SentForm> = {}): SentForm => ({
+    ...form(id, { dueOn }), students: 20, agreed: 5, declined: 1, paid: 0, collectedCents: 0, ...o,
+  });
+  const { open, past } = sentFormLists([
+    sent('next week', '2026-11-18'),
+    sent('due today', '2026-11-11'),
+    sent('closed early', '2026-11-25', { status: 'closed' }),
+    sent('was due', '2026-11-10'),
+    sent('last month', '2026-10-20'),
+  ], today);
+  assert.deepEqual(open.map((f) => f.id), ['due today', 'next week']);
+  assert.deepEqual(past.map((f) => f.id), ['closed early', 'was due', 'last month']);
 });

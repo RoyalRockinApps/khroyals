@@ -2,44 +2,49 @@
  * The Folder screen. Parents' Folder itself is on top of the Main Page (src/schoolForms/MainFolder.tsx); here they find
  * what left it in the last 30 days under Done & removed (signed, expired and removed forms; notes and bulletins two
  * weeks old or removed; a removed one can be put back), and the Forms to Send to Office (Excused Absence). In the Main
- * Page's Staff view, faculty and staff see what parents sent the office (their students' absences, or everyone's for
- * the office), their class bulletins and notes to families (app/forms/notes.tsx), and the forms they've sent, with how
- * many have signed, and send new ones.
+ * Page's Staff view it's the senders' side (src/schoolForms/StaffFolder.tsx): the forms, bulletins and notes they send
+ * families, and the notes parents write back.
  */
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  errorText, isSchoolStaff, myFolderNotes, myForms, removeFolderNote, removeForm, sentForms, type FolderNote, type MyForm, type Person, type SentForm,
+  errorText, isSchoolStaff, myFolderNotes, myForms, removeFolderNote, removeForm, type FolderNote, type MyForm, type Person,
 } from '../../src/api/connect';
 import { PAST_STYLE } from '../../src/calendar/PastToggle';
 import { schoolToday } from '../../src/calendar/past';
 import { pastForms, pastNotes, type PastForm, type PastNote } from '../../src/schoolForms/folderLists';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
 import { OFFICE_FORMS, type OfficeForm } from '../../src/schoolForms/office';
-import { GREEN, Progress, dueText } from '../../src/schoolForms/parts';
+import { GREEN } from '../../src/schoolForms/parts';
+import { StaffFolder } from '../../src/schoolForms/StaffFolder';
 import { useStaffView } from '../../src/staffView';
 import { SectionTitle } from '../../src/volunteer/parts';
 import { Button, C, Card, Loading, P, s } from '../../src/ui';
 
 export default function Forms() {
-  return <FormsGate title="Folder">{(me) => <List me={me} />}</FormsGate>;
+  return <FormsGate title="Folder">{(me) => <Folder me={me} />}</FormsGate>;
 }
 
-function List({ me }: { me: Person }) {
+function Folder({ me }: { me: Person }) {
   const staffView = useStaffView(me);
-  const [data, setData] = useState<{ mine: MyForm[]; notes: FolderNote[]; sent: SentForm[] } | null>(null);
+  return staffView ? <StaffFolder me={me} /> : <List me={me} />;
+}
+
+/** The parents' side: Done & removed, and the Forms to Send to Office. */
+function List({ me }: { me: Person }) {
+  const [data, setData] = useState<{ mine: MyForm[]; notes: FolderNote[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [mine, notes, sent] = await Promise.all([staffView ? [] : myForms(), staffView ? [] : myFolderNotes(), staffView ? sentForms() : []]);
-      setData({ mine, notes, sent }); setError(null);
+      const [mine, notes] = await Promise.all([myForms(), myFolderNotes()]);
+      setData({ mine, notes }); setError(null);
     } catch (e) {
       setError(errorText(e));
     }
-  }, [staffView]);
+  }, []);
   const take = async (f: MyForm, removed: boolean) => {
     // Out of view straight away; back if the school's server says no.
     setData((d) => d && { ...d, mine: d.mine.map((x) => (x.id === f.id ? { ...x, removedAt: removed ? new Date().toISOString() : null } : x)) });
@@ -55,34 +60,6 @@ function List({ me }: { me: Person }) {
 
   if (error && !data) return <View style={[s.screen, s.pad]}><Card><P muted>{error}</P><Button label="Try again" onPress={load} /></Card></View>;
   if (!data) return <Loading />;
-
-  if (staffView) {
-    return (
-      <ScrollView style={s.screen} contentContainerStyle={s.pad}>
-        <SectionTitle icon="mail-outline" title="Sent to the office" />
-        {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.staff} />)}
-        <SectionTitle icon="megaphone-outline" title="Bulletins & notes" />
-        <LinkRow icon="megaphone-outline" title="Class bulletins and notes to families" href="/forms/notes"
-          sub="Post to your classes or write to a student’s parents; see who has read them" />
-        <SectionTitle icon="document-text-outline" title="Forms you send" />
-        <Button label="+ New form" onPress={() => router.push('/forms/new')} />
-        {data.sent.length === 0 && <Card><P muted>Forms you send to a class, an activity or the school show up here, with who has signed.</P></Card>}
-        {data.sent.map((f) => {
-          const signed = f.agreed + f.declined;
-          return (
-            <Card key={f.id} onPress={() => router.push(`/forms/${f.id}`)} style={f.status === 'closed' ? { gap: 4, ...PAST_STYLE } : { gap: 4 }}>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{f.title}</Text>
-              <Text style={{ color: C.muted }}>{[f.sentTo, dueText(f)].filter(Boolean).join(' · ')}</Text>
-              <Progress done={signed} total={f.students} />
-              <Text style={{ color: C.ink, fontWeight: '600' }}>
-                {signed} of {f.students} signed{f.declined ? ` · ${f.declined} declined` : ''}{f.feeCents ? ` · ${f.paid} paid` : ''}
-              </Text>
-            </Card>
-          );
-        })}
-      </ScrollView>
-    );
-  }
 
   const today = schoolToday();
   const forms = pastForms(data.mine, today);
@@ -110,26 +87,9 @@ function List({ me }: { me: Person }) {
         ? <PastRow key={`f${f.form.id}`} x={f} onPutBack={() => take(f.form, false)} />
         : n && <PastNoteRow key={`n${n.note.id}`} x={n} onPutBack={() => putBack(n.note)} />))}
       <SectionTitle icon="mail-outline" title="Forms to Send to Office" />
-      {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} sub={f.parents} />)}
+      {OFFICE_FORMS.map((f) => <OfficeRow key={f.key} f={f} />)}
       {isSchoolStaff(me) && <P muted>To send a form, a bulletin or a note, switch the Main Page to Staff.</P>}
     </ScrollView>
-  );
-}
-
-/** A row that opens another screen. */
-function LinkRow({ icon, title, sub, href }: { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; sub: string; href: Href }) {
-  return (
-    <Pressable onPress={() => router.push(href)} accessibilityRole="button"
-      style={({ pressed }) => [s.card, s.row, { gap: 12 }, pressed && { opacity: 0.85 }]}>
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.primary + '14', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={22} color={C.primary} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{title}</Text>
-        <Text style={{ color: C.muted }}>{sub}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={C.muted} />
-    </Pressable>
   );
 }
 
@@ -154,7 +114,7 @@ function PastNoteRow({ x, onPutBack }: { x: PastNote; onPutBack: () => void }) {
 }
 
 /** A form families send the office (Excused Absence), which opens its own screen. */
-function OfficeRow({ f, sub }: { f: OfficeForm; sub: string }) {
+function OfficeRow({ f }: { f: OfficeForm }) {
   return (
     <Pressable onPress={() => router.push(f.href)} accessibilityRole="button"
       style={({ pressed }) => [s.card, s.row, { gap: 12 }, pressed && { opacity: 0.85 }]}>
@@ -163,7 +123,7 @@ function OfficeRow({ f, sub }: { f: OfficeForm; sub: string }) {
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{f.title}</Text>
-        <Text style={{ color: C.muted }}>{sub}</Text>
+        <Text style={{ color: C.muted }}>{f.parents}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={C.muted} />
     </Pressable>

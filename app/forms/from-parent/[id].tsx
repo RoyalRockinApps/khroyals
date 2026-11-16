@@ -1,5 +1,5 @@
 /**
- * A note from a parent, for the teacher it's to (from its notification, or Bulletins & notes → From parents). Opening
+ * A note from a parent, for the teacher it's to (from its notification, or the Folder's From parents tab, Staff view). Opening
  * it marks it seen for the parent. Reply writes a note back into the parents' Class Folder (app/forms/write.tsx).
  */
 import { useCallback, useState } from 'react';

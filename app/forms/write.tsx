@@ -1,7 +1,7 @@
 /**
  * Write a class bulletin (to one or more sections the teacher leads: a title and what to say) or a note to one
  * student's parents (pick the class, then the student; the title is optional). Opened with `kind`, and a `section`
- * or `student` already picked when it comes from Classes. Sending puts it in those parents' Folders and tells them.
+ * or `student` already picked when it comes from Classes or a parent's note. Sending puts it in those parents' Folders and tells them.
  */
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
@@ -64,7 +64,7 @@ function Writer({ me, params }: { me: Person; params: { kind?: string; section?:
       if (kind === 'bulletin') await sendBulletin(picked, title, body);
       else await sendFolderNote(student!, title, body);
       Alert.alert('Sent', kind === 'bulletin' ? 'It’s in every family’s Folder for those classes.' : 'It’s in their parents’ Folder.');
-      if (router.canGoBack()) router.back(); else router.replace('/forms/notes');
+      if (router.canGoBack()) router.back(); else router.replace({ pathname: '/forms', params: { show: 'notes' } });
     } catch (e) {
       Alert.alert('Not sent', errorText(e));
     } finally {

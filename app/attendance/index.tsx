@@ -1,7 +1,8 @@
 /**
  * Classes (Apps → Classes, the screen at /attendance), for teachers and staff: the class sections they
  * lead, each with today's roll at a glance (tap it to take roll and see the office's late arrivals and
- * early check-outs) and its assignments; messages from their students (Ask the Teacher); substitutes;
+ * early check-outs), its assignments and a bulletin to its families (the rest of what goes to families is in
+ * the Folder, Staff view); messages from their students (Ask the Teacher); substitutes;
  * and check-out lists for field trips and Activities events. Students keep Ask the Teacher and
  * Assignments as their own apps; this is the teacher side of both. The office (checkin.manage) also
  * gets every class's roll, Check in & out, where it records late arrivals and early pickups, and On-Site Attendance
@@ -111,10 +112,6 @@ export default function Classes() {
       {data.messages && (
         <Row icon="chatbubbles-outline" title="Messages" href="/teachers" badge={unread}
           sub={classes.length ? 'Ask the Teacher: write to your students and answer theirs' : 'Every Ask the Teacher conversation'} />
-      )}
-      {classes.length > 0 && (
-        <Row icon="megaphone-outline" title="Bulletins & notes to families" href="/forms/notes"
-          sub="Class bulletins and notes to a student’s parents, in their Folder" />
       )}
       {data.subs && <Row icon="people" title="Substitutes" sub="Schedule a sub, with your sub plans" href="/subs" />}
 
