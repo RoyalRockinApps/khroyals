@@ -4227,8 +4227,10 @@ test("volunteer coaches: an activity's coaches post opportunities and start even
 });
 
 test("staff today: the Planner's count of what's waiting on a teacher or the office", async () => {
-  // Next Monday, so the day's roll and reports are the test's own.
-  const monday = `(app.school_today() + (8 - extract(isodow from app.school_today()))::int)`;
+  // The next Monday with school (not in a break), so the day's roll and reports are the test's own.
+  const monday = `(select d::date from generate_series(app.school_today() + (8 - extract(isodow from app.school_today()))::int,
+    app.school_today() + 120, interval '7 days') d where not exists (select 1 from events where group_id is null
+    and category in ('No School', 'Teacher In-Service', 'E-Learning') and d::date between starts_on and coalesce(ends_on, starts_on)) limit 1)`;
   const today = async (who: string, mfa = false, day = monday) => { await as(who, mfa); return (await one(`select staff_today(${day}) as t`)).t; };
 
   // Parents and students get nothing; a teacher gets no admin counts.
@@ -4236,6 +4238,9 @@ test("staff today: the Planner's count of what's waiting on a teacher or the off
   assert.deepEqual(await today('u-s01'), {});
   const before = await today('u-eng');
   assert.equal(before.roll, 1, "English 10's roll isn't taken");
+  // Unmarked volunteer days are counted back from the day asked about, so those are asked about today.
+  const toMark = async () => (await today('u-eng', false, 'app.school_today()')).volunteerToMark as number;
+  const toMarkBefore = await toMark();
   for (const k of ['absencesToSee', 'questionsToRoute', 'feedbackNew', 'accountsWaiting', 'familyRequests']) assert.equal(before[k], undefined, k);
 
   // Ava's parent reports her out that day, a question is assigned to her teacher, Rosa is coming to lunch, and a
@@ -4255,7 +4260,7 @@ test("staff today: the Planner's count of what's waiting on a teacher or the off
   assert.equal(after.absencesToday, (before.absencesToday ?? 0) + 1);
   assert.equal(after.questionsAssigned, before.questionsAssigned + 1);
   assert.equal(after.lunchVisitors, before.lunchVisitors + 1);
-  assert.equal(after.volunteerToMark, before.volunteerToMark + 1);
+  assert.equal(await toMark(), toMarkBefore + 1);
   // A teacher who doesn't teach Ava sees none of it.
   const sci = await today('u-sci');
   assert.equal(sci.absencesToday, undefined, 'leads no class');
@@ -4269,7 +4274,7 @@ test("staff today: the Planner's count of what's waiting on a teacher or the off
                          values (${id('u-sci')}, ${monday}, ${monday}, '08:00', '15:00') returning id`);
   await db.exec(`insert into sub_assignment_sections values ('${sub.id}', 'eng10-p3')`);
   const covered = await today('u-eng');
-  assert.equal(covered.volunteerToMark, before.volunteerToMark);
+  assert.equal(await toMark(), toMarkBefore);
   assert.equal(covered.roll, 0, 'the sub takes it');
   assert.equal(covered.subCovering, 1);
   // No roll on a weekend.
