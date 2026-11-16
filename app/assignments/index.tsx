@@ -1,8 +1,9 @@
 /**
  * Assignments. A student sees their classes' assignments (from the teachers) and their
  * own, sorted overdue / today / upcoming / no date, and checks them off (only they see
- * that); done ones wait behind "Show done". A teacher sees what they've assigned to
- * their classes, with past ones behind "Show past", and assigns more; from a class's card in
+ * that); done ones wait behind "Show done". Tapping a class assignment opens it to turn in
+ * work (app/assignments/[id].tsx). A teacher sees what they've assigned to
+ * their classes (with how many turned in work), past ones behind "Show past", and assigns more; from a class's card in
  * Classes (`?section=`) it shows just that class, with a way to see them all.
  */
 import { useCallback, useState } from 'react';
@@ -69,7 +70,7 @@ export default function Assignments() {
         {parts.map(([title, items, color]) => items.length > 0 && (
           <View key={title} style={{ gap: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color }}>{title.toUpperCase()} ({items.length})</Text>
-            {items.map((a) => <Row key={a.id} a={a} mine={a.ownerId === me.id} onToggle={() => toggle(a)} onRemove={() => remove(a)} />)}
+            {items.map((a) => <Row key={a.id} a={a} mine={a.ownerId === me.id} onToggle={() => toggle(a)} onRemove={() => remove(a)} onOpen={() => router.push(`/assignments/${a.id}`)} />)}
           </View>
         ))}
         {g.done.length > 0 && (
@@ -79,8 +80,8 @@ export default function Assignments() {
             <Text style={{ color: C.muted, fontWeight: '700' }}>{showDone.shown ? 'Hide done' : `Show ${g.done.length} done`}</Text>
           </Pressable>
         )}
-        {showDone.shown && g.done.map((a) => <Row key={a.id} a={a} mine={a.ownerId === me.id} onToggle={() => toggle(a)} onRemove={() => remove(a)} />)}
-        <P muted>Checking an assignment off is just for you; your teachers don't see it.</P>
+        {showDone.shown && g.done.map((a) => <Row key={a.id} a={a} mine={a.ownerId === me.id} onToggle={() => toggle(a)} onRemove={() => remove(a)} onOpen={() => router.push(`/assignments/${a.id}`)} />)}
+        <P muted>Checking an assignment off is just for you; your teachers don't see it. They see the work you turn in.</P>
       </ScrollView>
     );
   }
@@ -122,6 +123,10 @@ export default function Assignments() {
                   </View>
                   <Text style={{ color: C.muted, fontWeight: '600' }}>{dueLabel(a.dueOn).replace(/^Overdue · /, 'Was due ')}</Text>
                   {!!a.details && <P>{a.details}</P>}
+                  <Text onPress={() => router.push(`/assignments/${a.id}`)} accessibilityRole="button"
+                    style={{ color: C.primary, fontWeight: '700', paddingTop: 2 }}>
+                    {a.turnedIn} of {sec.students} turned in work ›
+                  </Text>
                 </Card>
               ))}
           </View>
@@ -133,8 +138,11 @@ export default function Assignments() {
   );
 }
 
-/** A student's assignment: a checkbox, what's due, its class (or "My own"), and the details. */
-function Row({ a, mine, onToggle, onRemove }: { a: Assignment; mine: boolean; onToggle: () => void; onRemove: () => void }) {
+/**
+ * A student's assignment: a checkbox, what's due, its class (or "My own"), the details, and for a class assignment
+ * what they turned in (tap to open it and turn in work).
+ */
+function Row({ a, mine, onToggle, onRemove, onOpen }: { a: Assignment; mine: boolean; onToggle: () => void; onRemove: () => void; onOpen: () => void }) {
   const overdue = !a.done && !!a.dueOn && isPastDay(a.dueOn);
   return (
     <View style={[s.card, s.row, { alignItems: 'flex-start', gap: 12 }, a.done && PAST_STYLE]}>
@@ -142,12 +150,19 @@ function Row({ a, mine, onToggle, onRemove }: { a: Assignment; mine: boolean; on
         accessibilityLabel={`${a.title}, ${a.done ? 'done' : 'not done'}`}>
         <Ionicons name={a.done ? 'checkmark-circle' : 'ellipse-outline'} size={30} color={a.done ? GREEN : C.primary} />
       </Pressable>
-      <View style={{ flex: 1, gap: 3 }}>
+      <Pressable onPress={a.rosterId ? onOpen : undefined} disabled={!a.rosterId} accessibilityRole={a.rosterId ? 'button' : undefined}
+        accessibilityLabel={a.rosterId ? `${a.title}: open to turn in work` : undefined}
+        style={({ pressed }) => [{ flex: 1, gap: 3 }, pressed && { opacity: 0.7 }]}>
         <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, textDecorationLine: a.done ? 'line-through' : 'none' }}>{a.title}</Text>
         <Text style={{ color: overdue ? C.danger : C.muted, fontWeight: '700' }}>{dueLabel(a.dueOn)}</Text>
         <View style={[s.row, { gap: 6 }]}><Chip label={a.className ?? 'My own'} color={a.className ? C.primary : C.muted} /></View>
         {!!a.details && <P muted>{a.details}</P>}
-      </View>
+        {!!a.rosterId && (
+          <Text style={{ color: a.files.length ? GREEN : C.primary, fontWeight: '700', paddingTop: 2 }}>
+            {a.files.length ? `📎 ${a.files.length} ${a.files.length === 1 ? 'file' : 'files'} turned in ›` : 'Turn in work ›'}
+          </Text>
+        )}
+      </Pressable>
       {mine && (
         <Pressable onPress={onRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${a.title}`}>
           <Ionicons name="trash-outline" size={18} color={C.muted} />

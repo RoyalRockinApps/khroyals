@@ -16,7 +16,7 @@ const game = (id: string, seasonId: string, startsAt: string, title = 'Game') =>
   id, seasonId, kind: 'game' as const, title, startsAt, endsAt: null, location: 'Gym', home: true, notes: '', cancelled: false,
 });
 const asg = (id: string, title: string, dueOn: string | null, done = false) => ({
-  id, rosterId: 'eng', className: 'English 10', ownerId: 't', title, details: '', dueOn, createdAt: '', done,
+  id, rosterId: 'eng', className: 'English 10', ownerId: 't', title, details: '', dueOn, createdAt: '', done, files: [], turnedIn: 0,
 });
 
 const PARENT: InfoData = {

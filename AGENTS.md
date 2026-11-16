@@ -170,6 +170,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   accounts see none. Both tiles are students' only: teachers reach the teacher side from **Classes**
   (a class card's *Assignments*, `?section=`, and *Messages*). Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them).
+  **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
+  `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
+  assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both
+  `src/assignments/fileTypes.ts` and the bucket, `tests/assignment-files.test.ts`) and removes their own
+  (`assignment_file_remove`). Only the student and the class's teachers (`app.grades_assignment`: whoever assigned it and
+  the section's lead) read them, the table and the files; never parents, Family accounts, other students or the office.
+  Teachers see every student and their files in `assignment_work`, and **Download all** (`src/assignments/downloadAll.ts`,
+  names in `src/assignments/zipNames.ts`) zips them on the device (fflate, stored as is; a folder per student, up to
+  `ZIP_MAX_MB`) from ten-minute signed links: the web downloads it, a phone opens the Share sheet.
 - **Study** (`study_notes`, `study_decks`, `study_cards`; the Study app, `app/study`, a `studentApp` tile): a student's own
   notes and flash cards. Only students write (`app.require_student`, through the `study_*` functions) and only the
   student reads them (RLS `owner_id = auth.uid()`): never their parents, teachers or the office, so don't add a way in

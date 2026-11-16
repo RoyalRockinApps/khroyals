@@ -507,6 +507,17 @@ Drove, Bus or Other, and parents are told. **Extended care** (Classes → Extend
 office sets which students stay on which days and who its staff are (the gear); its staff
 open today's check-out list and release each child only to someone on their pickup list.
 
+**Assignments** (Apps → Assignments for students; a class's *Assignments* in Classes for teachers).
+Students see their classes' assignments and their own, and check them off for themselves. Tapping a
+class assignment opens it to **turn in work**: a PDF, Word, PowerPoint, Excel or text file from the
+phone, or a photo of the work (camera or library), up to 20 MB each and 10 files an assignment; they
+open them again with a tap and remove their own. Only the student and the class's teachers (whoever
+assigned it and the class's lead teacher) see what was turned in, never parents or other students.
+The teacher sees *3 of 25 turned in work* on each assignment, and opening it lists every student
+with their files (marked *Late* after the due date) and who hasn't turned anything in yet.
+*Download all* saves every file turned in as one ZIP, with a folder per student (up to 250 MB): on
+the web it downloads, on a phone the Share sheet opens to save it to Files or send it on.
+
 **Study** (Apps → Study; students only, and private to the student: not their parents, teachers or the office).
 Notes: a title, the class it's for (their class sections' names, "English 10", or any other) and the text, saved a
 moment after typing stops; search finds every word in the title, class or text, and chips filter by class. Flash

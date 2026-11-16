@@ -452,7 +452,15 @@ export type TeacherThread = {
 export type Assignment = {
   id: string; rosterId: string | null; className: string | null; ownerId: string; title: string; details: string;
   dueOn: string | null; createdAt: string; done: boolean;
+  /** For a student: the files they turned in for it. */
+  files: AssignmentFile[];
+  /** For its teacher: how many students have turned in a file. */
+  turnedIn: number;
 };
+/** A file a student turned in for a class assignment ('assignment-files' bucket). */
+export type AssignmentFile = { id: string; assignmentId: string; studentId: string; name: string; mimeType: string; size: number; path: string; at: string };
+/** For a class's teacher: one student in it and what they turned in for an assignment. */
+export type StudentWork = { studentId: string; name: string; files: AssignmentFile[] };
 
 /** For a parent: one of their child's class assignments (never the child's own entries or check-offs). */
 export type ChildAssignment = { id: string; studentId: string; rosterId: string; className: string; title: string; details: string; dueOn: string };

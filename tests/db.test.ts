@@ -4831,6 +4831,88 @@ test("doctor's notes: a parent attaches the official excuse to an absence; only 
   await db.exec(`delete from absence_reports; delete from storage.objects where bucket_id = 'absence-notes'`);
 });
 
+test("assignment files: students turn in work for a class assignment; only they and the class's teachers open it", async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');
+  const asId = async (u: string) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${u}', false),
+      set_config('request.jwt.claims', json_build_object('sub', '${u}', 'aal', 'aal1')::text, false); set role authenticated;`);
+  };
+  // A student who isn't in English 10 – Period 3, and one who is.
+  const other = (await one(`select p.id from profiles p where p.school_role = 'student' and not p.managed
+    and not exists (select 1 from roster_members where roster_id = 'eng10-p3' and profile_id = p.id) limit 1`)).id as string;
+  const classmate = (await one(`select m.profile_id as id from roster_members m join profiles p on p.id = m.profile_id
+    where m.roster_id = 'eng10-p3' and p.school_role = 'student' and m.profile_id <> '${ava}' limit 1`)).id as string;
+  const put = (who: string, path: string) => `insert into storage.objects (bucket_id, name, owner) values ('assignment-files', '${path}', '${who}')`;
+  const add = (a: string, path: string, name = 'Essay.docx') =>
+    `select * from assignment_file_add('${a}', '${path}', '${name}', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 52000)`;
+  const files = async () => (await rows(`select name from storage.objects where bucket_id = 'assignment-files'`)).length;
+
+  await as('u-eng');
+  const essay = (await one(`select * from assignment_add('Persuasive essay', 'Two pages.', app.school_today() + 3, 'eng10-p3')`)).id;
+  await as('u-s01');
+  const own = (await one(`select * from assignment_add('Read chapter 4', '', app.school_today() + 1)`)).id;
+
+  // Ava uploads into her own folder only, as a student, then turns it in for her class's assignment.
+  const path = `${ava}/${essay}/a1.docx`;
+  await rejects(add(essay, path), /Upload the file first/);
+  await rejects(put(ava, `${classmate}/${essay}/a1.docx`), /row-level security/);
+  await db.exec(put(ava, path));
+  await rejects(add(essay, `${ava}/${own}/a1.docx`), /Upload the file first/);
+  await db.exec(put(ava, `${ava}/${own}/a2.docx`));
+  await rejects(add(own, `${ava}/${own}/a2.docx`), /your classes' assignments/);
+  const turned = await one(add(essay, path, '  My essay.docx '));
+  assert.deepEqual([turned.name, turned.student_id, turned.size_bytes], ['My essay.docx', ava, 52000]);
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 1, 'she reads her own');
+  assert.equal(await files(), 2);
+
+  // Parents, the teacher's colleagues and students outside the class can't upload or turn in; nobody else reads it.
+  await as('u-p01');
+  await rejects(put(await uid('u-p01'), `${await uid('u-p01')}/${essay}/x.pdf`), /row-level security/);
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 0, "Ava's mother doesn't see her work");
+  assert.equal(await files(), 0);
+  await as('u-sci');
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 0);
+  assert.equal((await one(`select assignment_work('${essay}') as w`)).w, null);
+  await asSuper();
+  await db.exec(put(other, `${other}/${essay}/o.pdf`));
+  await asId(other);
+  await rejects(add(essay, `${other}/${essay}/o.pdf`), /your classes' assignments/);
+  await asId(classmate);
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 0, 'classmates never see it');
+  assert.equal(await files(), 0);
+
+  // Jennifer (who assigned it, and leads the class) sees every student in it and opens what Ava turned in.
+  await as('u-eng');
+  const work = (await one(`select assignment_work('${essay}') as w`)).w as any[];
+  const avaWork = work.find((w) => w.studentId === ava);
+  assert.deepEqual(avaWork.files.map((f: any) => [f.name, f.path]), [['My essay.docx', path]]);
+  assert.ok(work.length >= 5 && work.filter((w) => w.files.length === 0).length === work.length - 1, 'the rest not yet');
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 1);
+  assert.deepEqual((await rows(`select name from storage.objects where bucket_id = 'assignment-files'`)).map((o) => o.name), [path], 'only turned-in files');
+  await rejects(`select assignment_file_remove('${turned.id}')`, /Only the student/);
+
+  // At most 10 files each; Ava takes one back and gets its path to remove the upload.
+  await as('u-s01');
+  for (let k = 2; k <= 10; k++) {
+    await db.exec(put(ava, `${ava}/${essay}/f${k}.pdf`));
+    await one(add(essay, `${ava}/${essay}/f${k}.pdf`, `Page ${k}.pdf`));
+  }
+  await db.exec(put(ava, `${ava}/${essay}/f11.pdf`));
+  await rejects(add(essay, `${ava}/${essay}/f11.pdf`), /up to 10 files/);
+  assert.equal((await one(`select assignment_file_remove('${turned.id}') as p`)).p, path);
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 9);
+
+  // The files go with the assignment.
+  await as('u-eng');
+  await one(`select assignment_delete('${essay}')`);
+  await asSuper();
+  assert.equal((await rows(`select 1 from assignment_files`)).length, 0);
+  assert.equal(Number((await one(`select file_size_limit from storage.buckets where id = 'assignment-files'`)).file_size_limit), 20971520);
+  await db.exec(`delete from assignments where id = '${own}'; delete from storage.objects where bucket_id = 'assignment-files'`);
+});
+
 test("notes to teachers: a parent writes to one of their child's teachers, who reads it; nobody else sees it", async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const [ava, eng, sci] = [await uid('u-s01'), await uid('u-eng'), await uid('u-sci')];

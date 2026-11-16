@@ -85,6 +85,54 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_files: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          path: string
+          size_bytes: number
+          student_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          mime_type: string
+          name: string
+          path: string
+          size_bytes: number
+          student_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string
+          name?: string
+          path?: string
+          size_bytes?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_files_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_files_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_done: {
         Row: {
           assignment_id: string
@@ -3511,6 +3559,21 @@ export type Database = {
         Returns: undefined
       }
       assignment_delete: { Args: { p_assignment: string }; Returns: undefined }
+      assignment_file_add: {
+        Args: { p_assignment: string; p_mime: string; p_name: string; p_path: string; p_size: number }
+        Returns: {
+          assignment_id: string
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          path: string
+          size_bytes: number
+          student_id: string
+        }
+      }
+      assignment_file_remove: { Args: { p_id: string }; Returns: string }
+      assignment_work: { Args: { p_assignment: string }; Returns: Json }
       attendance_overview: { Args: { p_day?: string }; Returns: Json }
       calendar_feed_token: { Args: { p_new?: boolean }; Returns: string }
       cancel_family_request: { Args: { p_request: string }; Returns: undefined }
