@@ -64,7 +64,10 @@ const ALL_APPS: App[] = [
 /** The Handbook only for a school whose handbook is in the app. */
 const APPS = ALL_APPS.filter((a) => a.href !== '/handbook' || PAGES.length > 0);
 
-/** The signed-in person (which apps they see depends on their role). */
+/**
+ * The signed-in person (which apps they see depends on their role). Coming back to the page picks up a changed profile
+ * but never forgets who's signed in while it's loading; signing out reaches it through onAuthChange.
+ */
 function usePerson() {
   const [person, setPerson] = useState<Person | null>(() => me());
   useEffect(() => {
@@ -72,7 +75,7 @@ function usePerson() {
     check();
     return onAuthChange(check);
   }, []);
-  useFocusEffect(useCallback(() => { setPerson(me()); }, []));
+  useFocusEffect(useCallback(() => { setPerson((was) => me() ?? was); }, []));
   return person;
 }
 
@@ -112,7 +115,8 @@ export default function Apps() {
   const [staffSetting, setStaffSetting] = useStaffViewSetting();
   const staffView = staff && staffSetting;
   const student = !!person && !person.pending && person.schoolRole === 'student';
-  const apps = visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
+  // Until we know who's signed in (the app is still loading their profile), no tiles: never someone else's set.
+  const apps = live && !person ? [] : visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
   // Three tiles across on phones, up to five on iPads and tablets.
   const columns = Math.max(3, Math.min(5, Math.floor(useContentWidth() / 140)));
   return (

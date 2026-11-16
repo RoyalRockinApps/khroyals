@@ -17,14 +17,19 @@ function clearSession() {
   profiles.clear(); directory.clear(); clearSignedUrls(); current = null;
 }
 
-/** Signed-in person (null = signed out). Loads the directory for author names. */
+/**
+ * Signed-in person (null = signed out). Loads the directory for author names. `refresh` loads it again (after a profile
+ * change, or when the app comes back to the front) but keeps the person and directory there until the new ones arrive,
+ * so screens never see nobody signed in meanwhile (the Main Page drew the parents' tiles for a student).
+ */
 export async function session(opts: { refresh?: boolean } = {}): Promise<Person | null> {
   if (!live) return mock.me();
   const { data, error } = await sb().auth.getSession();
   if (error) throw error;
   const uid = data.session?.user.id;
   if (!uid) { accountId = null; clearSession(); return null; }
-  if (accountId !== uid || opts.refresh) { clearSession(); accountId = uid; }
+  if (accountId !== uid) { clearSession(); accountId = uid; }
+  else if (opts.refresh) { profiles.clear(); clearSignedUrls(); }
   const people = await profiles.get(uid, async () => {
     const rows = [];
     for (let offset = 0; ; offset += 500) {
