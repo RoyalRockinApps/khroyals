@@ -325,7 +325,8 @@ day and time (Central; `app.send_due_announcements` every minute). Tapping it op
 the newsletter, Volunteer…) or the announcement itself (`app/announcement/[id]`). An **urgent** one reaches phones in
 quiet hours or with school notifications off; otherwise announcements follow the person's school notifications setting
 and quiet hours. A **splash page** is a full-screen page people see once when they open the app (or come back to it)
-between two days, then close (✕ or Continue) to carry on: an uploaded graphic (a tall one, made in Canva…) or a template
+between two days, then close (✕ or Continue) to carry on: an uploaded graphic (a tall picture made in Canva…, an
+animated GIF, or a short .mp4 video that plays silently on a loop with a sound button; up to 25 MB) or a template
 (navy, gold, red or confetti, with an optional photo, a headline and words), with an optional button to its screen. It's
 remembered on every device once closed, shows one at a time, and never over a critical alert (`src/announcements/
 SplashGate.tsx`). The composer shows *What they'll see* on top as you type (the notification as it looks on a phone, and

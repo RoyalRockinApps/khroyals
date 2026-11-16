@@ -458,7 +458,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   notifications carry `data.announcementId` (so `app.wants_push` treats them as school announcements: urgent ones always
   push). **Splash pages** (`my_splash`, `splash_mark`; `src/announcements/SplashGate.tsx`, mounted in `app/_layout.tsx`
   before `AlertTakeover`) show once per person until closed, one at a time, only to approved accounts, never on the car
-  line's big screen or over a critical alert. Graphics are in the private `announcements` bucket, read by the people
+  line's big screen or over a critical alert. Graphics (a JPEG, an animated GIF or an .mp4 video, told apart by the file's
+  extension, `splashMediaOf`) are in the private `announcements` bucket, read by the people
   it went to. Results are counts only, never names. Don't use a splash page for safety or consent messages (alerts,
   pickup, forms keep their own screens).
 - **New tables need explicit grants.** Supabase no longer auto-grants new `public`

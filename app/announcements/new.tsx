@@ -3,7 +3,7 @@
  * the notification as it looks on a phone and the splash page as a little phone (tap it for the full-screen preview),
  * changing as they type. Below, numbered steps: the message; where it shows (a push and bell notification, a splash page
  * when people open the app, or both, and Urgent); the splash page (a template with a headline, words and an optional
- * photo, or an uploaded graphic, with a button and the days it shows); who it's for, with how many people that reaches;
+ * photo, or an uploaded graphic (a picture, an animated GIF or an .mp4 video, src/announcements/media.ts), with a button and the days it shows); who it's for, with how many people that reaches;
  * which screen tapping it opens (a sheet of icons); and when (now, or a day and time). The Send bar stays at the bottom
  * and says what goes to how many and when, or what's still missing. `?start=` fills it in from one of the history's
  * quick starts (src/announcements/kinds.ts); their [blanks] have to be filled before it sends.
@@ -13,11 +13,12 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Sw
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { announcementReach, live, sendAnnouncement, uploadAnnouncementPicture, type Audience } from '../../src/api/connect';
+import { announcementReach, live, sendAnnouncement, uploadAnnouncementMedia, uploadAnnouncementPicture, type Audience } from '../../src/api/connect';
+import { pickSplashMedia, type SplashUpload } from '../../src/announcements/media';
 import { AudiencePicker, Chip } from '../../src/announcements/AudiencePicker';
 import { DestinationSheet } from '../../src/announcements/DestinationSheet';
 import {
-  DESTINATIONS, QUICK_STARTS, TEMPLATES, audienceLabel, audienceProblem, blanksLeft, dayWord, sendSummary, type Template,
+  DESTINATIONS, QUICK_STARTS, SPLASH_MAX_MB, TEMPLATES, audienceLabel, audienceProblem, blanksLeft, dayWord, sendSummary, type Template,
 } from '../../src/announcements/kinds';
 import { NotificationPreview, SplashThumb } from '../../src/announcements/Preview';
 import { SplashView } from '../../src/announcements/Splash';
@@ -75,7 +76,7 @@ function Composer() {
   const [words, setWords] = useState(quick?.splash?.text ?? '');
   const [button, setButton] = useState(quick?.splash?.button ?? '');
   const [photo, setPhoto] = useState<Picture>(null);
-  const [image, setImage] = useState<Picture>(null);
+  const [image, setImage] = useState<SplashUpload | null>(null);
   const [startsOn, setStartsOn] = useState(today);
   const [endsOn, setEndsOn] = useState(plus(today, 6));
   const [preview, setPreview] = useState(false);
@@ -96,7 +97,7 @@ function Composer() {
     : !push && !splash ? 'Pick where it shows: a notification, a splash page, or both.'
     : push && !body.trim() ? 'Write the message.'
     : problem ? problem
-    : splash && design === 'image' && !image ? 'Choose the graphic.'
+    : splash && design === 'image' && !image ? 'Choose the picture, GIF or video.'
     : usesTemplate && !headline.trim() ? 'Give the splash page a headline.'
     : splash && endsOn < startsOn ? 'The splash page\'s last day comes after its first.'
     : blanksLeft(title, push ? body : '', usesTemplate ? `${headline} ${words}` : '', splash && link ? button : '') ? 'Fill in the parts in [brackets].'
@@ -112,7 +113,7 @@ function Composer() {
       later ? 'Schedule' : 'Send', async () => {
         setBusy(true);
         try {
-          const img = splash && design === 'image' && image ? await uploadAnnouncementPicture(image.base64) : null;
+          const img = splash && design === 'image' && image ? await uploadAnnouncementMedia(image) : null;
           const pic = usesTemplate && photo ? await uploadAnnouncementPicture(photo.base64) : null;
           await sendAnnouncement({
             title: title.trim(), body: body.trim(), audience, audienceLabel: audienceLabel(audience, names), urgent: push && urgent,
@@ -128,7 +129,7 @@ function Composer() {
   const shown = { title, link, splashButton: link ? button : '', splashHeadline: headline, splashText: words, splashTemplate: design === 'image' ? null : template,
     splashImageUrl: design === 'image' ? image?.uri ?? '' : '', splashPhotoUrl: design === 'template' ? photo?.uri ?? '' : '' };
   const thumb = { template: design === 'image' ? null : template, headline: headline || title, imageUrl: design === 'image' ? image?.uri : undefined,
-    photoUrl: design === 'template' ? photo?.uri : undefined };
+    photoUrl: design === 'template' ? photo?.uri : undefined, media: design === 'image' ? image?.media : undefined };
   let step = 0;
 
   return (
@@ -191,9 +192,16 @@ function Composer() {
               </View>
               {design === 'image' ? (
                 <>
-                  <P muted>A finished picture, like one made in Canva. A tall one (9 by 16) fills a phone best.</P>
-                  <Button label={image ? 'Choose another graphic' : 'Choose the graphic'} kind="ghost"
-                    onPress={() => pickSplashPicture().then((p) => p && setImage(p)).catch(oops)} />
+                  <P muted>
+                    {`A finished picture (like one made in Canva), an animated GIF, or a short .mp4 video, which plays silently on a loop with a sound button. A tall one (9 by 16) fills a phone best. Up to ${SPLASH_MAX_MB} MB.`}
+                  </P>
+                  {image && (
+                    <Text style={{ color: C.muted, fontWeight: '700' }}>
+                      {image.media === 'video' ? 'Video chosen' : image.media === 'gif' ? 'GIF chosen' : 'Picture chosen'}: tap the preview at the top to see it.
+                    </Text>
+                  )}
+                  <Button label={image ? 'Choose another' : 'Choose a picture, GIF or video'} kind="ghost"
+                    onPress={() => pickSplashMedia().then((p) => p && setImage(p)).catch(oops)} />
                 </>
               ) : (
                 <>
@@ -282,7 +290,7 @@ function Composer() {
 
       <DestinationSheet visible={picking} value={link} label={linkLabel} onPick={setLink} onClose={() => setPicking(false)} />
       <Modal visible={preview} animationType="fade" onRequestClose={() => setPreview(false)} statusBarTranslucent>
-        <SplashView a={shown} preview onClose={() => setPreview(false)} onTap={() => setPreview(false)} />
+        <SplashView a={shown} media={design === 'image' ? image?.media : undefined} preview onClose={() => setPreview(false)} onTap={() => setPreview(false)} />
       </Modal>
     </KeyboardAvoidingView>
   );

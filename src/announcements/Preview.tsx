@@ -5,8 +5,9 @@
  */
 import { useMemo } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SCHOOL } from '../school';
-import { templateOf } from './kinds';
+import { templateOf, type SplashMedia } from './kinds';
 
 const CONFETTI = ['#E63946', '#F4A261', '#E9C46A', '#2A9D8F', '#457B9D', '#8E44AD', '#E3B23C'];
 
@@ -28,7 +29,8 @@ export function NotificationPreview({ title, body }: { title: string; body: stri
   );
 }
 
-export type ThumbInput = { template: string | null; headline: string; imageUrl?: string; photoUrl?: string };
+/** `media`: what an uploaded graphic (imageUrl) is; a video shows as a dark phone with a play sign, a GIF animates. */
+export type ThumbInput = { template: string | null; headline: string; imageUrl?: string; photoUrl?: string; media?: SplashMedia };
 
 /** A splash page as a little phone (9 by 16): the uploaded graphic, or the template with its photo and headline. */
 export function SplashThumb({ s, width, selected, onPress, label }: {
@@ -41,8 +43,22 @@ export function SplashThumb({ s, width, selected, onPress, label }: {
     const r = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
     return Array.from({ length: 14 }, (_, i) => ({ left: r() * (width - 4), top: r() * (height - 4), c: CONFETTI[i % CONFETTI.length] }));
   }, [width, height]);
-  const body = s.imageUrl ? (
-    <Image source={{ uri: s.imageUrl }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+  const body = s.imageUrl && s.media === 'video' ? (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: width * 0.06, backgroundColor: '#1F2A44' }}>
+      <View style={{ width: width * 0.42, height: width * 0.42, borderRadius: width, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF2E' }}>
+        <Ionicons name="play" size={width * 0.22} color="#fff" style={{ marginLeft: width * 0.03 }} />
+      </View>
+      {width >= 60 && <Text style={{ color: '#fff', fontSize: Math.max(8, width * 0.1), fontWeight: '800', letterSpacing: 0.5 }}>VIDEO</Text>}
+    </View>
+  ) : s.imageUrl ? (
+    <View style={{ flex: 1 }}>
+      <Image source={{ uri: s.imageUrl }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+      {s.media === 'gif' && (
+        <View style={{ position: 'absolute', left: 3, bottom: 3, paddingHorizontal: 3, borderRadius: 3, backgroundColor: '#000A' }}>
+          <Text style={{ color: '#fff', fontSize: Math.max(7, width * 0.09), fontWeight: '900' }}>GIF</Text>
+        </View>
+      )}
+    </View>
   ) : (
     <View style={{ flex: 1, backgroundColor: t.background, alignItems: 'center', justifyContent: 'center', padding: width * 0.1, gap: width * 0.06 }}>
       {s.template === 'confetti' && dots.map((d, i) => (

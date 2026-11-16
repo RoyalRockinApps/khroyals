@@ -36,6 +36,19 @@ export async function announcementReach(a: Audience): Promise<number> {
   return rpc('announcement_reach', { p_audience: a });
 }
 
+/**
+ * Uploads a splash page's graphic (src/announcements/media.ts: a JPEG, a GIF or an .mp4) to the sender's own folder;
+ * returns its path, whose extension says which it is (splashMediaOf). Demo builds keep the phone's own link, marked.
+ */
+export async function uploadAnnouncementMedia(f: { media: 'image' | 'gif' | 'video'; mimeType: string; uri: string; base64?: string; body?: ArrayBuffer | Blob }): Promise<string> {
+  if (f.base64) return uploadAnnouncementPicture(f.base64);
+  if (!live) return `${f.uri}#media=${f.media}`;
+  if (!current) throw new Error('Sign in first.');
+  const path = `${current.id}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${f.media === 'video' ? 'mp4' : 'gif'}`;
+  await run(sb().storage.from('announcements').upload(path, f.body!, { contentType: f.mimeType }));
+  return path;
+}
+
 /** Uploads a splash picture (JPEG) to the sender's own folder; returns its path. */
 export async function uploadAnnouncementPicture(base64: string): Promise<string> {
   if (!live) return `data:image/jpeg;base64,${base64}`;

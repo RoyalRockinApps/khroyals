@@ -11,7 +11,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { cancelAnnouncement, errorText, listAnnouncements, live, type Announcement } from '../../src/api/connect';
-import { QUICK_STARTS, dayWord } from '../../src/announcements/kinds';
+import { QUICK_STARTS, dayWord, splashMediaOf } from '../../src/announcements/kinds';
 import { SplashThumb } from '../../src/announcements/Preview';
 import { schoolToday } from '../../src/calendar/past';
 import { clock } from '../../src/carline/time';
@@ -123,6 +123,7 @@ function Row({ a, today, onStop }: { a: Announcement; today: string; onStop?: ()
     <Card style={{ flexDirection: 'row', gap: 12, opacity: cancelled ? 0.6 : 1 }}>
       {a.splash ? (
         <SplashThumb width={46} s={{ template: a.splashTemplate, headline: a.splashHeadline || a.title, imageUrl: a.splashImageUrl || undefined,
+          media: splashMediaOf(a.splashImage || a.splashImageUrl),
           photoUrl: a.splashPhotoUrl || undefined }} />
       ) : (
         <View style={{ width: 46, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center',

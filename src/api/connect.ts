@@ -47,7 +47,7 @@ export { childPickupPeople, addPickupPerson, removePickupPerson, myPickupChildre
 export { myTeachers, teacherConversations, myClassStudents, teacherThread, teacherThreadFor, teacherSend, teacherThreadRead, subscribeTeacherMessages } from './teachers';
 export { listFeedback, sendFeedback, triageFeedback, listWorkshops, saveWorkshop, deleteWorkshop } from './feedback';
 export { myCalendar, studentEvents, savePersonalEvent, deletePersonalEvent, planStudentEvent } from './myCalendar';
-export { announcementReach, uploadAnnouncementPicture, sendAnnouncement, cancelAnnouncement, listAnnouncements, viewAnnouncement, mySplash, markSplash, listAcademies, type NewAnnouncement } from './announcements';
+export { announcementReach, uploadAnnouncementPicture, uploadAnnouncementMedia, sendAnnouncement, cancelAnnouncement, listAnnouncements, viewAnnouncement, mySplash, markSplash, listAcademies, type NewAnnouncement } from './announcements';
 export { myBoards, boardView, boardItems, boardPosts, boardChat, pinBoardNote, pinBoardPhoto, boardItemToFront, unpinBoardItem, decorateBoard, boardEditors, setBoardEditor, saveBoardPost, deleteBoardPost, sendBoardChat, deleteBoardChat, boardPhotos, subscribeBoard } from './boards';
 export { studyNotes, studyNote, saveStudyNote, deleteStudyNote, studySubjects, studyDecks, studyDeck, dueStudyCards, saveStudyDeck, deleteStudyDeck, resetStudyDeck, addStudyCards, editStudyCard, deleteStudyCard, reviewStudyCard } from './study';
 export { listAssignments, childAssignments, addAssignment, deleteAssignment, checkAssignment, mySections, subscribeAssignments } from './assignments';

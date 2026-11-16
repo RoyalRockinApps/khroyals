@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  DESTINATIONS, KINDS, QUICK_STARTS, TEMPLATES, audienceLabel, audienceProblem, blankAudience, blanksLeft, dayWord, sendSummary,
+  DESTINATIONS, KINDS, QUICK_STARTS, SPLASH_MAX_MB, TEMPLATES, audienceLabel, audienceProblem, blankAudience, blanksLeft, dayWord,
+  sendSummary, splashMediaOf,
 } from '../src/announcements/kinds';
 import { notificationHref } from '../src/comms/inbox';
 import { usageApp } from '../src/usage/apps';
@@ -77,4 +78,20 @@ test("the Send bar says what goes to how many, and when", () => {
   assert.equal(dayWord('2026-11-17', '2026-11-16'), 'Tomorrow');
   assert.equal(dayWord('2026-11-20', '2026-11-16'), 'Fri, Nov 20');
   assert.ok(KINDS.filter((k) => !k.more).length <= 4, 'the picker shows a short row before More');
+});
+
+test('an uploaded splash page is a picture, a GIF or an .mp4 video, as the storage bucket allows', () => {
+  assert.equal(splashMediaOf(null), 'image');
+  assert.equal(splashMediaOf('u1/1731-ab.jpg'), 'image');
+  assert.equal(splashMediaOf('u1/1731-ab.gif'), 'gif');
+  assert.equal(splashMediaOf('u1/1731-ab.mp4'), 'video');
+  assert.equal(splashMediaOf('https://x.supabase.co/storage/v1/object/sign/announcements/u1/1.MP4?token=a.b.gif'), 'video', 'the link, not its query');
+  assert.equal(splashMediaOf('data:image/gif;base64,R0lG'), 'gif');
+  assert.equal(splashMediaOf('data:image/jpeg;base64,/9j/'), 'image');
+  assert.equal(splashMediaOf('blob:http://localhost/123#media=video'), 'video', "a demo build's own link");
+
+  const media = readdirSync(dir).filter((f) => f.endsWith('_announcement_media.sql')).map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
+  assert.deepEqual(/allowed_mime_types = array\[([^\]]+)\]/.exec(media)![1].split(',').map((x) => x.trim().replace(/'/g, '')).sort(),
+    ['image/gif', 'image/jpeg', 'video/mp4']);
+  assert.equal(Number(/file_size_limit = (\d+)/.exec(media)![1]), SPLASH_MAX_MB * 1024 * 1024);
 });

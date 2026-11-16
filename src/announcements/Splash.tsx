@@ -1,7 +1,8 @@
 /**
  * A splash page: the whole screen, shown once when people open the app (src/announcements/SplashGate.tsx), in the
- * Announcements app's preview, and when an announcement is opened from its notification. An uploaded graphic fills the
- * screen on dark; a template puts an optional photo, the headline and the words on its background (confetti drawn on
+ * Announcements app's preview, and when an announcement is opened from its notification. An uploaded graphic (a picture,
+ * an animated GIF, or a video playing silently on a loop with a sound button, src/announcements/SplashVideo.tsx) fills
+ * the screen on dark; a template puts an optional photo, the headline and the words on its background (confetti drawn on
  * the light one). ✕ or Continue closes it; its button (when it has one) opens its screen.
  */
 import { useMemo } from 'react';
@@ -11,7 +12,8 @@ import Svg, { Circle, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import type { Announcement } from '../api/types';
 import { FONT_STYLE } from '../ui';
-import { templateOf } from './kinds';
+import { splashMediaOf, templateOf, type SplashMedia } from './kinds';
+import { SplashVideo } from './SplashVideo';
 
 type Props = {
   a: Pick<Announcement, 'splashImageUrl' | 'splashTemplate' | 'splashPhotoUrl' | 'splashHeadline' | 'splashText' | 'splashButton' | 'link' | 'title'>
@@ -20,6 +22,8 @@ type Props = {
   onTap?: () => void;
   /** In the composer: says it's a preview. */
   preview?: boolean;
+  /** What the uploaded graphic is, when its link doesn't say (the composer's picked file); else worked out from it. */
+  media?: SplashMedia;
 };
 
 const CONFETTI = ['#E63946', '#F4A261', '#E9C46A', '#2A9D8F', '#457B9D', '#8E44AD', '#E3B23C'];
@@ -39,7 +43,7 @@ function Confetti({ width, height }: { width: number; height: number }) {
   );
 }
 
-export function SplashView({ a, onClose, onTap, preview }: Props) {
+export function SplashView({ a, onClose, onTap, preview, media }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const graphic = !!(a.splashImageUrl || a.splashImage);
@@ -69,8 +73,13 @@ export function SplashView({ a, onClose, onTap, preview }: Props) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0B1220' }} accessibilityViewIsModal>
         {close}
-        <Image source={{ uri: a.splashImageUrl || a.splashImage! }} resizeMode="contain" accessibilityLabel={a.title}
-          style={{ flex: 1, marginTop: insets.top + 60, marginBottom: 8 }} />
+        {(media ?? splashMediaOf(a.splashImage || a.splashImageUrl)) === 'video' ? (
+          <SplashVideo uri={a.splashImageUrl || a.splashImage!} label={a.title} style={{ flex: 1, marginTop: insets.top + 60, marginBottom: 8 }} />
+        ) : (
+          // A GIF animates in an Image on every platform (Android builds include Fresco's GIF support).
+          <Image source={{ uri: a.splashImageUrl || a.splashImage! }} resizeMode="contain" accessibilityLabel={a.title}
+            style={{ flex: 1, marginTop: insets.top + 60, marginBottom: 8 }} />
+        )}
         <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 16, gap: 6 }}>
           {preview && <Text style={{ color: '#FFFFFFAA', textAlign: 'center', fontWeight: '700' }}>PREVIEW</Text>}
           {button}

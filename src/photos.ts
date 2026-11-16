@@ -75,7 +75,11 @@ export async function pickGalleryPhotos(limit = 30): Promise<{ full: string; thu
 export async function pickSplashPicture(): Promise<{ base64: string; uri: string; width: number; height: number } | null> {
   const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
   const asset = result.canceled ? null : result.assets[0];
-  if (!asset) return null;
+  return asset ? splashJpeg(asset) : null;
+}
+
+/** A picked picture as a splash page JPEG: at most 1600 px on its long side, with a data link to preview it. */
+export async function splashJpeg(asset: { uri: string; width: number; height: number }): Promise<{ base64: string; uri: string; width: number; height: number } | null> {
   const k = Math.min(1, 1600 / Math.max(asset.width, asset.height));
   const width = Math.round(asset.width * k), height = Math.round(asset.height * k);
   const ctx = ImageManipulator.manipulate(asset.uri);

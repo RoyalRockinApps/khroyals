@@ -5400,6 +5400,18 @@ test('announcements: senders reach an audience now or later; a splash page shows
   await as('u-p01');
   assert.equal((await one(`select my_splash() as s`)).s, null);
 
+  // The bucket takes a GIF or an .mp4 video too (up to 25 MB), and a video splash page goes out like a picture.
+  await asSuper();
+  assert.deepEqual(await one(`select allowed_mime_types as types, file_size_limit as max from storage.buckets where id = 'announcements'`),
+    { types: ['image/jpeg', 'image/gif', 'video/mp4'], max: 25 * 1024 * 1024 });
+  await db.exec(`insert into storage.objects (bucket_id, name) values ('announcements', '${admin}/clip.mp4')`);
+  await as('u-admin', true);
+  const clip = (await one(send('Spirit Week video', '', `'{"kind":"people","people":["${await uid('u-p01')}"]}'`,
+    `, false, null, false, null, null, ${splash(`{"image":"${admin}/clip.mp4"}`)}`))).id;
+  await as('u-p01');
+  const shown = (await one(`select my_splash() as s`)).s;
+  assert.deepEqual([shown.id, shown.splashImage], [clip, `${admin}/clip.mp4`]);
+
   // The history: counts only.
   await as('u-admin', true);
   const list = (await one(`select announcements_list() as l`)).l as any[];

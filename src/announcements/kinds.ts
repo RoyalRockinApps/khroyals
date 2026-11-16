@@ -83,6 +83,23 @@ export const DESTINATIONS: { path: string; label: string; icon: string }[] = [
   { path: '/market', label: 'Marketplace', icon: 'pricetags' }, { path: '/feedback', label: 'Feedback', icon: 'chatbubble-ellipses' },
 ];
 
+/**
+ * An uploaded splash page is a picture (JPEG), an animated GIF or a video (.mp4, played silently on a loop with a sound
+ * button). Which one, from its file name or link (the storage path, a signed link, or a demo build's data link). The
+ * storage bucket takes these three only, up to SPLASH_MAX_MB (supabase/migrations/…_announcement_media.sql).
+ */
+export type SplashMedia = 'image' | 'gif' | 'video';
+export const SPLASH_MAX_MB = 25;
+export function splashMediaOf(file: string | null | undefined): SplashMedia {
+  if (!file) return 'image';
+  const hint = /#media=(video|gif)$/.exec(file);   // a demo build's own link (uploadAnnouncementMedia)
+  if (hint) return hint[1] as SplashMedia;
+  const data = /^data:([^;,]+)/.exec(file);
+  if (data) return data[1] === 'video/mp4' ? 'video' : data[1] === 'image/gif' ? 'gif' : 'image';
+  const name = file.split(/[?#]/)[0].toLowerCase();
+  return name.endsWith('.mp4') ? 'video' : name.endsWith('.gif') ? 'gif' : 'image';
+}
+
 /** The splash page templates: a background, its words' color and the button's. */
 export const TEMPLATES = {
   navy: { label: 'Navy', background: '#0E2457', ink: '#FFFFFF', accent: '#E3B23C', buttonInk: '#0E2457' },
