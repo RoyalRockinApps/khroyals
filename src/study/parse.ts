@@ -1,7 +1,9 @@
 /**
- * Flash cards from text (a note, or a list pasted into Add cards): one card per line, the term and its meaning split
- * by a tab, " - ", " – ", " — ", " = " or ": " ("Mitochondria - the powerhouse of the cell"). Bullets and numbers at
- * the start of a line are dropped; lines without a split are left out. No app imports, so tests run it.
+ * Flash cards from text (a note, or a list pasted into Add cards or read from a file, src/study/cardFile.ts): one card
+ * per line, the term and its meaning split by a tab, " - ", " – ", " — ", " = " or ": " ("Mitochondria - the
+ * powerhouse of the cell"). A line with a tab splits there (a spreadsheet's two columns), so a term may hold a dash or
+ * a colon. Bullets and numbers at the start of a line are dropped; lines without a split are left out. No app
+ * imports, so tests run it.
  */
 import type { CardText } from '../api/types';
 
@@ -17,7 +19,8 @@ export function parseCards(text: string): CardText[] {
   const cards: CardText[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.replace(BULLET, '').trim();
-    const m = SPLIT.exec(line);
+    const tab = /\t+/.exec(line);
+    const m = tab && tab.index > 0 ? tab : SPLIT.exec(line);
     if (!m || m.index === 0) continue;
     const front = line.slice(0, m.index).trim();
     const back = line.slice(m.index + m[0].length).trim();

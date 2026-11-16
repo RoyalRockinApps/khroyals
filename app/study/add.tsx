@@ -1,14 +1,16 @@
 /**
  * Add cards to a deck (`?deck=`): one at a time (the front, then the back; each is saved as it's added and the front
- * is ready for the next), or a pasted list with a "term - meaning" line per card.
+ * is ready for the next), or a list with a "term - meaning" line per card, pasted or read from a text or CSV file
+ * (src/study/pickCardFile.ts) into the box, where the student checks it before adding.
  */
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { addStudyCards, studyDecks, type CardText, type StudyDeck } from '../../src/api/connect';
 import { GOLD, NAVY } from '../../src/sports/ui';
 import { MOST_AT_ONCE, parseCards } from '../../src/study/parse';
+import { pickCardFile } from '../../src/study/pickCardFile';
 import { GREEN, StudyClosed, oops, useStudyAccess } from '../../src/study/ui';
 import { Button, C, Card, Loading, P, PLACEHOLDER, s } from '../../src/ui';
 
@@ -24,6 +26,7 @@ export default function AddCards() {
   const [list, setList] = useState('');
   const [added, setAdded] = useState<CardText[]>([]);
   const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
   const frontBox = useRef<TextInput>(null);
   const backBox = useRef<TextInput>(null);
   const open = access === 'open';
@@ -53,10 +56,19 @@ export default function AddCards() {
       frontBox.current?.focus();
     }).catch(oops).finally(() => setBusy(false));
   };
+  const fromFile = () => pickCardFile().then((f) => {
+    if (!f) return;
+    if (!parseCards(f.text).length) {
+      Alert.alert('No cards found in that file', 'Put each term and its meaning on one line ("term - meaning"), or in the first two columns of a spreadsheet saved as CSV.');
+      return;
+    }
+    setList((l) => (l.trim() ? `${l.trim()}\n${f.text}` : f.text));
+    setFileName(f.name);
+  }).catch(oops);
   const addList = () => {
     const cards = parsed.slice(0, MOST_AT_ONCE);
     setBusy(true);
-    addStudyCards(deck.id, cards).then(() => { setAdded((a) => [...cards].reverse().concat(a)); setList(''); })
+    addStudyCards(deck.id, cards).then(() => { setAdded((a) => [...cards].reverse().concat(a)); setList(''); setFileName(null); })
       .catch(oops).finally(() => setBusy(false));
   };
 
@@ -65,7 +77,7 @@ export default function AddCards() {
       {header}
       <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
         <View accessibilityRole="tablist" style={{ flexDirection: 'row', padding: 4, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}>
-          {([['one', 'One at a time'], ['list', 'Paste a list']] as [Mode, string][]).map(([key, label]) => (
+          {([['one', 'One at a time'], ['list', 'A list or file']] as [Mode, string][]).map(([key, label]) => (
             <Pressable key={key} onPress={() => setMode(key)} accessibilityRole="tab" accessibilityState={{ selected: mode === key }}
               style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 999, backgroundColor: mode === key ? NAVY : 'transparent' }}>
               <Text style={{ fontWeight: '800', color: mode === key ? '#fff' : C.muted }}>{label}</Text>
@@ -90,7 +102,10 @@ export default function AddCards() {
         ) : (
           <Card style={{ gap: 10 }}>
             <P muted>One card per line: the term, then a dash, a colon or an equals sign, then its meaning. Copying a two-column list works too.</P>
-            <TextInput value={list} onChangeText={setList} multiline textAlignVertical="top" autoFocus accessibilityLabel="Cards, one per line"
+            <Button kind="ghost" label="Choose a file" onPress={fromFile} disabled={busy} />
+            <P muted>{fileName ? `From ${fileName}: check the cards below, then add them.`
+              : 'A text file with a card per line, or a spreadsheet saved as CSV: the term in the first column, its meaning in the second.'}</P>
+            <TextInput value={list} onChangeText={(t) => { setList(t); if (!t) setFileName(null); }} multiline textAlignVertical="top" autoFocus accessibilityLabel="Cards, one per line"
               placeholder={'la manzana - the apple\nel pan - the bread\nla leche - the milk'} placeholderTextColor={PLACEHOLDER}
               style={{ minHeight: 200, fontSize: 16, lineHeight: 23, color: C.ink, backgroundColor: C.bg, borderRadius: 12, borderWidth: 1, borderColor: C.line, padding: 12 }} />
             <Text style={{ fontWeight: '700', color: parsed.length ? GREEN : C.muted }}>

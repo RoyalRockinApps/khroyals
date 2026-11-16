@@ -185,7 +185,9 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   student reads them (RLS `owner_id = auth.uid()`): never their parents, teachers or the office, so don't add a way in
   without the student data review. Studying moves a card through the Leitner boxes in `study_card_review` (the demo's
   copy is `sampleReview` in `src/study/sample.ts`). They go with the login: the `study_forget` trigger deletes them when
-  a student's profile becomes `managed` again (`student_login_remove`, `delete_my_account`).
+  a student's profile becomes `managed` again (`student_login_remove`, `delete_my_account`). Add cards reads a text or
+  CSV file on the device into its list box (`src/study/cardFile.ts`, `src/study/pickCardFile.ts`); the file itself is
+  never uploaded.
 - **Student records** (the Student app, `app/student`; `sis_students`, `sis_terms`, `sis_attendance`, `sis_courses`,
   `sis_assignments`): a read-only copy of the school's student information system (FACTS, Blackbaud…). Only `sis_import`
   (service role) writes it, from one shape whatever the system: it matches students by the link made before, a profile

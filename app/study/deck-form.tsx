@@ -53,7 +53,7 @@ export default function DeckForm() {
         </View>
       </Card>
       <Button label={busy ? 'Saving…' : id ? 'Save' : 'Make the deck'} disabled={busy || !title.trim()} onPress={save} />
-      {!id && <Card><H>Then add cards</H><P muted>Type them one at a time, paste a list, or make them from one of your notes.</P></Card>}
+      {!id && <Card><H>Then add cards</H><P muted>Type them one at a time, paste a list or choose a file, or make them from one of your notes.</P></Card>}
     </ScrollView>
   );
 }

@@ -1,11 +1,13 @@
 /**
- * The Study app's pure parts: flash cards from "term - meaning" lines (src/study/parse.ts), a study session's line of
+ * The Study app's pure parts: flash cards from "term - meaning" lines (src/study/parse.ts) and from text and CSV files
+ * (src/study/cardFile.ts), a study session's line of
  * cards (src/study/session.ts) and class names as subjects (src/study/subjects.ts). Who may read and write, and how
  * cards move through the boxes, is in tests/db.test.ts.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MOST_AT_ONCE, parseCards } from '../src/study/parse';
+import { cardListFromFile, csvRows } from '../src/study/cardFile';
 import { answer, finished, shuffle, startSession } from '../src/study/session';
 import { subjectChoices, subjectColor, subjectName } from '../src/study/subjects';
 
@@ -36,6 +38,38 @@ test('cards from lines: a dash, colon, equals sign or tab splits the term from i
   assert.equal(MOST_AT_ONCE, 200, 'study_cards_add takes up to 200 at a time');
   const long = parseCards(`${'x'.repeat(600)} - ${'y'.repeat(1200)}`)[0];
   assert.deepEqual([long.front.length, long.back.length], [500, 1000], 'as long as the database allows');
+});
+
+test('a tab splits first, so a term may hold a dash or a colon', () => {
+  assert.deepEqual(parseCards('Pre-war - 1939\tbefore the war\nRatio: 3:1\tthree to one'), [
+    { front: 'Pre-war - 1939', back: 'before the war' },
+    { front: 'Ratio: 3:1', back: 'three to one' },
+  ]);
+});
+
+test('cards from a CSV file: first two columns, quoted cells, a header row skipped', () => {
+  const csv = '\uFEFFTerm,Definition\r\n"la manzana","the apple"\r\nCell wall,"stiff layer, outside the membrane"\r\n'
+    + '"He said ""hi""","a quote"\r\nPhotosynthesis,"how plants\nmake food",extra column\r\nlonely\r\n,no term\r\n';
+  const text = cardListFromFile('Biology vocab.csv', csv);
+  assert.deepEqual(parseCards(text), [
+    { front: 'la manzana', back: 'the apple' },
+    { front: 'Cell wall', back: 'stiff layer, outside the membrane' },
+    { front: 'He said "hi"', back: 'a quote' },
+    { front: 'Photosynthesis', back: 'how plants make food' },
+  ]);
+  // A semicolon-separated CSV (some spreadsheets), and a tab-separated file.
+  assert.deepEqual(parseCards(cardListFromFile('words.csv', 'perro;dog\ngato;cat')), [{ front: 'perro', back: 'dog' }, { front: 'gato', back: 'cat' }]);
+  assert.deepEqual(parseCards(cardListFromFile('words.tsv', 'English\tSpanish\nthe dog\tel perro')), [{ front: 'the dog', back: 'el perro' }]);
+  assert.deepEqual(csvRows('a,"b\nc"\nd,e'), [['a', 'b\nc'], ['d', 'e']]);
+});
+
+test('cards from a text file: its lines as they are, a Quizlet export too', () => {
+  const quizlet = 'Mitochondria\tthe powerhouse of the cell\r\nNucleus\tholds the DNA\r\n';
+  assert.deepEqual(parseCards(cardListFromFile('Quizlet export.txt', quizlet)), [
+    { front: 'Mitochondria', back: 'the powerhouse of the cell' },
+    { front: 'Nucleus', back: 'holds the DNA' },
+  ]);
+  assert.equal(cardListFromFile('list.TXT', '\uFEFF1. la leche - the milk\n'), '1. la leche - the milk');
 });
 
 test('a study session: missed cards come round again until known; first-try answers are counted', () => {

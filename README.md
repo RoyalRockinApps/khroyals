@@ -522,7 +522,10 @@ the web it downloads, on a phone the Share sheet opens to save it to Files or se
 Notes: a title, the class it's for (their class sections' names, "English 10", or any other) and the text, saved a
 moment after typing stops; search finds every word in the title, class or text, and chips filter by class. Flash
 cards: decks of cards typed in one at a time, pasted as a list, or made from a note's "term - meaning" lines
-(`src/study/parse.ts`). *Study* goes through the cards due now, a deck's or every deck's (*Study now* on top),
+(`src/study/parse.ts`). *A list or file* → *Choose a file* reads a text file (a card per line, a Quizlet export
+too) or a spreadsheet saved as CSV (term in the first column, meaning in the second; a "Term, Definition" header is
+skipped) into the box, where the student checks the cards found before adding them. The file stays on the device:
+only the cards are saved. *Study* goes through the cards due now, a deck's or every deck's (*Study now* on top),
 shuffled: turn the card over, then *Still learning* (it comes round again and goes back to box 1) or *Got it* (up a
 box). The boxes are Leitner's (`study_card_review`): box 2 comes back tomorrow, 3 in three days, 4 in a week, 5 in two
 weeks, then a month; a deck's bar shows known (box 4–5), learning and new. *Flip through* turns through a whole deck
