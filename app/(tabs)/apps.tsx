@@ -18,7 +18,7 @@ import { AdminButton } from '../../src/admin/AdminButton';
 import { alertKind } from '../../src/alerts/kinds';
 import { mayHave } from '../../src/comms/mfa';
 import { PAGES } from '../../src/handbook/handbook';
-import { visibleTiles, type TileRules } from '../../src/appTiles';
+import { inStudentOrder, visibleTiles, type TileRules } from '../../src/appTiles';
 import { GOLD, NAVY } from '../../src/sports/ui';
 import { SCHOOL } from '../../src/school';
 import { MainFolder } from '../../src/schoolForms/MainFolder';
@@ -116,9 +116,11 @@ export default function Apps() {
   const staffView = staff && staffSetting;
   const student = !!person && !person.pending && person.schoolRole === 'student';
   // Until we know who's signed in (the app is still loading their profile), no tiles: never someone else's set.
-  const apps = live && !person ? [] : visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
-  // Three tiles across on phones, up to five on iPads and tablets.
-  const columns = Math.max(3, Math.min(5, Math.floor(useContentWidth() / 140)));
+  const tiles = live && !person ? [] : visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
+  const apps = student ? inStudentOrder(tiles) : tiles;
+  // Three tiles across on phones, up to five on iPads and tablets; students' always three.
+  const width = useContentWidth();
+  const columns = student ? 3 : Math.max(3, Math.min(5, Math.floor(width / 140)));
   return (
     <View style={s.screen}>
       <ScrollView style={{ flex: 1 }}>

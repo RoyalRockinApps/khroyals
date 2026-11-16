@@ -169,7 +169,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`child_assignments`, for the Planner tab), never the student's own entries or check-offs; Family
   accounts see none. Both tiles are students' only: teachers reach the teacher side from **Classes**
   (a class card's *Assignments*, `?section=`, and *Messages*). Students' Main Page is the short list in
-  `src/appTiles.ts` (`student: false` hides a tile from them).
+  `src/appTiles.ts` (`student: false` hides a tile from them), three across in the order of `STUDENT_ORDER`: a new
+  tile students see goes in that list too (`tests/app-tiles.test.ts`).
   **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
   `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
   assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both

@@ -14,7 +14,7 @@
  *   tiles are theirs alone.
  *
  * In staff view the staff versions (elevated, marked in gold) come first, then the rest, each
- * group in the order the tiles are listed.
+ * group in the order the tiles are listed. Students' tiles go in their own order (`STUDENT_ORDER`), three across.
  */
 export type TileRules = {
   family?: false; student?: false; inStaffView?: false; staffOnly?: true; adminOnly?: true; staffVersion?: true; studentApp?: true; sub?: true; subOnly?: true; announce?: true;
@@ -39,4 +39,12 @@ export function visibleTiles<T extends TileRules>(tiles: T[], v: Viewer): (T & {
       : !(v.family && t.family === false)))
     .map((t) => ({ ...t, elevated: v.staffView && !!(t.staffOnly || t.adminOnly || t.staffVersion || t.announce) }))
     .sort((a, b) => Number(b.elevated) - Number(a.elevated));
+}
+
+/** The order of students' Main Page tiles, read left to right, three across. Tiles not named here follow, as listed. */
+export const STUDENT_ORDER = ['Student', 'Activities', 'Calendar', 'Ask the Teacher', 'Assignments', 'Study', 'News', 'Handbook', 'Photos', 'Feedback'];
+
+export function inStudentOrder<T extends { label: string }>(tiles: T[]): T[] {
+  const at = (t: T) => { const i = STUDENT_ORDER.indexOf(t.label); return i < 0 ? STUDENT_ORDER.length : i; };
+  return tiles.map((t, i) => ({ t, i })).sort((a, b) => at(a.t) - at(b.t) || a.i - b.i).map((x) => x.t);
 }

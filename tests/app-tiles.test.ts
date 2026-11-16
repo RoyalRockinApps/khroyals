@@ -1,7 +1,7 @@
 /** src/appTiles.ts: the Main Page's standard and staff views. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { visibleTiles, type TileRules } from '../src/appTiles';
+import { STUDENT_ORDER, inStudentOrder, visibleTiles, type TileRules } from '../src/appTiles';
 
 const TILES: (TileRules & { label: string })[] = [
   { label: 'Alerts', staffOnly: true },
@@ -59,4 +59,19 @@ test('Announcements: in the staff view, only for people who send the school\'s n
   assert.ok(!see({ staffView: true, family: false, admin: true, announce: false }).includes('Announcements'));
   assert.ok(!see({ staffView: false, family: false, admin: true, announce: true }).includes('Announcements'), 'not on the Standard view');
   assert.ok(!see({ staffView: false, family: false, admin: false, student: true, announce: true }).includes('Announcements'));
+});
+
+test("students' tiles go in their own order, three across", () => {
+  const listed = ['Student', 'Activities', 'Photos', 'News', 'Calendar', 'Handbook', 'Feedback', 'Ask the Teacher', 'Assignments', 'Study', 'Something new']
+    .map((label) => ({ label }));
+  assert.deepEqual(inStudentOrder(listed).map((t) => t.label), [...STUDENT_ORDER, 'Something new']);
+  assert.deepEqual(inStudentOrder([{ label: 'Feedback' }, { label: 'Calendar' }]).map((t) => t.label), ['Calendar', 'Feedback'], 'a missing tile leaves no gap');
+});
+
+test("every tile a student sees on the Main Page has its place in the students' order", async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync('app/(tabs)/apps.tsx', 'utf8');
+  const tiles = [...src.matchAll(/\{ label: '([^']+)'([^}]*)\}/g)].map((m) => ({ label: m[1], rest: m[2] }))
+    .filter((t) => !/student: false|staffOnly|adminOnly|subOnly|announce: true/.test(t.rest));
+  assert.deepEqual(tiles.map((t) => t.label).filter((l) => !STUDENT_ORDER.includes(l)), []);
 });
