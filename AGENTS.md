@@ -480,7 +480,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   line's big screen or over a critical alert. Graphics (a JPEG, an animated GIF or an .mp4 video, told apart by the file's
   extension, `splashMediaOf`) are in the private `announcements` bucket, read by the people
   it went to. Results are counts only, never names. Don't use a splash page for safety or consent messages (alerts,
-  pickup, forms keep their own screens).
+  pickup, forms keep their own screens). **Daily verse** (`daily_verses`; Announcements → Daily verse,
+  `app/announcements/verses.tsx`): `push.send` holders write a day's reference, verse and thought ahead
+  (`daily_verse_save`, `daily_verse_delete`); students see it on top of their Planner (`src/devotion/VerseCard.tsx`,
+  `daily_verse_today`: today's, else the last week's latest). Everyone signed in may read them; quote a translation the
+  school may use (the KJV is free to quote).
 - **New tables need explicit grants.** Supabase no longer auto-grants new `public`
   tables to the Data API (from Oct 30, 2026), so the migration that creates a table must
   `grant select … to authenticated` (and `anon` if signed-out visitors read it) and

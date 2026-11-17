@@ -917,6 +917,41 @@ export type Database = {
           },
         ]
       }
+      daily_verses: {
+        Row: {
+          day: string
+          reference: string
+          thought: string
+          updated_at: string
+          updated_by: string | null
+          verse: string
+        }
+        Insert: {
+          day: string
+          reference: string
+          thought?: string
+          updated_at?: string
+          updated_by?: string | null
+          verse: string
+        }
+        Update: {
+          day?: string
+          reference?: string
+          thought?: string
+          updated_at?: string
+          updated_by?: string | null
+          verse?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_verses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dress_days: {
         Row: {
           created_at: string
@@ -4872,6 +4907,22 @@ export type Database = {
       student_login_request: { Args: { p_email: string; p_student: string }; Returns: Json }
       student_course: { Args: { p_course: string }; Returns: Json }
       staff_today: { Args: { p_day?: string }; Returns: Json }
+      daily_verse_delete: { Args: { p_day: string }; Returns: undefined }
+      daily_verse_save: {
+        Args: { p_day: string; p_reference: string; p_thought?: string; p_verse: string }
+        Returns: {
+          day: string
+          reference: string
+          thought: string
+          updated_at: string
+          updated_by: string | null
+          verse: string
+        }
+      }
+      daily_verse_today: {
+        Args: never
+        Returns: { day: string; reference: string; thought: string; verse: string }[]
+      }
       delete_my_account: { Args: { p_confirm: string }; Returns: string }
       form_remove: { Args: { p_form: string; p_removed?: boolean }; Returns: undefined }
       folder_bulletin_send: { Args: { p_body: string; p_sections: string[]; p_title: string }; Returns: string }

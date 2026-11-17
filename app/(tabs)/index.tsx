@@ -13,6 +13,7 @@ import { AlbumCard } from '../../src/gallery/AlbumCard';
 import { DayPager } from '../../src/info/DayPager';
 import { needsYou, type NeedRow } from '../../src/info/needsYou';
 import { CheckInCard } from '../../src/onsite/CheckInCard';
+import { VerseCard } from '../../src/devotion/VerseCard';
 import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
 import { useStaffView } from '../../src/staffView';
 import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
@@ -23,7 +24,8 @@ import { C, Card, FONT_STYLE, H, Loading, P, s, useLoad } from '../../src/ui';
 import { dateRange } from '../../src/site/calendar';
 
 /**
- * Planner: today's date in the header, a greeting, the next two weeks one day at a time
+ * Planner: today's date in the header, a greeting (and for students the verse for today, src/devotion/VerseCard.tsx),
+ * the next two weeks one day at a time
  * (swipe, or tap a day in the strip; it opens on today): the uniform, assignments, a
  * card for each of a parent's children, and the day's events, activities, volunteer
  * sign-ups and car line hours. Teachers and staff (on the Staff view) and substitutes first get Checking in at school
@@ -71,6 +73,7 @@ export default function Home() {
       onScroll={(e) => news.viewed(e.nativeEvent.contentOffset.y + e.nativeEvent.layoutMeasurement.height)}>
       <Text style={{ fontSize: 28, ...FONT_STYLE.heading, color: C.primary }} accessibilityRole="header">{greeting(schoolHour(now), person)}</Text>
 
+      {person?.schoolRole === 'student' && !person.pending && <VerseCard />}
       {(staffView || isSubstitute(person)) && <CheckInCard />}
       {needs.length > 0 && <NeedsYou rows={needs} />}
 

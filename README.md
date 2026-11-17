@@ -336,6 +336,11 @@ what's scheduled, showing and sent this month, offers quick starts (Early dismis
 [blanks] must be filled before it sends), and lists what's scheduled (cancel it), the splash pages showing (stop them) and
 what went out, each with a picture of it and bars for the counts: reached, opened, splash pages seen and button taps.
 
+**Daily verse** (Announcements → *Daily verse*, the same people). The school writes a verse for each day ahead of
+time: the reference, the verse and an optional thought for the day. Students see it at the top of their Planner, the
+verse in italics on the school's dark color, with the thought behind *Today's thought*; on a weekend or a day without
+one, the last one from the week. Quote a translation the school may use (the King James Version is free to quote).
+
 **CarPlay** (iPhone). On the car's screen, KH Royals shows today's car line for the
 parent's children with their pickup numbers: *I'm here* checks everyone in (with the
 phone's location, which the server checks like the phone app's), each child's row

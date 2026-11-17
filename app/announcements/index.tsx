@@ -16,7 +16,7 @@ import { SplashThumb } from '../../src/announcements/Preview';
 import { schoolToday } from '../../src/calendar/past';
 import { clock } from '../../src/carline/time';
 import { MfaGate } from '../../src/comms/MfaGate';
-import { Band, GoldButton, Heading, Stat, Stats } from '../../src/hub';
+import { Band, GoldButton, Heading, Stat, Stats, ToolGrid, ToolTile } from '../../src/hub';
 import { NAVY } from '../../src/sports/ui';
 import { confirmThen } from '../../src/sports/team/parts';
 import { oops } from '../../src/study/ui';
@@ -67,6 +67,10 @@ function History() {
         </Stats>
         <GoldButton icon="add" label="New announcement" onPress={() => router.push('/announcements/new')} />
       </Band>
+
+      <ToolGrid>
+        <ToolTile icon="book-outline" title="Daily verse" sub="The verse and thought on students' Planner" onPress={() => router.push('/announcements/verses')} />
+      </ToolGrid>
 
       <View style={{ gap: 6 }}>
         <Heading text="START FROM" />

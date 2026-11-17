@@ -5414,6 +5414,52 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
 });
 
+test("daily verse: the announcement senders write a day's verse ahead; students and everyone else read today's", async () => {
+  const save = (day: string, ref = 'Philippians 4:13', verse = 'I can do all things through Christ which strengtheneth me.', thought = 'Keep going.') =>
+    `select * from daily_verse_save(${day}, '${ref}', '${verse}', '${thought}')`;
+  const today = async () => (await rows(`select * from daily_verse_today()`))[0];
+
+  // Only push.send holders, in a verified session; not teachers, parents or students.
+  for (const who of ['u-eng', 'u-p01', 'u-s01']) {
+    await as(who);
+    await rejects(save('app.school_today()'), /permission/);
+  }
+  await as('u-admin');
+  await rejects(save('app.school_today()'), /authenticator|permission|verif/i);
+  await as('u-admin', true);
+  await rejects(save('app.school_today() - 1'), /today or a day coming up/);
+  await rejects(save('app.school_today()', ' '), /reference/);
+  await rejects(save('app.school_today()', 'John 3:16', ' '), /Add the verse/);
+  await one(save('app.school_today() + 1', 'Psalm 118:24', 'This is the day which the LORD hath made; we will rejoice and be glad in it.', ''));
+
+  // Nothing yet for today: a student sees no verse (tomorrow's isn't shown early).
+  await as('u-s01');
+  assert.equal(await today(), undefined);
+  assert.equal((await rows(`select 1 from daily_verses`)).length, 1, 'everyone signed in reads them');
+
+  // Today's shows; saving the day again replaces it; on a day without one, the last week's latest shows.
+  await as('u-admin', true);
+  await one(save('app.school_today()'));
+  await one(save('app.school_today()', 'Philippians 4:13', 'I can do all things through Christ which strengtheneth me.', 'You are not alone.'));
+  await as('u-s01');
+  const t = await today();
+  assert.deepEqual([t.reference, t.thought], ['Philippians 4:13', 'You are not alone.']);
+  await asSuper();
+  await db.exec(`update daily_verses set day = app.school_today() - 3 where day = app.school_today()`);
+  await as('u-p01');
+  assert.equal((await today()).reference, 'Philippians 4:13', 'the latest from the last week');
+  await asSuper();
+  await db.exec(`update daily_verses set day = app.school_today() - 8 where day = app.school_today() - 3`);
+  await as('u-p01');
+  assert.equal(await today(), undefined, 'not older than a week');
+
+  await as('u-admin', true);
+  await one(`select daily_verse_delete(app.school_today() + 1)`);
+  await asSuper();
+  assert.equal((await rows(`select 1 from daily_verses`)).length, 1);
+  await db.exec(`delete from daily_verses`);
+});
+
 test('announcements: senders reach an audience now or later; a splash page shows once to each person it went to', async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const admin = await uid('u-admin');
