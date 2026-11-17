@@ -125,6 +125,9 @@ export default function Classes() {
               <ToolTile icon="chatbubbles-outline" title="Messages" badge={unread} onPress={() => router.push('/teachers')}
                 sub={classes.length ? 'Ask the Teacher, with your students' : 'Every Ask the Teacher conversation'} />
             )}
+            {classes.length > 0 && (
+              <ToolTile icon="hand-left-outline" title="Help sessions" sub="Extra help your students book" onPress={() => router.push('/teachers/help')} />
+            )}
             {!office && classes.length > 0 && (
               <ToolTile icon="bed-outline" title="Absences" sub="Your students’, reported by parents" onPress={() => router.push('/forms/excused-absence')}
                 badge={today.absencesToday} />

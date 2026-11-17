@@ -512,6 +512,12 @@ Drove, Bus or Other, and parents are told. **Extended care** (Classes → Extend
 office sets which students stay on which days and who its staff are (the gear); its staff
 open today's check-out list and release each child only to someone on their pickup list.
 
+**Help sessions** (Ask the Teacher → *Help sessions*; Classes → *Help sessions* for teachers). A teacher offers extra
+help for the classes they lead: a name ("Essay help"), the classes, the day and time, the place, how many students can
+come and what to bring; the students in those classes are told. Students see the sessions for their classes with the
+spots left and book a spot, or give it back, until it starts. Only the teacher sees who booked; calling one off tells
+the students booked. Parents don't see them.
+
 **Assignments** (Apps → Assignments for students; a class's *Assignments* in Classes for teachers).
 Students see their classes' assignments and their own, and check them off for themselves. Tapping a
 class assignment opens it to **turn in work**: a PDF, Word, PowerPoint, Excel or text file from the

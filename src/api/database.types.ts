@@ -1219,6 +1219,119 @@ export type Database = {
           },
         ]
       }
+      help_session_bookings: {
+        Row: {
+          booked_at: string
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          booked_at?: string
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          booked_at?: string
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_session_bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "help_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_session_bookings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_session_sections: {
+        Row: {
+          section_id: string
+          session_id: string
+        }
+        Insert: {
+          section_id: string
+          session_id: string
+        }
+        Update: {
+          section_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_session_sections_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "rosters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_session_sections_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "help_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_sessions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          day: string
+          details: string
+          end_time: string
+          id: string
+          place: string
+          spots: number
+          start_time: string
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          day: string
+          details?: string
+          end_time: string
+          id?: string
+          place?: string
+          spots: number
+          start_time: string
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          day?: string
+          details?: string
+          end_time?: string
+          id?: string
+          place?: string
+          spots?: number
+          start_time?: string
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_sessions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           guardian_id: string
@@ -3751,6 +3864,23 @@ export type Database = {
       }
       group_archive: { Args: { p_archived: boolean; p_group: string }; Returns: Database["public"]["Tables"]["groups"]["Row"] }
       group_delete: { Args: { p_group: string; p_name: string }; Returns: undefined }
+      help_session_book: { Args: { p_book?: boolean; p_id: string }; Returns: undefined }
+      help_session_cancel: { Args: { p_id: string }; Returns: undefined }
+      help_session_save: {
+        Args: {
+          p_day: string
+          p_details: string
+          p_end: string
+          p_id: string | null
+          p_place: string
+          p_sections: string[]
+          p_spots: number
+          p_start: string
+          p_title: string
+        }
+        Returns: string
+      }
+      help_sessions_mine: { Args: never; Returns: Json }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }

@@ -60,3 +60,4 @@ export {
 } from './folderNotes';
 export { lunchWindows, saveLunchWindow, deleteLunchWindow, lunchClosedDays, closeLunchDay, lunchRules, setLunchRules, lunchKids, lunchSlots, lunchAllergyNotes, bookLunchVisit, cancelLunchVisit, myLunchVisits, lunchVisitors, type LunchWindow, type LunchSlot, type LunchKid, type MyLunchVisit, type LunchVisitor } from './lunch';
 export { dailyVerseToday, dailyVerses, saveDailyVerse, deleteDailyVerse, type DailyVerse } from './dailyVerse';
+export { helpSessionsMine, saveHelpSession, cancelHelpSession, bookHelpSession, type HelpSession, type HelpSessionInput } from './helpSessions';

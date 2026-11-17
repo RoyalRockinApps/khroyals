@@ -5414,6 +5414,99 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
 });
 
+test('help sessions: a teacher offers extra help for their classes; their students book spots; only the teacher sees who', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');   // in Jennifer's English 10 – Period 3
+  const asId = async (u: string) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${u}', false),
+      set_config('request.jwt.claims', json_build_object('sub', '${u}', 'aal', 'aal1')::text, false); set role authenticated;`);
+  };
+  await asSuper();
+  const classmates = (await rows(`select m.profile_id as id from roster_members m join profiles p on p.id = m.profile_id
+    where m.roster_id = 'eng10-p3' and p.school_role = 'student' and m.profile_id <> '${ava}' order by 1 limit 2`)).map((r) => r.id as string);
+  const outsider = (await one(`select p.id from profiles p where p.school_role = 'student'
+    and not exists (select 1 from roster_members where roster_id = 'eng10-p3' and profile_id = p.id) limit 1`)).id as string;
+  const save = (spots = 2, more = '') => `select help_session_save(${more || 'null'}, 'Essay help', 'Bring your draft.', app.school_today() + 2,
+    '15:15', '16:00', 'Room 204', ${spots}, array['eng10-p3']) as id`;
+  const mine = async () => (await one(`select help_sessions_mine() as l`)).l as any[];
+  const book = (h: string, yes = true) => `select help_session_book('${h}', ${yes})`;
+
+  // Only a class's own teacher offers sessions for it; parents and students don't.
+  await as('u-sci');
+  await rejects(save(), /classes you teach/);
+  for (const who of ['u-p01', 'u-s01']) { await as(who); await rejects(save(), /Teachers offer/); }
+  await as('u-eng');
+  await rejects(`select help_session_save(null, 'Essay help', '', app.school_today() - 1, '15:15', '16:00', '', 2, array['eng10-p3'])`, /today or a day coming up/);
+  await rejects(`select help_session_save(null, 'Essay help', '', app.school_today() + 1, '16:00', '15:15', '', 2, array['eng10-p3'])`, /ends after it starts/);
+  await rejects(`select help_session_save(null, ' ', '', app.school_today() + 1, '15:15', '16:00', '', 2, array['eng10-p3'])`, /Name it/);
+  const h = (await one(save())).id as string;
+
+  // Its students are told and see it; a parent, a Family account and a student outside the class don't.
+  await as('u-s01');
+  assert.ok((await rows(`select title from my_notifications() where data->>'helpSessionId' = '${h}'`)).some((n) => n.title === '🙋 Help session: Essay help'));
+  let list = await mine();
+  assert.deepEqual(list.map((x) => [x.title, x.spots, x.taken, x.booked, x.students, x.classes]), [['Essay help', 2, 0, false, null, ['English 10 – Period 3']]]);
+  for (const who of ['u-p01', 'u-gran']) {
+    await as(who);
+    assert.deepEqual(await mine(), [], who);
+    assert.equal((await rows(`select 1 from help_sessions`)).length, 0, who);
+    await rejects(book(h), /students in the teacher's classes/);
+  }
+  await asId(outsider);
+  assert.deepEqual(await mine(), []);
+  await rejects(book(h), /students in the teacher's classes/);
+
+  // Two spots: Ava and a classmate book, the next is turned away; booking twice is the same as once.
+  await as('u-s01');
+  await one(book(h));
+  await one(book(h));
+  await asId(classmates[0]);
+  await one(book(h));
+  assert.equal((await rows(`select 1 from help_session_bookings`)).length, 1, 'only their own booking');
+  await asId(classmates[1]);
+  await rejects(book(h), /full/);
+
+  // The teacher sees who booked; can't go below that many spots; the student gives a spot back.
+  await as('u-eng');
+  list = await mine();
+  assert.equal(list[0].taken, 2);
+  assert.equal(list[0].students.length, 2);
+  assert.match(list[0].students[0], /^Ava /);
+  await rejects(save(1, `'${h}'`), /2 students have booked/);
+  await one(save(3, `'${h}'`));
+  await as('u-s01');
+  assert.equal((await mine())[0].booked, true);
+  await one(book(h, false));
+  assert.equal((await mine())[0].booked, false);
+  await one(book(h));
+
+  // Calling it off tells the students booked; they still see it, marked, and can't book it.
+  await as('u-sci');
+  await rejects(`select help_session_cancel('${h}')`, /isn't yours/);
+  await as('u-eng');
+  await one(`select help_session_cancel('${h}')`);
+  await as('u-s01');
+  assert.ok((await rows(`select title from my_notifications() where data->>'helpSessionId' = '${h}'`)).some((n) => n.title === '❌ Called off: Essay help'));
+  assert.deepEqual((await mine()).map((x) => [x.cancelled, x.booked]), [[true, true]]);
+  await rejects(book(h, false), /called off/);
+  await asId(classmates[1]);
+  assert.deepEqual(await mine(), [], "a called-off session they hadn't booked is gone");
+
+  // Once it has started, nobody books; past days leave students' lists, and stay a week on the teacher's.
+  await as('u-eng');
+  const h2 = (await one(save())).id as string;
+  await asSuper();
+  await db.exec(`update help_sessions set day = app.school_today() - 1 where id = '${h2}'`);
+  await as('u-s01');
+  await rejects(book(h2), /already started/);
+  assert.ok(!(await mine()).some((x) => x.id === h2));
+  await as('u-eng');
+  assert.ok((await mine()).some((x) => x.id === h2 && x.started));
+  await asSuper();
+  await db.exec(`delete from help_sessions`);
+});
+
 test("daily verse: the announcement senders write a day's verse ahead; students and everyone else read today's", async () => {
   const save = (day: string, ref = 'Philippians 4:13', verse = 'I can do all things through Christ which strengtheneth me.', thought = 'Keep going.') =>
     `select * from daily_verse_save(${day}, '${ref}', '${verse}', '${thought}')`;

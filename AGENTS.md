@@ -171,6 +171,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (a class card's *Assignments*, `?section=`, and *Messages*). Students' Main Page is the short list in
   `src/appTiles.ts` (`student: false` hides a tile from them), three across in the order of `STUDENT_ORDER`: a new
   tile students see goes in that list too (`tests/app-tiles.test.ts`).
+  **Help sessions** (`help_sessions`, `help_session_sections`, `help_session_bookings`; `app/teachers/help.tsx`, from Ask
+  the Teacher and Classes): a section's lead teacher offers extra help for classes they lead (`help_session_save`; the
+  students in them are told), and those students (`app.help_session_students`; never parents, Family accounts or subs)
+  book a spot or give it back until it starts (`help_session_book`, locked so spots hold). Only the teacher sees who
+  booked (`help_sessions_mine`); calling one off tells the students booked (`help_session_cancel`).
   **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
   `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
   assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both

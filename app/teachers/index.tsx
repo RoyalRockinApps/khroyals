@@ -2,7 +2,8 @@
  * Ask the Teacher. A student sees each teacher of their classes and writes to them; a
  * teacher sees their students' conversations and can start one with any student in their
  * classes. Parents read their children's conversations (`?child=` from the Student app),
- * and admins with Student messages read all of them. Only the student and the teacher write.
+ * and admins with Student messages read all of them. Only the student and the teacher write. Students and teachers
+ * also find Help sessions here (app/teachers/help.tsx).
  */
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
@@ -13,6 +14,7 @@ import {
   type ClassStudent, type Person, type TeacherContact, type TeacherConversation,
 } from '../../src/api/connect';
 import { gradeLabel } from '../../src/comms/grades';
+import { SCHOOL } from '../../src/school';
 import { SectionTitle } from '../../src/volunteer/parts';
 import { Button, C, Card, H, Loading, P, s } from '../../src/ui';
 
@@ -54,7 +56,7 @@ export default function AskTheTeacher() {
   // A student: their teachers, with or without a conversation yet.
   if (me.schoolRole === 'student') return (
     <FlatList style={s.screen} contentContainerStyle={s.pad} data={data.teachers} keyExtractor={(t) => t.teacherId}
-      ListHeaderComponent={<>{header}<P muted>Message the teachers of your classes. Your parents can read these conversations too.</P></>}
+      ListHeaderComponent={<>{header}<HelpLink sub="Extra help your teachers offer; book a spot" /><P muted>Message the teachers of your classes. Your parents can read these conversations too.</P></>}
       ListEmptyComponent={<Card><P muted>Your teachers show up here once the school adds you to your classes.</P></Card>}
       renderItem={({ item: t }) => (
         <Row title={t.teacherName} sub={t.classes} last={t.lastBody} at={t.lastMessageAt} unread={t.unread}
@@ -71,6 +73,7 @@ export default function AskTheTeacher() {
     <FlatList style={s.screen} contentContainerStyle={s.pad} data={data.conversations} keyExtractor={(c) => c.id}
       ListHeaderComponent={<>
         {header}
+        {staff && <HelpLink sub="Offer extra help to the classes you lead" />}
         <P muted>{staff ? 'Conversations with the students in your classes. Their parents can read them too.'
           : parentWithKids ? "Your children's conversations with their teachers. You can read them; only your child and the teacher write."
           : 'Conversations between students and teachers.'}</P>
@@ -89,6 +92,23 @@ export default function AskTheTeacher() {
           ))}
         </View>
       ) : null} />
+  );
+}
+
+/** The way into Help sessions. */
+function HelpLink({ sub }: { sub: string }) {
+  return (
+    <Pressable onPress={() => router.push('/teachers/help')} accessibilityRole="button" accessibilityLabel={`Help sessions. ${sub}`}
+      style={({ pressed }) => [s.card, s.row, { gap: 12, marginBottom: 4 }, pressed && { opacity: 0.85 }]}>
+      <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: SCHOOL.theme.dark, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="hand-left-outline" size={22} color="#FFD54A" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>Help sessions</Text>
+        <Text style={{ color: C.muted }}>{sub}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={C.muted} />
+    </Pressable>
   );
 }
 
