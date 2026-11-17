@@ -433,6 +433,7 @@ export const ELSEWHERE: { perm: string; label: string; where: string; href: Href
   { perm: 'gallery.manage', label: 'Photo albums and categories', where: 'Photos', href: '/photos', icon: 'images-outline' },
   { perm: 'feedback.triage', label: 'Triage feedback', where: 'Feedback → Triage', href: '/feedback', icon: 'chatbubble-ellipses-outline' },
   { perm: 'college.manage', label: 'College counseling', where: 'College & Career → the gear', href: '/college/counsel', icon: 'school-outline' },
+  { perm: 'safety.reports', label: 'Tell Someone reports', where: 'Tell Someone', href: '/safety/reports', icon: 'heart-circle-outline' },
 ];
 
 /** The portal's own sections: the dashboard's tiles, each its own screen (/admin/<key>), for the permission that opens it. */

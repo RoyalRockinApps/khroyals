@@ -4146,6 +4146,13 @@ export type Database = {
       transcript_request_cancel: { Args: { p_id: string }; Returns: undefined }
       transcript_request_sent: { Args: { p_id: string; p_note?: string }; Returns: undefined }
       transcript_requests_all: { Args: never; Returns: Json }
+      my_safety_reports: { Args: never; Returns: Json }
+      safety_report: {
+        Args: { p_kind: string; p_named?: boolean; p_people?: string; p_place?: string; p_what: string; p_when?: string }
+        Returns: string
+      }
+      safety_report_update: { Args: { p_id: string; p_note?: string | null; p_status: string }; Returns: undefined }
+      safety_reports_all: { Args: never; Returns: Json }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }

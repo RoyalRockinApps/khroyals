@@ -60,6 +60,7 @@ export function notificationHref(data: Record<string, unknown> | null | undefine
   if (data.helpSessionId) return '/teachers/help';
   if (data.studentRecord) return '/student';
   if (data.transcriptRequestId) return data.counsel ? '/college/counsel' : '/college?tab=transcripts';
+  if (data.safetyReportId) return data.reports ? '/safety/reports' : '/safety';
   if (data.teacherThreadId) return `/teachers/${data.teacherThreadId}`;
   if (data.assignmentId) return '/assignments';
   if (data.formId) return `/forms/${data.formId}`;

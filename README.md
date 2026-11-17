@@ -540,6 +540,15 @@ permission, directors to start) gets *Counseling tools*: waiting requests first,
 and their parents are told), every 9th–12th grader's plan, and the dates and checklist to keep. A new request tells the
 counselors. The checklist starts with suggested steps for each grade, to change to the school's own.
 
+**Tell Someone** (Apps → Tell Someone, for students). It opens with what to do if someone is in danger right now: tell
+a teacher, or call 911 (or 988 if someone is thinking about hurting themselves), each a tap away. Then a student tells
+the school about bullying, someone who might hurt themselves or others, or something unsafe: what happened, where, when
+and who, with their name or without it (their choice; without it, the people who read reports don't see who sent it).
+The readers (the *Safety reports* permission, directors to start, who can give it to a counselor) are told at once,
+with "Urgent" when someone may be in danger, and work from *Tell Someone reports* (the Admin portal's tools in other
+apps): new ones first, mark one seen (the student is told the school has it), close it with a note only readers see.
+The student sees each of their reports and where it stands.
+
 **Assignments** (Apps → Assignments for students; a class's *Assignments* in Classes for teachers).
 Students see their classes' assignments and their own, and check them off for themselves. Tapping a
 class assignment opens it to **turn in work**: a PDF, Word, PowerPoint, Excel or text file from the

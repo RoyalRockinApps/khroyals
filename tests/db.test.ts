@@ -2036,7 +2036,7 @@ test('activity events: addresses, team photos, and families answer "Are you goin
 
 test('every public table grants its access explicitly (Supabase stops auto-granting new tables)', async () => {
   // Tables the app never reads directly; their data goes through functions.
-  const PRIVATE = new Set(['post_views', 'notification_dismissals', 'sis_alerts_sent']);
+  const PRIVATE = new Set(['post_views', 'notification_dismissals', 'sis_alerts_sent', 'safety_reports']);
   await asSuper();
   const tables = (await rows(`select table_name from information_schema.tables
                               where table_schema = 'public' and table_type = 'BASE TABLE'`)).map((r) => r.table_name as string);
@@ -5412,6 +5412,63 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
 
   await asSuper();
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
+});
+
+test('tell someone: students report to the safety readers, with or without their name; a name left off never reaches them', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');
+  const asId = async (u: string, mfa = false) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${u}', false),
+      set_config('request.jwt.claims', json_build_object('sub', '${u}', 'aal', '${mfa ? 'aal2' : 'aal1'}')::text, false); set role authenticated;`);
+  };
+  await asSuper();
+  const reader = (await one(`select id from profiles where admin_tier = 'director' and school_role is not null order by id limit 1`)).id as string;
+  const report = (kind: string, what: string, named: boolean) => `select safety_report('${kind}', '${what}', 'Gym', 'Today', '', ${named}) as id`;
+
+  // Students only.
+  for (const who of ['u-p01', 'u-eng']) { await as(who); await rejects(report('bullying', 'x', true), /for students/); }
+  await as('u-s01');
+  await rejects(report('gossip', 'x', true), /what it's about/);
+  await rejects(report('bullying', ' ', true), /what happened/);
+  const named = (await one(report('bullying', 'Someone keeps pushing a boy in the line.', true))).id;
+  const anon = (await one(report('self_harm', 'My friend said she wants to hurt herself.', false))).id;
+  await rejects(`select * from safety_reports`, /permission denied/);
+
+  // The readers are told at once, without the details or the student as the sender.
+  await asId(reader, true);
+  const told = await rows(`select title, data from my_notifications() where data ? 'safetyReportId'`);
+  assert.deepEqual(told.map((n) => n.title).sort(), ['🛟 New Tell Someone report', '🛟 Urgent: a student reported someone may be in danger']);
+  await asSuper();
+  assert.deepEqual((await rows(`select distinct created_by from notifications where data->>'safetyReportId' = '${anon}'`)).map((r) => r.created_by), [null]);
+
+  // The readers see every report, urgent new ones first; a name left off never reaches them.
+  await asId(reader, true);
+  const all = (await one(`select safety_reports_all() as l`)).l as any[];
+  assert.deepEqual(all.map((r) => [r.id, r.urgent, r.named]), [[anon, true, false], [named, false, true]]);
+  assert.match(all[1].reporter, /^Ava /);
+  assert.equal(all[0].reporter, null);
+  assert.ok(!JSON.stringify(all[0]).includes(ava) && !/Ava/.test(JSON.stringify(all[0]).replace('My friend', '')), 'nothing about who sent it');
+  await as('u-eng');
+  await rejects(`select safety_reports_all()`, /permission/);
+  await rejects(`select safety_report_update('${anon}', 'seen')`, /permission/);
+
+  // Marked seen, the student is told the school has it (even without their name); closing keeps a note only readers see.
+  await asId(reader, true);
+  await one(`select safety_report_update('${anon}', 'seen')`);
+  await one(`select safety_report_update('${named}', 'closed', 'Talked with both students and their parents.')`);
+  await rejects(`select safety_report_update('${named}', 'new')`, /seen or closed/);
+  await as('u-s01');
+  assert.ok((await rows(`select title from my_notifications() where data->>'safetyReportId' = '${anon}'`)).some((n) => n.title === '🛟 The school has your report'));
+  const mine = (await one(`select my_safety_reports() as l`)).l as any[];
+  assert.deepEqual(mine.map((r) => [r.id, r.status, r.named]).sort(), [[anon, 'seen', false], [named, 'closed', true]].sort());
+  assert.ok(!JSON.stringify(mine).includes('Talked with'), "the readers' note stays with them");
+
+  // At most 10 a day.
+  for (let k = 0; k < 8; k++) await one(report('other', `Report ${k}`, true));
+  await rejects(report('other', 'One more', true), /10 reports today/);
+  await asSuper();
+  await db.exec(`delete from safety_reports`);
 });
 
 test('college & career: the counselor keeps dates and the checklist and sends transcripts; 9th–12th graders plan; parents read', async () => {

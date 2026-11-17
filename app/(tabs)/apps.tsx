@@ -61,6 +61,7 @@ const ALL_APPS: App[] = [
   // Students' own notes and flash cards (private to them).
   { label: 'Study', icon: 'library', color: SCHOOL.theme.dark, href: '/study', family: false, studentApp: true },
   { label: 'College & Career', icon: 'school', color: SCHOOL.theme.dark, href: '/college', family: false, studentApp: true, minGrade: 9 },
+  { label: 'Tell Someone', icon: 'heart-circle', color: SCHOOL.theme.dark, href: '/safety', family: false, studentApp: true },
 ];
 /** The Handbook only for a school whose handbook is in the app. */
 const APPS = ALL_APPS.filter((a) => a.href !== '/handbook' || PAGES.length > 0);

@@ -190,6 +190,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   mark transcripts sent (`transcript_request_sent`: the student and parents are told). Plans are read by the student,
   their parents (never Family accounts) and the counselors (`app.reads_college_plan`). `app.permission_holders(perm)`
   lists who holds a permission, for telling them.
+- **Tell Someone** (`safety_reports`, private: only through its functions; `app/safety`, a `studentApp` tile for every
+  grade): a student reports bullying, someone who might hurt themselves or others, or something unsafe (`safety_report`,
+  10 a day), choosing whether to include their name. The readers (**Safety reports**, `safety.reports`, directors to
+  start; an admin power, so `aal2`; `app/safety/reports.tsx` behind `MfaGate`) are told at once without the details and
+  with no sender on the notification (urgent kinds, `app.safety_urgent`, say so), read them (`safety_reports_all`: the
+  name only when included), mark one seen (the student is told) and close it with a note only readers see
+  (`safety_report_update`). A name left off is kept in `reporter_id` only so the student can follow their reports and the
+  limit holds; never return it to a reader. Kinds are in both `src/safety/kinds.ts` and the database check
+  (`tests/safety.test.ts`). Keep the in-danger-now box (a teacher, 911, 988) on top of the screen.
   **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
   `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
   assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both
