@@ -5,8 +5,9 @@
  * - `family: false` keeps a tile off Family accounts' page; `student: false` off students'.
  * - `staffOnly` tiles (Alerts) and `adminOnly` tiles (the admin portal) show only in staff view.
  * - `staffVersion` tiles (Car Line, Calendar, Forms, Ask the School) open in their staff version in staff view.
- * - `studentApp` tiles (Ask the Teacher, Assignments, Study) are for students only; teachers reach the
- *   teacher side of the first two from Classes, and Study is the student's own.
+ * - `studentApp` tiles (Ask the Teacher, Assignments, Study, College & Career) are for students only; teachers reach the
+ *   teacher side of the first two from Classes, and Study is the student's own. `minGrade` keeps one from younger
+ *   students (College & Career: 9th grade up).
  * - `inStaffView: false` tiles (Student, News, Marketplace, Volunteer, Handbook) are left out of the
  *   staff view; staff find them on the Standard view.
  * - `announce` tiles (Announcements) show only in staff view, to people who send the school's notifications.
@@ -18,6 +19,7 @@
  */
 export type TileRules = {
   family?: false; student?: false; inStaffView?: false; staffOnly?: true; adminOnly?: true; staffVersion?: true; studentApp?: true; sub?: true; subOnly?: true; announce?: true;
+  minGrade?: number;
 };
 
 /**
@@ -25,7 +27,7 @@ export type TileRules = {
  * `student`: a student account. `substitute`: a Substitute account. `admin`: has admin powers.
  * `announce`: sends the school's notifications (Send notifications, push.send).
  */
-export type Viewer = { staffView: boolean; family: boolean; admin: boolean; student?: boolean; substitute?: boolean; announce?: boolean };
+export type Viewer = { staffView: boolean; family: boolean; admin: boolean; student?: boolean; substitute?: boolean; announce?: boolean; grade?: number | null };
 
 export function visibleTiles<T extends TileRules>(tiles: T[], v: Viewer): (T & { elevated: boolean })[] {
   return tiles
@@ -34,7 +36,7 @@ export function visibleTiles<T extends TileRules>(tiles: T[], v: Viewer): (T & {
       : t.adminOnly ? v.staffView && v.admin
       : t.announce ? v.staffView && !!v.announce
       : t.staffOnly ? v.staffView
-      : t.studentApp ? !!v.student
+      : t.studentApp ? !!v.student && (t.minGrade === undefined || (v.grade ?? -99) >= t.minGrade)
       : v.student ? t.student !== false
       : !(v.family && t.family === false)))
     .map((t) => ({ ...t, elevated: v.staffView && !!(t.staffOnly || t.adminOnly || t.staffVersion || t.announce) }))
@@ -42,7 +44,8 @@ export function visibleTiles<T extends TileRules>(tiles: T[], v: Viewer): (T & {
 }
 
 /** The order of students' Main Page tiles, read left to right, three across. Tiles not named here follow, as listed. */
-export const STUDENT_ORDER = ['Student', 'Activities', 'Calendar', 'Ask the Teacher', 'Assignments', 'Study', 'News', 'Handbook', 'Photos', 'Feedback'];
+export const STUDENT_ORDER = ['Student', 'Activities', 'Calendar', 'Ask the Teacher', 'Assignments', 'Study', 'News', 'Handbook', 'Photos', 'Feedback',
+  'College & Career', 'Tell Someone'];
 
 export function inStudentOrder<T extends { label: string }>(tiles: T[]): T[] {
   const at = (t: T) => { const i = STUDENT_ORDER.indexOf(t.label); return i < 0 ? STUDENT_ORDER.length : i; };

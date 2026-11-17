@@ -60,6 +60,7 @@ const ALL_APPS: App[] = [
   { label: 'Assignments', image: TILES.assignments, icon: 'checkbox', color: SCHOOL.theme.dark, href: '/assignments', family: false, studentApp: true },
   // Students' own notes and flash cards (private to them).
   { label: 'Study', icon: 'library', color: SCHOOL.theme.dark, href: '/study', family: false, studentApp: true },
+  { label: 'College & Career', icon: 'school', color: SCHOOL.theme.dark, href: '/college', family: false, studentApp: true, minGrade: 9 },
 ];
 /** The Handbook only for a school whose handbook is in the app. */
 const APPS = ALL_APPS.filter((a) => a.href !== '/handbook' || PAGES.length > 0);
@@ -116,7 +117,8 @@ export default function Apps() {
   const staffView = staff && staffSetting;
   const student = !!person && !person.pending && person.schoolRole === 'student';
   // Until we know who's signed in (the app is still loading their profile), no tiles: never someone else's set.
-  const tiles = live && !person ? [] : visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person) });
+  const tiles = live && !person ? [] : visibleTiles(APPS, { staffView, family: isFamily(person), admin, announce, student, substitute: isSubstitute(person),
+    grade: person?.grade });
   const apps = student ? inStudentOrder(tiles) : tiles;
   // Three tiles across on phones, up to five on iPads and tablets; students' always three.
   const width = useContentWidth();

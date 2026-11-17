@@ -530,6 +530,16 @@ different days). Students and their parents see the week in the Student app, one
 *Now* and *Next* class at the top of their Planner (skipping No School, In-Service and E-Learning days). Until the times
 are set, nothing shows; later they can come from FACTS.
 
+**College & Career** (Apps → College & Career for 9th–12th graders; parents open their child's from the Student app;
+the counselor from the Admin portal or the app's gear). Three tabs. *Checklist*: each grade's steps (meet your counselor,
+take the PSAT, visit colleges, the FAFSA…), the student's own grade first, checked off by the student. *Dates*: the
+school's test dates with registration deadlines (red within a week), scholarships with their deadlines and college
+events, past ones behind *Show past*. *Transcripts*: the student asks for one to go to a college (through its portal,
+by email or by mail, needed by a day), sees it waiting, sent or called off. The counselor (the *College counseling*
+permission, directors to start) gets *Counseling tools*: waiting requests first, marked sent with a note (the student
+and their parents are told), every 9th–12th grader's plan, and the dates and checklist to keep. A new request tells the
+counselors. The checklist starts with suggested steps for each grade, to change to the school's own.
+
 **Assignments** (Apps → Assignments for students; a class's *Assignments* in Classes for teachers).
 Students see their classes' assignments and their own, and check them off for themselves. Tapping a
 class assignment opens it to **turn in work**: a PDF, Word, PowerPoint, Excel or text file from the

@@ -63,3 +63,8 @@ export { dailyVerseToday, dailyVerses, saveDailyVerse, deleteDailyVerse, type Da
 export { helpSessionsMine, saveHelpSession, cancelHelpSession, bookHelpSession, type HelpSession, type HelpSessionInput } from './helpSessions';
 export { classSchedule, myNextClasses, classTimes, saveClassTime, deleteClassTime, type ClassMeeting, type NextClass } from './schedule';
 export { studentAlerts, type StudentAlerts } from './studentAlerts';
+export {
+  collegeDates, collegePlan, checkCollegeStep, requestTranscript, cancelTranscriptRequest, transcriptRequestsAll, markTranscriptSent, collegeStudents,
+  saveCollegeDate, deleteCollegeDate, saveCollegeStep, deleteCollegeStep,
+  type CollegeDate, type CollegeDateKind, type CollegeStep, type CollegePlan, type CollegeStudent, type TranscriptRequest, type TranscriptMethod,
+} from './college';

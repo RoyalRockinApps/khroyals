@@ -62,7 +62,8 @@ test('Announcements: in the staff view, only for people who send the school\'s n
 });
 
 test("students' tiles go in their own order, three across", () => {
-  const listed = ['Student', 'Activities', 'Photos', 'News', 'Calendar', 'Handbook', 'Feedback', 'Ask the Teacher', 'Assignments', 'Study', 'Something new']
+  const listed = ['Student', 'Activities', 'Photos', 'News', 'Calendar', 'Handbook', 'Feedback', 'Tell Someone', 'Ask the Teacher', 'Assignments', 'Study',
+    'College & Career', 'Something new']
     .map((label) => ({ label }));
   assert.deepEqual(inStudentOrder(listed).map((t) => t.label), [...STUDENT_ORDER, 'Something new']);
   assert.deepEqual(inStudentOrder([{ label: 'Feedback' }, { label: 'Calendar' }]).map((t) => t.label), ['Calendar', 'Feedback'], 'a missing tile leaves no gap');
@@ -74,4 +75,15 @@ test("every tile a student sees on the Main Page has its place in the students' 
   const tiles = [...src.matchAll(/\{ label: '([^']+)'([^}]*)\}/g)].map((m) => ({ label: m[1], rest: m[2] }))
     .filter((t) => !/student: false|staffOnly|adminOnly|subOnly|announce: true/.test(t.rest));
   assert.deepEqual(tiles.map((t) => t.label).filter((l) => !STUDENT_ORDER.includes(l)), []);
+});
+
+test('College & Career: students from 9th grade up, and nobody else', () => {
+  const tiles = [...TILES, { label: 'College & Career', family: false as const, studentApp: true as const, minGrade: 9 }];
+  const see = (v: Parameters<typeof visibleTiles>[1]) => visibleTiles(tiles, v).map((t) => t.label).includes('College & Career');
+  assert.equal(see({ staffView: false, family: false, admin: false, student: true, grade: 9 }), true);
+  assert.equal(see({ staffView: false, family: false, admin: false, student: true, grade: 12 }), true);
+  assert.equal(see({ staffView: false, family: false, admin: false, student: true, grade: 8 }), false);
+  assert.equal(see({ staffView: false, family: false, admin: false, student: true, grade: null }), false);
+  assert.equal(see({ staffView: false, family: false, admin: false }), false, 'parents reach it from the Student app');
+  assert.equal(see({ staffView: true, family: false, admin: true }), false, 'counselors from the Admin portal');
 });

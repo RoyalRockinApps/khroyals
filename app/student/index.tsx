@@ -102,6 +102,14 @@ export default function Student() {
           <Ionicons name="chevron-forward" size={18} color={C.muted} />
         </Pressable>
       )}
+      {parent && pick && (data?.students.find((x) => x.id === pick)?.grade ?? 0) >= 9 && (
+        <Pressable onPress={() => router.push({ pathname: '/college', params: { child: pick } })} accessibilityRole="link"
+          style={({ pressed }) => [s.card, s.row, pressed && { opacity: 0.8 }]}>
+          <Ionicons name="school-outline" size={22} color={C.primary} />
+          <Text style={{ flex: 1, fontWeight: '700', color: C.ink }}>College & Career plan</Text>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </Pressable>
+      )}
       {parent && <Button kind="ghost" label="My children: photos, allergies, add a child" onPress={() => router.push('/children')} />}
       {data?.record && (
         <Text style={{ color: C.primary, fontWeight: '700', textAlign: 'center' }} accessibilityRole="link" onPress={() => Linking.openURL(FACTS_PORTAL)}>

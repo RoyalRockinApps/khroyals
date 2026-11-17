@@ -5414,6 +5414,86 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
 });
 
+test('college & career: the counselor keeps dates and the checklist and sends transcripts; 9th–12th graders plan; parents read', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');   // 10th grade; Rosa's daughter
+  const asId = async (u: string, mfa = false) => {
+    await asSuper();
+    await db.exec(`select set_config('request.jwt.claim.sub', '${u}', false),
+      set_config('request.jwt.claims', json_build_object('sub', '${u}', 'aal', '${mfa ? 'aal2' : 'aal1'}')::text, false); set role authenticated;`);
+  };
+  await asSuper();
+  const counselor = (await one(`select id from profiles where admin_tier = 'director' and school_role is not null order by id limit 1`)).id as string;
+  const young = (await one(`select id from profiles where school_role = 'student' and grade between 0 and 8 limit 1`)).id as string;
+  assert.ok((await rows(`select 1 from permission_catalog() where key = 'college.manage'`)).length === 1);
+  const plan = async (student = '') => (await one(`select college_plan(${student ? `'${student}'` : ''}) as p`)).p;
+  const titles = async () => (await rows(`select title, data from my_notifications() where data ? 'transcriptRequestId'`));
+
+  // Only the counselors keep the dates and the checklist (directors to start; an admin power, so verified).
+  await as('u-eng');
+  await rejects(`select college_date_save(null, 'test', 'ACT', app.school_today() + 20)`, /permission/);
+  await asId(counselor, true);
+  await rejects(`select college_date_save(null, 'test', 'ACT', app.school_today() + 20, app.school_today() + 25)`, /closes before the test/);
+  await rejects(`select college_date_save(null, 'test', 'ACT', app.school_today() + 20, null, 'http://act.org')`, /https/);
+  await rejects(`select college_date_save(null, 'fair', 'ACT', app.school_today() + 20)`, /test, a scholarship or an event/);
+  const act = (await one(`select college_date_save(null, 'test', 'ACT', app.school_today() + 20, app.school_today() + 5, 'https://www.act.org', 'At school.') as id`)).id;
+  await rejects(`select college_step_save(null, 8, 'Visit colleges')`, /9th to 12th/);
+  const step = (await one(`select college_step_save(null, 10, 'Shadow someone at work', '') as id`)).id;
+
+  // Everyone signed in reads the dates; a 9th–12th grader checks steps off, a younger student can't.
+  await as('u-p05');
+  assert.ok((await rows(`select title from college_dates`)).some((d) => d.title === 'ACT'));
+  await asId(young);
+  await rejects(`select college_step_check('${step}')`, /9th to 12th/);
+  await rejects(`select transcript_request('State U', 'portal')`, /9th to 12th/);
+  await as('u-s01');
+  await one(`select college_step_check('${step}')`);
+  const mine = await plan();
+  assert.equal(mine.student.grade, 10);
+  assert.ok(mine.steps.find((x: any) => x.id === step).doneAt, 'checked off');
+  assert.ok(mine.steps.length > 10, 'the starting checklist');
+
+  // Her mother and the counselor read her plan; another family, a Family account and a teacher don't.
+  await as('u-p01');
+  assert.ok((await plan(ava)).steps.find((x: any) => x.id === step).doneAt);
+  await rejects(`select college_step_check('${step}')`, /9th to 12th/);
+  for (const who of ['u-p02', 'u-gran', 'u-eng']) { await as(who); assert.equal(await plan(ava), null, who); }
+  await asId(counselor, true);
+  assert.equal((await plan(ava)).student.firstName, 'Ava');
+  assert.ok((await one(`select count(*)::int as n from college_students() where id = '${ava}'`)).n === 1);
+
+  // Ava asks for a transcript; the counselors are told and send it; she and her mother are told.
+  await as('u-s01');
+  await rejects(`select transcript_request('State U', 'email', '')`, /email address/);
+  await rejects(`select transcript_request(' ', 'portal')`, /where it goes/);
+  const tr = (await one(`select transcript_request('State U', 'portal', '', app.school_today() + 14, 'Early action') as id`)).id;
+  const other = (await one(`select transcript_request('Tech College', 'mail', '1 College Ave') as id`)).id;
+  await one(`select transcript_request_cancel('${other}')`);
+  await rejects(`select transcript_request_cancel('${other}')`, /waiting request of yours/);
+  await asId(counselor, true);
+  const t = (await titles()).find((n) => n.data.transcriptRequestId === tr);
+  assert.match(t.title, /^📄 Transcript request: Ava /);
+  assert.equal(t.data.counsel, true);
+  const all = (await one(`select transcript_requests_all() as l`)).l as any[];
+  assert.deepEqual(all.filter((r) => r.studentId === ava).map((r) => [r.sendTo, r.status]), [['State U', 'requested'], ['Tech College', 'cancelled']]);
+  await one(`select transcript_request_sent('${tr}', 'Sent through Parchment.')`);
+  await rejects(`select transcript_request_sent('${tr}')`, /isn't waiting/);
+  await as('u-eng');
+  await rejects(`select transcript_requests_all()`, /permission/);
+  await rejects(`select transcript_request_sent('${tr}')`, /permission/);
+  await as('u-s01');
+  assert.ok((await titles()).some((n) => n.title === '📄 Your transcript went to State U'));
+  assert.equal((await plan()).requests.find((r: any) => r.id === tr).counselorNote, 'Sent through Parchment.');
+  await as('u-p01');
+  assert.ok((await titles()).some((n) => n.title === "📄 Ava's transcript went to State U"));
+
+  await asId(counselor, true);
+  await one(`select college_date_delete('${act}')`);
+  await one(`select college_step_delete('${step}')`);
+  await asSuper();
+  await db.exec(`delete from transcript_requests; delete from college_dates`);
+});
+
 test('student alerts: new missing work and classes below the line reach the student and their parents once', async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const ava = await uid('u-s01');   // Rosa's daughter

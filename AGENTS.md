@@ -181,6 +181,15 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   meets (`section_meeting_save`). Staff, its students and their parents read them (`app.sees_class_times`; never Family
   accounts): the week in the Student app (`class_schedule`, `src/schedule/ScheduleCard.tsx`) and Now / Next class on
   students' Planner (`my_next_classes`, skipping `app.no_school` days). The FACTS connector can fill them later.
+- **College & Career** (`college_dates`, `college_steps`, `college_steps_done`, `transcript_requests`; `app/college`, a
+  `studentApp` tile with `minGrade: 9`; parents from the Student app with `?child=`; counselors from the Admin portal's
+  tools in other apps): 9th–12th graders (`app.college_student`) check off each grade's steps and ask for transcripts
+  (`transcript_request`: the counselors are told, `data.counsel`); the counselors (**College counseling**,
+  `college.manage`, directors to start; an admin power, so `aal2`; `app/college/counsel.tsx` behind `MfaGate`) keep the
+  test dates, scholarships and events (`college_date_save`) and the checklist (`college_step_save`), see every plan, and
+  mark transcripts sent (`transcript_request_sent`: the student and parents are told). Plans are read by the student,
+  their parents (never Family accounts) and the counselors (`app.reads_college_plan`). `app.permission_holders(perm)`
+  lists who holds a permission, for telling them.
   **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
   `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
   assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both

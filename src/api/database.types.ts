@@ -1402,6 +1402,164 @@ export type Database = {
           },
         ]
       }
+      college_dates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day: string
+          details: string
+          id: string
+          kind: string
+          link: string | null
+          register_by: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day: string
+          details?: string
+          id?: string
+          kind: string
+          link?: string | null
+          register_by?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          details?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          register_by?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "college_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      college_steps: {
+        Row: {
+          created_at: string
+          details: string
+          grade: number
+          id: string
+          position: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string
+          grade: number
+          id?: string
+          position?: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          details?: string
+          grade?: number
+          id?: string
+          position?: number
+          title?: string
+        }
+        Relationships: [
+        ]
+      }
+      college_steps_done: {
+        Row: {
+          done_at: string
+          step_id: string
+          student_id: string
+        }
+        Insert: {
+          done_at?: string
+          step_id: string
+          student_id: string
+        }
+        Update: {
+          done_at?: string
+          step_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "college_steps_done_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "college_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "college_steps_done_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcript_requests: {
+        Row: {
+          address: string
+          counselor_note: string
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          method: string
+          needed_by: string | null
+          note: string
+          send_to: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          address?: string
+          counselor_note?: string
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          method: string
+          needed_by?: string | null
+          note?: string
+          send_to: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          address?: string
+          counselor_note?: string
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          method?: string
+          needed_by?: string | null
+          note?: string
+          send_to?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           guardian_id: string
@@ -3965,6 +4123,29 @@ export type Database = {
         Returns: string
       }
       student_alerts: { Args: { p_student?: string }; Returns: Json }
+      college_date_delete: { Args: { p_id: string }; Returns: undefined }
+      college_date_save: {
+        Args: { p_day: string; p_details?: string; p_id: string | null; p_kind: string; p_link?: string; p_register_by?: string | null; p_title: string }
+        Returns: string
+      }
+      college_plan: { Args: { p_student?: string }; Returns: Json }
+      college_step_check: { Args: { p_done?: boolean; p_step: string }; Returns: undefined }
+      college_step_delete: { Args: { p_id: string }; Returns: undefined }
+      college_step_save: {
+        Args: { p_details?: string; p_grade: number; p_id: string | null; p_position?: number; p_title: string }
+        Returns: string
+      }
+      college_students: {
+        Args: never
+        Returns: { done: number; grade: number; id: string; name: string; waiting: number }[]
+      }
+      transcript_request: {
+        Args: { p_address?: string; p_method: string; p_needed_by?: string | null; p_note?: string; p_send_to: string }
+        Returns: string
+      }
+      transcript_request_cancel: { Args: { p_id: string }; Returns: undefined }
+      transcript_request_sent: { Args: { p_id: string; p_note?: string }; Returns: undefined }
+      transcript_requests_all: { Args: never; Returns: Json }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }
