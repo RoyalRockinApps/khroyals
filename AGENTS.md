@@ -60,6 +60,13 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   (`admin_roles`; director is built in) and permissions are only for real accounts.
   There may be several directors but never zero (trigger `app.keep_a_director`);
   `patguettler@gmail.com` is a director.
+- **Sample data on live** (`scripts/presentation_data.mjs`, tested by `tests/presentation-data.test.ts`): made-up staff,
+  families and high schoolers with samples for every feature (classes, forms, activities, volunteering, grade records,
+  class times, help sessions, roll, the Folder, absences, lunch visits, boards, Study, daily verses, College & Career),
+  around the real test accounts (`--parent`, `--teacher`, `--senior`). Rows are written directly with fixed ids, so
+  nothing is sent and a rerun replaces them; the sample classes stay through a rerun so a tester's own place in one
+  stays. `--remove` takes it all out before launch. Never sample Tell Someone reports or critical alerts. A new feature
+  adds its samples here.
 - **Deleting accounts** (`admin_delete_user`) needs `people.delete` (directors by default; they can
   give it to a role or person). It refuses yourself, directors and children (remove them as students),
   and admins unless the caller also has `admins.manage`. It deletes their posts (anonymous ones too) and
