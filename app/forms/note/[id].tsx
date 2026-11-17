@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   deleteFolderNote, errorText, myFolderNotes, readFolderNote, removeFolderNote, sentFolderNotes, type FolderNote, type Person, type SentFolderNote,
 } from '../../../src/api/connect';
+import { AttachmentList } from '../../../src/schoolForms/AttachmentViews';
 import { FormsGate } from '../../../src/schoolForms/FormsGate';
 import { SCHOOL } from '../../../src/school';
 import { Button, C, Card, Loading, P, ask, s } from '../../../src/ui';
@@ -76,6 +77,7 @@ function Note({ id, me }: { id: string; me: Person }) {
         )}
         {!!n.title && <Text style={{ fontSize: 24, fontWeight: '800', color: C.ink }}>{n.title}</Text>}
         <Text selectable style={{ fontSize: 17, lineHeight: 26, color: C.ink }}>{n.body}</Text>
+        <AttachmentList attachments={n.attachments ?? []} />
         {mine && <Text style={{ color: C.muted, fontWeight: '700' }}>— {mine.from}</Text>}
       </View>
 

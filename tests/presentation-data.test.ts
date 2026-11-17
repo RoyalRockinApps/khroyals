@@ -3,15 +3,16 @@
  * migration, in PGlite), shows up for the test parent, their children, the class they
  * teach and the student login, gives the volunteer analytics two school years of high,
  * normal and low volunteers and the Student app records from the school's system, sets up the
- * senior test login (high school classes, College & Career) and the class tools' samples, loads
+ * senior test login (high school classes, College & Career) and the class tools' samples (the Folder's with pictures,
+ * a PDF and links), loads
  * again over itself (keeping a tester's own place in a class), and comes out completely.
  */
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { buildSql, schoolDay } from '../scripts/presentation_data.mjs';
+import { buildSql, schoolDay, SAMPLE_FILES } from '../scripts/presentation_data.mjs';
 import { average } from '../src/student/grades';
 
 const ROOT = join(__dirname, '..');
@@ -178,12 +179,23 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   const n = async (t: string) => count(`select 1 from ${t}`);
   assert.deepEqual([await n('section_meetings'), await n('help_sessions'), await n('help_session_bookings'), await n('folder_notes'), await n('parent_notes'),
     await n('absence_reports'), await n('lunch_visits'), await n('study_decks'), await n('study_notes'), await n('daily_verses'), await n('college_dates'),
-    await n('transcript_requests')], [8, 4, 7, 4, 2, 2, 2, 4, 2, 12, 6, 4]);
+    await n('transcript_requests'), await n('folder_note_attachments')], [8, 4, 7, 4, 2, 2, 2, 4, 2, 12, 6, 4, 6]);
   assert.ok((await n('class_attendance')) > 50, 'five days of roll');
   assert.equal(await count(`select 1 from board_items i join boards b on b.id = i.board_id join profiles p on p.id = b.teacher_id where p.last_name = 'Taylor'`), 3);
   await as(ME);
-  const folder = (await one(`select my_folder_notes() as n`)).n.map((x: any) => x.title || x.kind).sort();
-  assert.deepEqual(folder, ['Book Fair next week', 'Pumpkin patch reminders', 'note']);
+  const notes = (await one(`select my_folder_notes() as n`)).n;
+  assert.deepEqual(notes.map((x: any) => x.title || x.kind).sort(), ['Book Fair next week', 'Pumpkin patch reminders', 'note']);
+  // Pictures, a PDF and links: the Book Fair's flyer and link, the note's certificate, the pumpkin patch picture.
+  assert.deepEqual(notes.map((x: any) => `${x.title || x.kind}: ${x.attachments.map((a: any) => a.kind).join(' ')}`).sort(),
+    ['Book Fair next week: image link', 'Pumpkin patch reminders: image', 'note: image']);
+  await db.exec('reset role');
+  const paths = (await db.query<any>(`select path from folder_note_attachments where path is not null order by path`)).rows.map((r) => r.path);
+  assert.deepEqual(paths, SAMPLE_FILES.map((f) => f.path).sort(), 'every file is uploaded, and only those');
+  for (const f of SAMPLE_FILES) {
+    assert.equal(statSync(join(ROOT, 'scripts/sample-files', f.file)).size, f.size, f.file);
+    assert.ok(f.path.startsWith(`${(await one(`select author_id from folder_notes n join folder_note_attachments a on a.note_id = n.id where a.path = '${f.path}'`)).author_id}/`),
+      `${f.file} is in its author's own folder`);
+  }
   // The senior: high school classes and their times, Needs attention (already counted as told), and a plan underway.
   await as(SENIOR);
   assert.deepEqual((await db.query<any>(`select distinct class_name from class_schedule() order by 1`)).rows.map((r) => r.class_name), ['Chemistry', 'English 11', 'U.S. History']);
@@ -206,7 +218,7 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   assert.equal(await count(`select 1 from college_steps_done`), 0);
   for (const t of ['forms', 'market_listings', 'volunteer_opportunities', 'volunteer_events', 'assignments', 'rosters', 'teacher_threads', 'sport_events', 'sport_registrations',
     'sis_students', 'sis_courses', 'sis_assignments', 'sis_attendance', 'sis_terms', 'section_meetings', 'help_sessions', 'class_attendance', 'folder_notes',
-    'parent_notes', 'absence_reports', 'lunch_visits', 'study_decks', 'study_notes', 'daily_verses', 'college_dates', 'transcript_requests', 'sis_alerts_sent']) {
+    'folder_note_attachments', 'parent_notes', 'absence_reports', 'lunch_visits', 'study_decks', 'study_notes', 'daily_verses', 'college_dates', 'transcript_requests', 'sis_alerts_sent']) {
     assert.equal(await count(`select 1 from ${t}`), 0, t);
   }
   assert.equal(await count(`select 1 from sports`), 3, 'the real activities stay');

@@ -55,8 +55,9 @@ export { removeForm, myForms, sentForms, formStatus, sendForm, signForm, remindF
 export { adminListSections, adminSectionStudents, adminSaveSection, adminSectionMember, adminDeleteSection } from './classes';
 export { listAbsences, reportAbsence, cancelAbsence, markAbsenceSeen, attachDoctorNote, removeDoctorNote, doctorNoteUrl, type AbsenceReport, type DoctorNoteFile } from './absences';
 export {
-  myFolderNotes, sentFolderNotes, sendBulletin, sendFolderNote, deleteFolderNote, readFolderNote, removeFolderNote, parentNoteTeachers, sendParentNote,
+  myFolderNotes, sentFolderNotes, sendBulletin, sendFolderNote, deleteFolderNote, readFolderNote, removeFolderNote, parentNoteTeachers, sendParentNote, folderFileUrls,
   readParentNote, parentNotes, type FolderNote, type FolderNoteKind, type SentFolderNote, type ParentNote, type ChildTeachers,
+  type FolderAttachment, type AttachmentUpload,
 } from './folderNotes';
 export { lunchWindows, saveLunchWindow, deleteLunchWindow, lunchClosedDays, closeLunchDay, lunchRules, setLunchRules, lunchKids, lunchSlots, lunchAllergyNotes, bookLunchVisit, cancelLunchVisit, myLunchVisits, lunchVisitors, type LunchWindow, type LunchSlot, type LunchKid, type MyLunchVisit, type LunchVisitor } from './lunch';
 export { dailyVerseToday, dailyVerses, saveDailyVerse, deleteDailyVerse, type DailyVerse } from './dailyVerse';

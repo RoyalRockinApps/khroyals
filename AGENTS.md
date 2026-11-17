@@ -348,6 +348,12 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   bulletin's students read it too, read-only (`app.reads_folder_note`); a teacher's note is never a student's. Opening one
   marks it read (`folder_note_read`); parents remove it for themselves (`folder_note_remove`, never students).
   The author sees how many parents opened each (`sent_folder_notes`; students' opens don't count) and deletes it (`folder_note_delete`).
+  **Attachments** (`folder_note_attachments`; private `folder-files` bucket under the teacher's own folder;
+  `src/schoolForms/attachments.ts`, `AttachmentViews.tsx`, `pickAttachment.ts`): up to 6 pictures (JPEG, PNG), PDFs and
+  https links, sent with the note in one transaction (the four-argument `folder_bulletin_send` / `folder_note_send`,
+  `app.folder_note_attach`). Only the author and the note's readers open the files (`app.reads_folder_files`). Pictures
+  open full screen; PDFs and links in the in-app browser. Never raw HTML. Types and size in both the bucket and
+  `attachments.ts` (`tests/folder-attachments.test.ts`).
   **Notes to teachers** (`parent_notes`; the open Class Folder's + button → Note to a teacher, `app/forms/to-teacher.tsx`;
   teachers read them in the Folder's From parents tab, `app/forms/from-parent/[id].tsx`): a child's parent (never
   Family accounts) writes to one of the teachers of the child's sections (`parent_note_teachers`, `parent_note_send`,

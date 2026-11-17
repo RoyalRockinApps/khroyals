@@ -23,7 +23,8 @@
  * --teacher makes a teacher test login the Bible class's teacher (otherwise the parent). --senior sets up an 11th-grade
  * test login: three high school classes with three made-up high schoolers, grade records (Chemistry under 70% and a
  * missing English assignment) and a College & Career plan with transcript requests. The class tools get samples too:
- * class times, help sessions, the last week's roll, bulletins and notes in the Folder, notes to a teacher, absence
+ * class times, help sessions, the last week's roll, bulletins and notes in the Folder (with pictures, a PDF and links from
+ * scripts/sample-files, uploaded to the 'folder-files' bucket with SUPABASE_SERVICE_ROLE_KEY or the access token), notes to a teacher, absence
  * reports, lunch visits (in the first active lunch time), the homeroom teacher's board, the student logins' Study decks,
  * two school weeks of daily verses (only on days without one), and the counselor's test dates and scholarships.
  * Nothing is sent: rows are written directly, so nobody gets a notification (missing work already in the sample records
@@ -33,7 +34,7 @@
  * stays, without its classes). --print shows the SQL instead of running it.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // ----------------------------------------------------------------------------
@@ -114,6 +115,18 @@ const HIGH = [
 const staff = (k) => uid(`staff:${k}`);
 const parent = (k) => uid(`parent:${k}`);
 const kid = (k) => uid(`kid:${k}`);
+
+/**
+ * The pictures and PDF on the sample bulletins and notes: files in scripts/sample-files, uploaded by main() to each
+ * teacher's own folder of the private 'folder-files' bucket (a rerun replaces them; --remove deletes them).
+ */
+export const SAMPLE_FILES = [
+  { key: 'flyer', file: 'book-fair-flyer.jpg', by: 'taylor', kind: 'image', type: 'image/jpeg', name: 'Book Fair flyer', width: 1000, height: 1400 },
+  { key: 'star', file: 'star-reader.jpg', by: 'taylor', kind: 'image', type: 'image/jpeg', name: 'Star Reader', width: 1400, height: 1000 },
+  { key: 'pumpkins', file: 'pumpkin-patch.jpg', by: 'brooks', kind: 'image', type: 'image/jpeg', name: 'Pumpkin patch', width: 1000, height: 1400 },
+  { key: 'gatsby', file: 'gatsby-reading-schedule.pdf', by: 'price', kind: 'pdf', type: 'application/pdf', name: 'Gatsby reading schedule.pdf', width: null, height: null },
+].map((f) => ({ ...f, path: `${staff(f.by)}/sample/${f.file}`,
+  size: statSync(fileURLToPath(new URL(`./sample-files/${f.file}`, import.meta.url))).size }));
 
 /**
  * Past volunteering, for the analytics: who helps how much each school year ('me' is the test parent). High: there
@@ -648,15 +661,24 @@ export function buildSql({ day, today = day, me, children, student = null, volle
   const fnotes = [
     ...(older ? [
       { key: 'bookfair', author: staff('taylor'), kind: 'bulletin', title: 'Book Fair next week', sections: ['demo-homeroom-a'], when: at(sd(-2), '15:40'),
-        body: 'The Book Fair is in the library all next week. Our class visits on Tuesday morning; send money in an envelope with your child’s name if they’d like to buy a book.' },
+        body: 'The Book Fair is in the library all next week. Our class visits on Tuesday morning; send money in an envelope with your child’s name if they’d like to buy a book.',
+        files: ['flyer', { link: 'https://www.scholastic.com/bookfairs/', name: 'Book Fair online shop' }] },
       { key: 'praise', author: staff('taylor'), kind: 'note', student: older.id, title: '', when: at(sd(-1), '14:55'),
-        body: 'Your child led our book discussion today and helped a classmate who was stuck. Thank you for all you do at home!' },
+        body: 'Your child led our book discussion today and helped a classmate who was stuck. Thank you for all you do at home!', files: ['star'] },
     ] : []),
     ...(younger ? [{ key: 'pumpkins', author: staff('brooks'), kind: 'bulletin', title: 'Pumpkin patch reminders', sections: ['demo-homeroom-b'],
-      when: at(sd(-1), '15:10'), body: 'Wear closed-toe shoes and clothes that can get muddy. We’ll be back in time for car line.' }] : []),
+      when: at(sd(-1), '15:10'), body: 'Wear closed-toe shoes and clothes that can get muddy. We’ll be back in time for car line.', files: ['pumpkins'] }] : []),
     { key: 'gatsby', author: staff('price'), kind: 'bulletin', title: 'Gatsby test moved', sections: ['demo-english-11'], when: at(sd(-1), '13:20'),
-      body: 'The Gatsby test is now next Friday, so we can finish the novel together. Keep annotating!' },
+      body: 'The Gatsby test is now next Friday, so we can finish the novel together. Keep annotating!',
+      files: ['gatsby', { link: 'https://www.gutenberg.org/ebooks/64317', name: 'The Great Gatsby (free e-book)' }] },
   ];
+  // Their pictures, PDF and links (the files are in scripts/sample-files, uploaded by main()).
+  const fattach = fnotes.flatMap((n) => (n.files ?? []).map((f, i) => {
+    const file = typeof f === 'string' ? SAMPLE_FILES.find((x) => x.key === f) : null;
+    return file
+      ? [uid(`fattach:${n.key}:${i}`), uid(`fnote:${n.key}`), file.kind, file.path, null, file.name, file.width, file.height, file.size, i, n.when]
+      : [uid(`fattach:${n.key}:${i}`), uid(`fnote:${n.key}`), 'link', null, f.link, f.name, null, null, null, i, n.when];
+  }));
   const pnotes = [
     ...(older ? [{ key: 'rivera', author: parent('rivera'), student: kid('rivera'), teacher: staff('taylor'), when: at(sd(-1), '20:05'), read: null,
       body: 'Mason has a dentist appointment Thursday morning and will be about an hour late. Could he make up the vocabulary quiz?' },
@@ -765,6 +787,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
     insert('folder_notes', ['id', 'author_id', 'kind', 'student_id', 'title', 'body', 'created_at'],
       fnotes.map((n) => [uid(`fnote:${n.key}`), n.author, n.kind, n.student ?? null, n.title, n.body, n.when])),
     insert('folder_note_sections', ['note_id', 'section_id'], fnotes.flatMap((n) => (n.sections ?? []).map((s) => [uid(`fnote:${n.key}`), s]))),
+    insert('folder_note_attachments', ['id', 'note_id', 'kind', 'path', 'url', 'name', 'width', 'height', 'size_bytes', 'position', 'created_at'], fattach),
     insert('parent_notes', ['id', 'author_id', 'student_id', 'teacher_id', 'body', 'created_at', 'read_at'],
       pnotes.map((n) => [uid(`pnote:${n.key}`), n.author, n.student, n.teacher, n.body, n.when, n.read])),
     insert('absence_reports', ['id', 'student_id', 'kind', 'starts_on', 'ends_on', 'at_time', 'reason', 'note', 'reported_by', 'seen_by', 'seen_at', 'created_at'],
@@ -935,8 +958,30 @@ async function main() {
     cheer: cheer?.id ?? null, basketball: basketball?.id ?? null, teacher, senior, lunch: lunch?.id ?? null,
     remove: args.includes('--remove'), only: flag('--only') ?? null });
   if (args.includes('--print')) { console.log(sql); return; }
+  // The sample bulletins' pictures and PDF go in the private 'folder-files' bucket, through the Storage API with the
+  // service role key (SUPABASE_SERVICE_ROLE_KEY, or read with the access token). Uploaded before the rows that point
+  // at them; deleted after the rows are gone.
+  const files = !flag('--only');
+  let key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const storage = async (method, path, body, type) => {
+    key ??= await (async () => {
+      const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error(`Couldn't read the project's service role key (${r.status}).`);
+      return (await r.json()).find((k) => k.name === 'service_role')?.api_key;
+    })();
+    const r = await fetch(`${app.expo.extra.supabaseUrl}/storage/v1/object/folder-files${path}`, { method, body,
+      headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': type, 'x-upsert': 'true' } });
+    if (!r.ok) throw new Error(`Storage ${method} ${path}: ${r.status} ${await r.text()}`);
+  };
+  if (files && !args.includes('--remove')) {
+    for (const f of SAMPLE_FILES) await storage('POST', `/${f.path}`, readFileSync(new URL(`./sample-files/${f.file}`, import.meta.url)), f.type);
+  }
   await q(sql);
-  if (args.includes('--remove')) { console.log('Removed the presentation data.'); return; }
+  if (args.includes('--remove')) {
+    if (files) await storage('DELETE', '', JSON.stringify({ prefixes: SAMPLE_FILES.map((f) => f.path) }), 'application/json');
+    console.log('Removed the presentation data.');
+    return;
+  }
   if (flag('--only') === 'student') {
     const [r] = await q(`select (select count(*) from public.sis_students where source = 'sample') as students,
       (select count(*) from public.sis_courses c join public.sis_students t on t.student_id = c.student_id where t.source = 'sample') as classes,
@@ -955,7 +1000,8 @@ async function main() {
   const [n] = await q(`select (select count(*) from public.profiles where id in ${inList([...STAFF.map((s) => staff(s.key)), ...FAMILIES.flatMap((f) => [parent(f.key), kid(f.key)]),
       ...HIGH.map((h) => kid(h.key))])}) as people,
     (select count(*) from public.section_meetings) as class_times, (select count(*) from public.help_sessions) as help_sessions,
-    (select count(*) from public.folder_notes) as folder_notes, (select count(*) from public.daily_verses) as verses,
+    (select count(*) from public.folder_notes) as folder_notes, (select count(*) from public.folder_note_attachments) as attachments,
+    (select count(*) from public.daily_verses) as verses,
     (select count(*) from public.college_dates) as college_dates, (select count(*) from public.transcript_requests) as transcripts,
     (select count(*) from public.assignments where id::text like '%') as assignments,
     (select count(*) from public.forms) as forms, (select count(*) from public.market_listings where status = 'open') as listings,

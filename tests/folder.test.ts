@@ -52,7 +52,7 @@ test("a student's own form leaves their folder once a parent has answered it", (
 });
 
 const note = (id: string, sentAt: string, o: Partial<FolderNote> = {}): FolderNote => ({
-  id, kind: 'bulletin', title: id, body: '', from: 'Jennifer Lee', sentAt, children: ['Ava'], classes: ['English 10'], readAt: null, removedAt: null, ...o,
+  id, kind: 'bulletin', title: id, body: '', from: 'Jennifer Lee', sentAt, children: ['Ava'], classes: ['English 10'], readAt: null, removedAt: null, attachments: [], ...o,
 });
 
 test("teachers' notes and bulletins stay in the Folder for two weeks, or until removed", () => {

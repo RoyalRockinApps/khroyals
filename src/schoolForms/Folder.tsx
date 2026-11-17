@@ -22,6 +22,7 @@ import { SCHOOL } from '../school';
 import { Shield } from '../Shield';
 import { C, ask } from '../ui';
 import { coverLine } from './coverLine';
+import { PaperAttachments } from './AttachmentViews';
 import { dueText } from './parts';
 
 /** The folder's colors: the outside in the school's dark brand color, the inside in its main color, red trim. */
@@ -343,7 +344,8 @@ function FormPaper({ form, place, onOpen, onRemove }: { form: MyForm; place: str
 
 /**
  * A teacher's note (a yellow sticky note: who it's from and which child it's about) or a class bulletin (a sheet headed
- * with its classes), New until it's opened, with Remove at its top right (none in a student's folder).
+ * with its classes), New until it's opened, with Remove at its top right (none in a student's folder). Its first
+ * picture shows on the paper and opens full screen; a line counts the rest (src/schoolForms/AttachmentViews.tsx).
  */
 function NotePaper({ note, place, onOpen, onRemove }: { note: FolderNote; place: string; onOpen: () => void; onRemove?: () => void }) {
   const extra = useContext(ExtraLines);
@@ -371,7 +373,9 @@ function NotePaper({ note, place, onOpen, onRemove }: { note: FolderNote; place:
         </View>
         {!!note.title && <Text style={styles.title} numberOfLines={2}>{note.title}</Text>}
         <View style={[styles.rule, sticky && { backgroundColor: 'rgba(138, 106, 0, 0.25)' }]} />
-        <Text style={[styles.details, sticky && { fontSize: 16, lineHeight: 23 }]} numberOfLines={(note.title ? 4 : 6) + extra}>{note.body}</Text>
+        <Text style={[styles.details, sticky && { fontSize: 16, lineHeight: 23 }]}
+          numberOfLines={Math.max(2, (note.title ? 4 : 6) + extra - (note.attachments?.some((a) => a.kind === 'image') ? 5 : note.attachments?.length ? 1 : 0))}>{note.body}</Text>
+        {!!note.attachments?.length && <PaperAttachments attachments={note.attachments} height={110 + Math.min(extra, 6) * 12} />}
         {!sticky && <Text style={styles.meta}>From {note.from} · {place}</Text>}
         <Text style={[styles.open, { color: tint }]}>Tap to read it ↗</Text>
       </Pressable>

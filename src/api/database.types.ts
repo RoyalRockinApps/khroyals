@@ -1560,6 +1560,56 @@ export type Database = {
           },
         ]
       }
+      folder_note_attachments: {
+        Row: {
+          created_at: string
+          height: number | null
+          id: string
+          kind: string
+          name: string
+          note_id: string
+          path: string | null
+          position: number
+          size_bytes: number | null
+          url: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind: string
+          name?: string
+          note_id: string
+          path?: string | null
+          position?: number
+          size_bytes?: number | null
+          url?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          height?: number | null
+          id?: string
+          kind?: string
+          name?: string
+          note_id?: string
+          path?: string | null
+          position?: number
+          size_bytes?: number | null
+          url?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folder_note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "folder_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           guardian_id: string
@@ -5327,8 +5377,8 @@ export type Database = {
       }
       delete_my_account: { Args: { p_confirm: string }; Returns: string }
       form_remove: { Args: { p_form: string; p_removed?: boolean }; Returns: undefined }
-      folder_bulletin_send: { Args: { p_body: string; p_sections: string[]; p_title: string }; Returns: string }
-      folder_note_send: { Args: { p_body: string; p_student: string; p_title: string }; Returns: string }
+      folder_bulletin_send: { Args: { p_attachments?: Json; p_body: string; p_sections: string[]; p_title: string }; Returns: string }
+      folder_note_send: { Args: { p_attachments?: Json; p_body: string; p_student: string; p_title: string }; Returns: string }
       folder_note_delete: { Args: { p_id: string }; Returns: undefined }
       folder_note_read: { Args: { p_id: string }; Returns: undefined }
       folder_note_remove: { Args: { p_id: string; p_removed?: boolean }; Returns: undefined }

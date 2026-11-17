@@ -405,7 +405,9 @@ their forms alone. Absence reports are in Classes, with the roll.
 
 **Class bulletins and notes** (the Folder's Bulletins tab in Staff view, or *Bulletin* on a
 class in Classes). A teacher posts a bulletin (a title and what to say) to the
-classes they lead, or writes a note to one student's parents. Each lands in those parents'
+classes they lead, or writes a note to one student's parents. Either can carry up to six pictures (a flyer, a class
+photo), PDFs and links (*Attach*: Picture, Photo, PDF or file, Link). In the Folder the first picture shows on the paper;
+tapping a picture opens it full screen (pinch to zoom on iPhone), and a PDF or link opens in the in-app browser. Each lands in those parents'
 Folders and they're told; a bulletin also shows in its students' read-only Folders, but
 students and other families never see a note. The teacher sees
 how many parents have read each, and deletes it if needed. Notes parents write to them (the

@@ -4794,6 +4794,59 @@ test('the Folder: teachers post class bulletins and write notes to a family; onl
   await db.exec(`delete from folder_notes`);
 });
 
+test('folder attachments: pictures, PDFs and links on bulletins and notes; only the note\'s readers open the files', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const [eng, ava] = [await uid('u-eng'), await uid('u-s01')];
+  const put = (who: string, path: string) => `insert into storage.objects (bucket_id, name, owner) values ('folder-files', '${path}', '${who}')`;
+  const files = async () => (await rows(`select name from storage.objects where bucket_id = 'folder-files'`)).map((r) => r.name).sort();
+  const bulletin = (att: object[]) => `select folder_bulletin_send(array['eng10-p3'], 'Spirit week', 'Themes are in the flyer.', '${JSON.stringify(att)}'::jsonb) as id`;
+  const flyer = `${eng}/b1/1.jpg`, packet = `${eng}/b1/2.pdf`, photo = `${eng}/n1/1.jpg`;
+
+  // Teachers upload into their own folder only; parents and students can't upload at all.
+  await as('u-eng');
+  await rejects(put(eng, `${await uid('u-sci')}/x/1.jpg`), /row-level security/);
+  await db.exec(`${put(eng, flyer)}; ${put(eng, packet)}; ${put(eng, photo)}`);
+  await as('u-p01');
+  await rejects(put(await uid('u-p01'), `${await uid('u-p01')}/x/1.jpg`), /row-level security/);
+
+  // What can go on: an uploaded file of their own, an https link, up to 6; a bad one stops the whole send.
+  await as('u-eng');
+  const before = (await rows(`select 1 from folder_notes`)).length;
+  await rejects(bulletin([{ kind: 'image', path: `${eng}/b1/missing.jpg` }]), /Upload the file first/);
+  await rejects(bulletin([{ kind: 'link', url: 'ftp://example.org/x' }]), /https/);
+  await rejects(bulletin([{ kind: 'video', path: flyer }]), /picture, a PDF or a link/);
+  await rejects(bulletin(Array.from({ length: 7 }, () => ({ kind: 'link', url: 'https://example.org' }))), /up to 6/);
+  assert.equal((await rows(`select 1 from folder_notes`)).length, before, 'nothing sent when an attachment is refused');
+  const b = (await one(bulletin([{ kind: 'image', path: flyer, name: 'Spirit week flyer', width: 1200, height: 1600 },
+    { kind: 'pdf', path: packet, name: 'Packet.pdf' }, { kind: 'link', url: 'https://www.example.org/spirit-week' }]))).id;
+  const note = (await one(`select folder_note_send('${ava}', '', 'Ava read her poem today!', '${JSON.stringify([{ kind: 'image', path: photo, name: 'Ava reading' }])}'::jsonb) as id`)).id;
+  // The old three-argument send still works.
+  await one(`select folder_bulletin_send(array['eng10-p3'], 'No school Friday', 'Enjoy the long weekend.') as id`);
+  const sent = (await one(`select sent_folder_notes() as n`)).n as any[];
+  assert.deepEqual(sent.find((x) => x.id === b).attachments.map((a: any) => [a.kind, a.name]),
+    [['image', 'Spirit week flyer'], ['pdf', 'Packet.pdf'], ['link', 'www.example.org']]);
+
+  // Rosa (a parent in the class) gets both with their files; Ava (a student) the bulletin's only; another family nothing.
+  await as('u-p01');
+  const mine = (await one(`select my_folder_notes() as n`)).n as any[];
+  assert.deepEqual(mine.find((x) => x.id === b).attachments.map((a: any) => a.kind), ['image', 'pdf', 'link']);
+  assert.equal(mine.find((x) => x.id === note).attachments[0].path, photo);
+  assert.deepEqual(await files(), [flyer, packet, photo].sort());
+  await as('u-s01');
+  assert.deepEqual(await files(), [flyer, packet].sort(), "a student opens the bulletin's files, not the note's");
+  assert.equal((await rows(`select 1 from folder_note_attachments`)).length, 3);
+  await as('u-p07');
+  assert.deepEqual(await files(), []);
+  assert.equal((await rows(`select 1 from folder_note_attachments`)).length, 0);
+
+  // Deleting the note takes its attachments with it (the app removes the files, the uploader's own).
+  await as('u-eng');
+  await one(`select folder_note_delete('${b}')`);
+  await asSuper();
+  assert.equal((await rows(`select 1 from folder_note_attachments where note_id = '${b}'`)).length, 0);
+  await db.exec(`delete from folder_notes; delete from storage.objects where bucket_id = 'folder-files'`);
+});
+
 test("doctor's notes: a parent attaches the official excuse to an absence; only the parents and the office open it", async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const [ava, rosa, wei] = [await uid('u-s01'), await uid('u-p01'), await uid('u-p02')];

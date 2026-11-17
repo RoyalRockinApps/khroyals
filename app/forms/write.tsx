@@ -1,15 +1,19 @@
 /**
  * Write a class bulletin (to one or more sections the teacher leads: a title and what to say) or a note to one
  * student's parents (pick the class, then the student; the title is optional). Opened with `kind`, and a `section`
- * or `student` already picked when it comes from Classes or a parent's note. Sending puts it in those parents' Folders and tells them.
+ * or `student` already picked when it comes from Classes or a parent's note. Either can carry up to 6 pictures, PDFs and
+ * links (src/schoolForms/pickAttachment.ts), which open full screen or in the in-app browser from the Folder. Sending puts
+ * it in those parents' Folders and tells them.
  */
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  classRoll, errorText, isSchoolStaff, mySections, sendBulletin, sendFolderNote, type FolderNoteKind, type Person, type Section,
+  classRoll, errorText, isSchoolStaff, mySections, sendBulletin, sendFolderNote, type AttachmentUpload, type FolderNoteKind, type Person, type Section,
 } from '../../src/api/connect';
+import { ATTACH_MAX, ATTACH_MAX_MB, cleanLink, linkName } from '../../src/schoolForms/attachments';
+import { pickAttachment, type AttachSource } from '../../src/schoolForms/pickAttachment';
 import { Pills } from '../../src/feedback/ui';
 import { FormsGate } from '../../src/schoolForms/FormsGate';
 import { Button, C, Card, Field, Loading, P, s } from '../../src/ui';
@@ -30,6 +34,8 @@ function Writer({ me, params }: { me: Person; params: { kind?: string; section?:
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentUpload[]>([]);
+  const [link, setLink] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     mySections().then((list) => {
@@ -58,11 +64,20 @@ function Writer({ me, params }: { me: Person; params: { kind?: string; section?:
   const toggle = (id: string) => setPicked((p) => (kind === 'note' ? [id] : p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const switchKind = (k: FolderNoteKind) => { setKind(k); if (k === 'note') setPicked((p) => p.slice(0, 1)); setStudent(null); setReplyTo(null); };
   const ok = body.trim().length > 0 && (kind === 'bulletin' ? picked.length > 0 && title.trim().length > 0 : !!student);
+  const room = ATTACH_MAX - attachments.length;
+  const attach = (source: AttachSource) => pickAttachment(source).then((a) => { if (a) setAttachments((x) => [...x, a].slice(0, ATTACH_MAX)); })
+    .catch((e) => Alert.alert('Attach', errorText(e)));
+  const addLink = () => {
+    const url = link && cleanLink(link.url);
+    if (!url) { Alert.alert('Add a link', 'Type a web address, like www.example.com.'); return; }
+    setAttachments((x) => [...x, { kind: 'link' as const, url, name: link!.name.trim() || linkName(url) }].slice(0, ATTACH_MAX));
+    setLink(null);
+  };
   const send = async () => {
     setBusy(true);
     try {
-      if (kind === 'bulletin') await sendBulletin(picked, title, body);
-      else await sendFolderNote(student!, title, body);
+      if (kind === 'bulletin') await sendBulletin(picked, title, body, attachments);
+      else await sendFolderNote(student!, title, body, attachments);
       Alert.alert('Sent', kind === 'bulletin' ? 'It’s in every family’s Folder for those classes.' : 'It’s in their parents’ Folder.');
       if (router.canGoBack()) router.back(); else router.replace({ pathname: '/forms', params: { show: 'notes' } });
     } catch (e) {
@@ -125,10 +140,59 @@ function Writer({ me, params }: { me: Person; params: { kind?: string; section?:
       <Field label={kind === 'bulletin' ? 'Bulletin' : 'Note'} value={body} onChangeText={setBody} multiline maxLength={4000}
         style={{ minHeight: 160, textAlignVertical: 'top' }}
         placeholder={kind === 'bulletin' ? 'Each student reads a poem on Friday. Practice at home this week!' : 'Ava led the class discussion today. Thank you for all your help at home!'} />
+      <Card style={{ gap: 10 }}>
+        <Text style={{ fontWeight: '800', color: C.ink }}>Attach (optional)</Text>
+        {attachments.map((a, i) => (
+          <View key={i} style={[s.row, { gap: 10 }]}>
+            {a.kind === 'image' && a.preview ? <Image source={{ uri: a.preview }} style={{ width: 44, height: 44, borderRadius: 8 }} />
+              : <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={a.kind === 'pdf' ? 'document-text' : a.kind === 'link' ? 'link' : 'image'} size={22} color={C.primary} />
+                </View>}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', color: C.ink }} numberOfLines={1}>{a.name}</Text>
+              <Text style={{ color: C.muted, fontSize: 13 }} numberOfLines={1}>{a.kind === 'link' ? a.url : a.kind === 'pdf' ? 'PDF' : 'Picture'}</Text>
+            </View>
+            <Pressable onPress={() => setAttachments((x) => x.filter((_, j) => j !== i))} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${a.name}`}>
+              <Ionicons name="close-circle" size={22} color={C.muted} />
+            </Pressable>
+          </View>
+        ))}
+        {link ? (
+          <View style={{ gap: 8 }}>
+            <Field label="Web address" placeholder="www.example.com/spirit-week" value={link.url} onChangeText={(url) => setLink({ ...link, url })}
+              autoCapitalize="none" keyboardType="url" maxLength={500} />
+            <Field label="Call it (optional)" placeholder="Spirit week themes" value={link.name} onChangeText={(name) => setLink({ ...link, name })} maxLength={120} />
+            <View style={[s.row, { gap: 8 }]}>
+              <View style={{ flex: 1 }}><Button label="Add link" onPress={addLink} /></View>
+              <View style={{ flex: 1 }}><Button label="Cancel" kind="ghost" onPress={() => setLink(null)} /></View>
+            </View>
+          </View>
+        ) : room > 0 ? (
+          <View style={[s.row, { flexWrap: 'wrap', gap: 8 }]}>
+            <AttachButton icon="image-outline" label="Picture" onPress={() => attach('photos')} />
+            {Platform.OS !== 'web' && <AttachButton icon="camera-outline" label="Photo" onPress={() => attach('camera')} />}
+            <AttachButton icon="document-text-outline" label="PDF or file" onPress={() => attach('file')} />
+            <AttachButton icon="link-outline" label="Link" onPress={() => setLink({ url: '', name: '' })} />
+          </View>
+        ) : <P muted>{`That’s ${ATTACH_MAX}, the most for one ${kind === 'bulletin' ? 'bulletin' : 'note'}.`}</P>}
+        <P muted>{`Pictures and PDFs up to ${ATTACH_MAX_MB} MB. Families tap a picture to see it full screen, and a PDF or link to open it.`}</P>
+      </Card>
       <Button label={busy ? 'Sending…' : kind === 'bulletin' ? 'Post to their Folders' : 'Send to the parents'} onPress={send} disabled={busy || !ok} />
       <P muted>{kind === 'bulletin'
         ? 'Every parent of a student in those classes finds it in their Folder for two weeks, and is told.'
         : 'Only the student’s parents see it, in their Folder, and they’re told. Students don’t see notes.'}</P>
     </ScrollView>
+  );
+}
+
+/** One of the Attach row's buttons. */
+function AttachButton({ icon, label, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Attach a ${label.toLowerCase()}`}
+      style={({ pressed }) => [s.row, { gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: C.primary,
+        backgroundColor: '#fff' }, pressed && { opacity: 0.7 }]}>
+      <Ionicons name={icon} size={16} color={C.primary} />
+      <Text style={{ fontWeight: '700', color: C.primary }}>{label}</Text>
+    </Pressable>
   );
 }
