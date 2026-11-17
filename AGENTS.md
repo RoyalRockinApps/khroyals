@@ -183,7 +183,8 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
 - **Study** (`study_notes`, `study_decks`, `study_cards`; the Study app, `app/study`, a `studentApp` tile): a student's own
   notes and flash cards. Only students write (`app.require_student`, through the `study_*` functions) and only the
   student reads them (RLS `owner_id = auth.uid()`): never their parents, teachers or the office, so don't add a way in
-  without the student data review. Studying moves a card through the Leitner boxes in `study_card_review` (the demo's
+  without the student data review. Practice (`app/study/practice.tsx`, `src/study/practice.ts`: quiz, match, type it) runs
+  on the device and saves nothing; keep it that way. Studying moves a card through the Leitner boxes in `study_card_review` (the demo's
   copy is `sampleReview` in `src/study/sample.ts`). They go with the login: the `study_forget` trigger deletes them when
   a student's profile becomes `managed` again (`student_login_remove`, `delete_my_account`). Add cards reads a text or
   CSV file on the device into its list box (`src/study/cardFile.ts`, `src/study/pickCardFile.ts`); the file itself is

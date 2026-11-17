@@ -529,7 +529,11 @@ only the cards are saved. *Study* goes through the cards due now, a deck's or ev
 shuffled: turn the card over, then *Still learning* (it comes round again and goes back to box 1) or *Got it* (up a
 box). The boxes are Leitner's (`study_card_review`): box 2 comes back tomorrow, 3 in three days, 4 in a week, 5 in two
 weeks, then a month; a deck's bar shows known (box 4–5), learning and new. *Flip through* turns through a whole deck
-without recording anything; the header's button shows the answer side first. Everything goes with the student's
+without recording anything; the header's button shows the answer side first. *Practice* turns a deck into a
+*Quiz* (pick the meaning out of four), *Match* (tap a term, then its meaning, six pairs at a time, timed) or *Type it*
+(write the answer: case, accents, punctuation and a small typo don't count against you), showing the term or the
+meaning; it ends with a score and the cards missed, to practice again. Practice saves nothing and doesn't change
+what's due (`src/study/practice.ts`). Everything goes with the student's
 login: deleting the account or taking the login away deletes it (`supabase/migrations/…_study.sql`).
 
 **Event tickets** (Activities). An activity's coaches and directors tap *Sell tickets* on

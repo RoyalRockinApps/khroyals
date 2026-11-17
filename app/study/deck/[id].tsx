@@ -1,6 +1,6 @@
 /**
- * A deck of flash cards: how much of it is known, Study (the cards due now) and Flip through (all of them, nothing
- * recorded), then its cards (tap one to change or delete it). The gear renames the deck, starts it over or deletes it.
+ * A deck of flash cards: how much of it is known, Study (the cards due now), Flip through (all of them, nothing
+ * recorded) and Practice (a quiz, matching or typing, app/study/practice.tsx), then its cards (tap one to change or delete it). The gear renames the deck, starts it over or deletes it.
  */
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -85,6 +85,9 @@ export default function DeckScreen() {
           </View>
         )}
         {deck.cards > 0 && <Button label={`Flip through all ${deck.cards}`} kind="ghost" onPress={() => study('flip')} />}
+        {deck.cards > 0 && (
+          <Button label="Practice: quiz, match or type" kind="ghost" onPress={() => router.push({ pathname: '/study/practice', params: { deck: deck.id } })} />
+        )}
       </View>
 
       <Button label="+ Add cards" onPress={() => router.push({ pathname: '/study/add', params: { deck: deck.id } })} />

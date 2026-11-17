@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MOST_AT_ONCE, parseCards } from '../src/study/parse';
 import { cardListFromFile, csvRows } from '../src/study/cardFile';
+import { PRACTICE_MAX, checkTyped, choicesFor, editDistance, matchRounds, modesFor, normalize, practiceCards, scoreLine } from '../src/study/practice';
 import { answer, finished, shuffle, startSession } from '../src/study/session';
 import { subjectChoices, subjectColor, subjectName } from '../src/study/subjects';
 
@@ -105,4 +106,46 @@ test('class sections become subjects; each subject keeps its color', () => {
   assert.equal(subjectColor('Biology'), subjectColor(' biology '));
   assert.match(subjectColor('Biology'), /^#[0-9A-F]{6}$/);
   assert.equal(subjectColor(''), '#64748B');
+});
+
+/** A fixed "random" for repeatable shuffles. */
+const seeded = (seed = 1) => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const deck = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `c${i}`, front: `term ${i}`, back: `meaning ${i}` }));
+
+test('practice: a quiz has the right answer and up to three others from the deck, never the same text twice', () => {
+  const cards = [...deck(6), { id: 'dup', front: 'term x', back: 'Meaning 1' }];
+  for (let k = 1; k < 20; k++) {
+    const choices = choicesFor(cards[1], cards, 'term', seeded(k));
+    assert.ok(choices.includes('meaning 1'));
+    assert.equal(choices.length, 4);
+    assert.equal(new Set(choices.map(normalize)).size, 4, 'no two the same');
+  }
+  assert.deepEqual(choicesFor(cards[0], cards.slice(0, 2), 'meaning', seeded()).sort(), ['term 0', 'term 1'], 'a small deck has fewer');
+  assert.deepEqual(modesFor(deck(1)), ['type'], 'one card: only Type it');
+  assert.deepEqual(modesFor([{ id: 'a', front: 'x', back: 'y' }, { id: 'b', front: 'X', back: 'y' }]), ['type'], 'nothing to tell apart');
+  assert.deepEqual(modesFor(deck(2)), ['quiz', 'match', 'type']);
+  assert.deepEqual(modesFor([]), []);
+  assert.equal(practiceCards(deck(30), seeded()).length, PRACTICE_MAX);
+});
+
+test('practice: matching goes six pairs at a time, every card once, no tiny last round', () => {
+  assert.deepEqual(matchRounds(deck(14), seeded()).map((r) => r.length), [6, 8]);
+  assert.deepEqual(matchRounds(deck(15), seeded()).map((r) => r.length), [6, 6, 3]);
+  assert.deepEqual(matchRounds(deck(4), seeded()).map((r) => r.length), [4]);
+  assert.equal(new Set(matchRounds(deck(14), seeded()).flat().map((c) => c.id)).size, 14);
+});
+
+test('practice: typed answers forgive case, accents, punctuation, a leading article and a small typo', () => {
+  assert.equal(checkTyped('The Apple!', 'apple'), 'right');
+  assert.equal(checkTyped('manzana', 'la manzana'), 'wrong', 'Spanish articles are part of the answer');
+  assert.equal(checkTyped('cafe', 'café'), 'right');
+  assert.equal(checkTyped('to run', 'run'), 'right');
+  assert.equal(checkTyped('mitocondria', 'mitochondria'), 'almost');
+  assert.equal(checkTyped('photosinthesis', 'photosynthesis'), 'almost');
+  assert.equal(checkTyped('cat', 'car'), 'wrong', 'short words must be exact');
+  assert.equal(checkTyped('red', 'rojo; red'), 'right', 'any one of several parts');
+  assert.equal(checkTyped('large', 'big / large'), 'right');
+  assert.equal(checkTyped('   ', 'apple'), 'wrong');
+  assert.equal(editDistance('kitten', 'sitting'), 3);
+  assert.equal(scoreLine(8, 10), '8 of 10 right · 80%');
 });
