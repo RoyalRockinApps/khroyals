@@ -114,7 +114,7 @@ and publishes the app to every family.
 
 | Item | Owner | Status | Notes |
 |---|---|---|---|
-| Remove test data from live | — | Not started | Ben's test family (two test children linked to his account), the sample Soccer and Volleyball seasons and schedule, and the "Test Leader" account (no login) with its four Volunteer opportunities. The presentation data comes out with `node scripts/presentation_data.mjs --parent <email> --remove`. Also decide whether Ben's account stays a director (made Admin + director on Oct 21, 2026 to test the staff view). |
+| Remove test data from live | — | Not started | Ben's test family (two test children linked to his account), the sample Soccer and Volleyball seasons and schedule, the "Test Leader" account (no login) with its four Volunteer opportunities, and the test accounts for each user type (Test Admin, Teacher, Staff, Parent, Family and Sub, at b2mustang+<type>@gmail.com) with Test Child and the placeholder "K–12th lunch" time. The presentation data comes out with `node scripts/presentation_data.mjs --parent <email> --remove`. Also decide whether Ben's account stays a director (made Admin + director on Oct 21, 2026 to test the staff view). |
 | Publish to the App Store and Google Play | Ben | Not started | Privacy policy URL, Apple’s privacy labels, store listings and screenshots (iPad screenshots too, since the app runs on iPad); allow time for App Store review, then public release. Public or unlisted is an open decision (below). |
 | App Review sign-in | Ben | Needs a decision | Apple's reviewer must be able to sign in, but sign-in is by emailed code and they can't read our email. Needs a review account (approved, no admin powers) with a safe way in that doesn't bring back passwords or demo logins for everyone else, plus reviewer notes on what to try. |
 | Staff training and parent rollout | — | Not started | A short guide, an announcement to families and a support contact. |
@@ -136,6 +136,9 @@ Ongoing after release; bugs reported in beta and after release go here too.
 | Notification switches for Activities and Ask the School | — | Needs a decision | My profile has switches for groups, replies, Marketplace, Volunteer and school announcements; these two can only be held back by quiet hours. |
 | Yearly upkeep | — | Recurring | Load the new school calendar (typed in by hand from the PDF), update the handbook, check the July 1 grade rollover, upgrade Expo once a year for new iOS and Android versions. |
 | Ticket refunds in the app | — | Not started | Today a refund is made in Stripe's dashboard and the ticket stays valid in the app; let leaders refund (and void) a ticket or a whole cancelled event from *Sell tickets*. |
+| Service hours log (students) | — | Option for later | Students log service hours (where, what, a contact person), a parent or teacher confirms them, and the school sees totals against a requirement (National Honor Society, graduation). Builds on Volunteer's hours tracking. Stores new student data: add it to the student data review. |
+| Digital student ID | — | Option for later | The student's photo, name, grade and a barcode for the library or lunch line, with Add to Apple or Google Wallet (the Wallet pass setup from event tickets carries over). Needs the school's ID number format and what scans it. |
+| Reading log (younger grades) | — | Option for later | Minutes and books read each night; teachers see class totals and parents sign off weekly (like a Folder form). Stores new student data: add it to the student data review. |
 
 ## Open decisions
 
