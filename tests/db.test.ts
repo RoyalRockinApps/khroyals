@@ -4025,9 +4025,9 @@ test('lunch visits: the office opens lunch times, families book after reading th
   await as('u-eng');
   await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '11:30', '12:00', 9, 12, 3)`, /permission/);
   await as('u-ap', true);
-  await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[6], '11:30', '12:00', 9, 12, 3)`, /weekdays/);
   await rejects(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '12:00', '11:30', 9, 12, 3)`, /ends after/);
   const w = await one(`select * from lunch_window_save(null, 'Upper school lunch', array[${dow}], '11:30', '12:00', 9, 12, 3)`);
+  assert.deepEqual(w.weekdays, [1, 2, 3, 4, 5], 'every school day, whatever weekdays an older app sends');
   const little = await one(`select * from lunch_window_save(null, 'K–2nd lunch', array[1,2,3,4,5], '10:45', '11:15', 0, 2, 10)`);
 
   // Rosa sees Ava's open lunches (not the K–2nd one), reads the allergy notes, and books with one guest.
@@ -4039,6 +4039,15 @@ test('lunch visits: the office opens lunch times, families book after reading th
     { first_name: 'Ava', avatar_url: `children/${ava}/face.jpg` }, 'her photo, for the circle');
   const slots = await rows(`select * from lunch_slots('${ava}', '${ymd}', 1)`);
   assert.deepEqual(slots.map((x) => [x.name, x.spots_left]), [['Upper school lunch', 3]]);
+  // Every school day in the next two weeks is open: weekends and days the calendar closes aren't.
+  const iso = (d: any) => String(d.toISOString?.() ?? d).slice(0, 10);
+  const openDays = (await rows(`select day from lunch_slots('${ava}', '${ymd}', 14) where name = 'Upper school lunch'`)).map((x) => iso(x.day));
+  await asSuper();
+  const schoolDays = (await rows(`select d::date as day from generate_series('${ymd}'::date, '${ymd}'::date + 13, interval '1 day') d
+    where not app.lunch_closed(d::date)`)).map((x) => iso(x.day));
+  assert.deepEqual(openDays, schoolDays);
+  assert.ok(openDays.length >= 5 && schoolDays.every((d) => ![0, 6].includes(new Date(`${d}T12:00:00Z`).getUTCDay())));
+  await as('u-p01');
   const notes = await one(`select * from lunch_allergy_notes('${w.id}', '${ava}')`);
   assert.equal(notes.own, 'Peanuts (severe)');
   assert.ok(notes.others.includes('Peanuts (severe)'), 'allergies in those grades, without names');

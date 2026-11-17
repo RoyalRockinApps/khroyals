@@ -672,8 +672,9 @@ book a time to come eat lunch with their child. Each child is a circle with thei
 to pick whose times show; family accounts see initials, since a child's photo opens only for their parents
 and staff), and the open times are blocks on a week calendar for the next three weeks: an open block shows
 its start and the visitor spots left and books with a tap, your visits are green and full ones grey. The office (*Lunch visits* permission) sets the lunch
-times open to visits (weekdays, time, grades and how many visitors a day, guests included), closes
-days (no-school days on the calendar are closed already) and writes the rules. Before booking, the
+times open to visits (time, grades and how many visitors a day, guests included; each runs every
+school day), closes days (No School, In-Service and E-Learning days on the calendar are closed already) and
+writes the rules. Before booking, the
 visitor sees the allergy notes for that lunch, their child's own and the allergies among the students
 at it (never with names), and the rules, and confirms they've read them. The child's teachers are told,
 and teachers and staff see who's coming each day with each child's allergies.

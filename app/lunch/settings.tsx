@@ -1,6 +1,6 @@
 /**
  * Lunch visit settings (lunch.manage: directors, administrators, office): the lunch times families
- * may visit (name, weekdays, time, grades, how many visitors a day), days closed to visits, and the
+ * may visit (name, time, grades, how many visitors a day; each runs every school day), days closed to visits, and the
  * rules everyone reads before booking. Removing a lunch time or closing a day cancels its visits,
  * and the visitors are told.
  */
@@ -17,7 +17,6 @@ import { Pills } from '../../src/feedback/ui';
 import { DateField, TimeField } from '../../src/forms/DateTimeField';
 import { Button, C, Card, Field, H, Loading, P, ask, s } from '../../src/ui';
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const GRADES = Array.from({ length: 16 }, (_, i) => i - 3).map((g) => ({ key: String(g), label: gradeLabel(g) }));
 const EMPTY = { id: null as string | null, name: '', weekdays: [1, 2, 3, 4, 5], startTime: '11:30', endTime: '12:00', gradeFrom: 0, gradeTo: 12, capacity: 6, active: true };
 
@@ -47,7 +46,7 @@ export default function LunchSettings() {
   };
   const remove = (w: LunchWindow) => ask('Remove this lunch time?', `${w.name}. Visits already booked in it are cancelled, and the visitors told.`, 'Remove',
     () => deleteLunchWindow(w.id).then(load).catch(fail));
-  const valid = form.name.trim() && form.weekdays.length && form.endTime > form.startTime && form.gradeTo >= form.gradeFrom && form.capacity > 0;
+  const valid = form.name.trim() && form.endTime > form.startTime && form.gradeTo >= form.gradeFrom && form.capacity > 0;
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
@@ -57,7 +56,7 @@ export default function LunchSettings() {
       {windows.map((w) => (
         <Card key={w.id} style={{ gap: 4, opacity: w.active ? 1 : 0.5 }} onPress={() => { setForm({ ...w }); setEditing(true); }}>
           <Text style={{ fontWeight: '800', color: C.ink }}>{w.name}{w.active ? '' : ' (paused)'}</Text>
-          <P muted>{w.weekdays.map((d) => DAYS[d - 1]).join(', ')} · {clock(w.startTime)}–{clock(w.endTime)} · {gradeLabel(w.gradeFrom)}–{gradeLabel(w.gradeTo)} · {w.capacity} visitors a day</P>
+          <P muted>Every school day · {clock(w.startTime)}–{clock(w.endTime)} · {gradeLabel(w.gradeFrom)}–{gradeLabel(w.gradeTo)} · {w.capacity} visitors a day</P>
           <Text style={{ color: C.danger, fontWeight: '700' }} accessibilityRole="button" onPress={() => remove(w)}>Remove</Text>
         </Card>
       ))}
@@ -65,17 +64,7 @@ export default function LunchSettings() {
         <Card style={{ gap: 8 }}>
           <H>{form.id ? 'Change lunch time' : 'New lunch time'}</H>
           <Field label="Name" placeholder="K–2nd lunch" value={form.name} onChangeText={(name) => set({ name })} maxLength={60} />
-          <Text style={{ fontWeight: '700', color: C.ink }}>Days</Text>
-          <View style={[s.row, { flexWrap: 'wrap', gap: 6 }]}>
-            {DAYS.map((d, i) => {
-              const on = form.weekdays.includes(i + 1);
-              return (
-                <Text key={d} onPress={() => set({ weekdays: on ? form.weekdays.filter((x) => x !== i + 1) : [...form.weekdays, i + 1].sort() })}
-                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: C.line,
-                    backgroundColor: on ? C.primary : '#fff', color: on ? '#fff' : C.ink, fontWeight: '600' }}>{d}</Text>
-              );
-            })}
-          </View>
+          <P muted>Every school day: closed on No School, In-Service and E-Learning days on the school calendar, and the days you close below.</P>
           <View style={s.row}>
             <TimeField label="Starts" value={form.startTime} onChange={(startTime) => set({ startTime })} style={{ flex: 1 }} />
             <TimeField label="Ends" value={form.endTime} onChange={(endTime) => set({ endTime })} style={{ flex: 1 }} />

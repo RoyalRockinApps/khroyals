@@ -239,7 +239,9 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   see that there is one (`doctor_note_at`). The office is told when one arrives.
 - **Lunch visits** (`lunch_windows`, `lunch_closed_days`, `lunch_visits`; `app/lunch`, Apps → Lunch Visits): open to Family
   accounts on purpose (grandparents visit). Parents and the family the office linked (`app.lunch_kids`) book a lunch time for
-  their child's grade on an open day (`lunch_slots`, `lunch_visit_book`: weekday, not `app.lunch_closed`, within the window's
+  their child's grade on any school day (`lunch_slots`, `lunch_visit_book`: every lunch time runs every day not
+  `app.lunch_closed`, i.e. weekdays without a No School / In-Service / E-Learning event or an office closing; `weekdays` is
+  always Monday to Friday and `lunch_window_save` ignores what it's sent; within the window's
   daily `capacity` counting guests) only after confirming they read the allergy notes and rules (`p_read_allergies`;
   `lunch_allergy_notes`: the child's own for parents and staff, and the allergies in those grades **without names**). The
   child's teachers are told. Staff see the day's visitors with each child's allergies (`lunch_visitors`). `lunch.manage`
