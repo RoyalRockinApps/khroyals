@@ -18057,7 +18057,7 @@ language sql stable security definer set search_path = public as $$
     'sectionIds', (select coalesce(jsonb_agg(hs.section_id order by hs.section_id), '[]') from help_session_sections hs where hs.session_id = h.id),
     'booked', exists (select 1 from help_session_bookings b where b.session_id = h.id and b.student_id = auth.uid()),
     'students', case when h.teacher_id = auth.uid() then (
-      select coalesce(jsonb_agg(trim(p.first_name || ' ' || p.last_name) order by b.booked_at), '[]')
+      select coalesce(jsonb_agg(trim(p.first_name || ' ' || p.last_name) order by b.booked_at, p.last_name, p.first_name), '[]')
       from help_session_bookings b join profiles p on p.id = b.student_id where b.session_id = h.id) end
   ) order by h.day, h.start_time), '[]')
   from help_sessions h

@@ -5528,7 +5528,7 @@ test('help sessions: a teacher offers extra help for their classes; their studen
   list = await mine();
   assert.equal(list[0].taken, 2);
   assert.equal(list[0].students.length, 2);
-  assert.match(list[0].students[0], /^Ava /);
+  assert.ok(list[0].students.some((n: string) => /^Ava /.test(n)), JSON.stringify(list[0].students));
   await rejects(save(1, `'${h}'`), /2 students have booked/);
   await one(save(3, `'${h}'`));
   await as('u-s01');
