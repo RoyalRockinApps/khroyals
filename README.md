@@ -518,6 +518,12 @@ come and what to bring; the students in those classes are told. Students see the
 spots left and book a spot, or give it back, until it starts. Only the teacher sees who booked; calling one off tells
 the students booked. Parents don't see them.
 
+**Missing work and grade alerts** (the Student app, and students' Planner). From the school's grade book (once FACTS
+sends it): work marked missing this school year, and classes whose average is under 70% (the `grade_alert_below`
+setting). They show as *Needs attention* at the top of the student's record and of their Planner, and the student and
+their parents are told once about each newly missing piece of work, and once when a class drops under the line (again if
+it comes back up and drops later). Work already missing when this arrived isn't announced.
+
 **My schedule** (the Student app, and students' Planner). A class's teacher or the office sets when and where it meets
 (Classes → the class → the gear → *Class times*: the days, the time and the room; a class can meet at different times on
 different days). Students and their parents see the week in the Student app, one weekday at a time, and students get

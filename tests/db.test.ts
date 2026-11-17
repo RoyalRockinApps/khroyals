@@ -2036,7 +2036,7 @@ test('activity events: addresses, team photos, and families answer "Are you goin
 
 test('every public table grants its access explicitly (Supabase stops auto-granting new tables)', async () => {
   // Tables the app never reads directly; their data goes through functions.
-  const PRIVATE = new Set(['post_views', 'notification_dismissals']);
+  const PRIVATE = new Set(['post_views', 'notification_dismissals', 'sis_alerts_sent']);
   await asSuper();
   const tables = (await rows(`select table_name from information_schema.tables
                               where table_schema = 'public' and table_type = 'BASE TABLE'`)).map((r) => r.table_name as string);
@@ -5412,6 +5412,54 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
 
   await asSuper();
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
+});
+
+test('student alerts: new missing work and classes below the line reach the student and their parents once', async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');   // Rosa's daughter
+  const alerts = async (student = '') => (await one(`select student_alerts(${student ? `'${student}'` : ''}) as a`)).a;
+  const told = async (who: string) => { await as(who); return (await rows(`select title from my_notifications() where data->>'studentRecord' = '${ava}'`)).map((n) => n.title).sort(); };
+  const send = async () => { await asSuper(); return (await one(`select app.send_student_alerts() as n`)).n as number; };
+  await asSuper();
+  await db.exec(`insert into sis_students (student_id, sis_id, source, school_year) values ('${ava}', 'alert-s1', 'sample', app.school_year_end())`);
+  const math = (await one(`insert into sis_courses (student_id, sis_id, school_year, name, average, letter)
+    values ('${ava}', 'M1', app.school_year_end(), 'Math 10', 85, 'B') returning id`)).id;
+  const sci = (await one(`insert into sis_courses (student_id, sis_id, school_year, name, average, letter)
+    values ('${ava}', 'S1', app.school_year_end(), 'Biology', 75, 'C') returning id`)).id;
+  await db.exec(`insert into sis_assignments (course_id, sis_id, title, due_on, status, max_score) values
+    ('${math}', 'q4', 'Quiz 4', app.school_today() - 3, 'missing', 20), ('${math}', 'h1', 'Homework 1', app.school_today() - 9, 'graded', 10)`);
+
+  // The missing quiz: Ava and her mother are told once.
+  assert.equal(await send(), 1);
+  assert.equal(await send(), 0, 'never twice');
+  assert.deepEqual(await told('u-s01'), ['📌 Missing in Math 10: Quiz 4']);
+  assert.deepEqual(await told('u-p01'), ['📌 Ava: missing in Math 10']);
+
+  // Biology drops below 70%: told once; back up and down again, told again.
+  await asSuper();
+  await db.exec(`update sis_courses set average = 64, letter = 'D' where id = '${sci}'`);
+  assert.equal(await send(), 1);
+  assert.equal(await send(), 0);
+  assert.ok((await told('u-s01')).includes('📉 Biology is at 64%'));
+  await asSuper();
+  await db.exec(`update sis_courses set average = 80 where id = '${sci}'`);
+  assert.equal(await send(), 0);
+  await db.exec(`update sis_courses set average = 61 where id = '${sci}'`);
+  assert.equal(await send(), 1, 'a new drop alerts again');
+
+  // Ava and her mother see them in the app; other families, Family accounts and teachers don't.
+  await as('u-s01');
+  const mine = await alerts();
+  assert.deepEqual([mine.below, mine.missing.map((m: any) => [m.course, m.title]), mine.low.map((l: any) => [l.course, Number(l.average)])],
+    [70, [['Math 10', 'Quiz 4']], [['Biology', 61]]]);
+  await as('u-p01');
+  assert.equal((await alerts(ava)).missing.length, 1);
+  for (const who of ['u-p02', 'u-gran', 'u-eng']) { await as(who); assert.equal(await alerts(ava), null, who); }
+  await as('u-s01');
+  await rejects(`select app.send_student_alerts()`, /permission denied/);
+
+  await asSuper();
+  await db.exec(`delete from sis_students where student_id = '${ava}'; delete from sis_alerts_sent`);
 });
 
 test("class times: a class's teacher or the office sets when it meets; its students and their parents see the week", async () => {

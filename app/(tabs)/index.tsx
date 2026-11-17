@@ -15,6 +15,7 @@ import { needsYou, type NeedRow } from '../../src/info/needsYou';
 import { CheckInCard } from '../../src/onsite/CheckInCard';
 import { VerseCard } from '../../src/devotion/VerseCard';
 import { NextClassCard } from '../../src/schedule/NextClassCard';
+import { AlertsCard } from '../../src/student/AlertsCard';
 import { NO_DATA, planDay, type InfoData } from '../../src/info/plan';
 import { useStaffView } from '../../src/staffView';
 import { addDays, greeting, headerDate, nextTwoWeeks, schoolHour, twoWeeks } from '../../src/info/today';
@@ -26,7 +27,7 @@ import { dateRange } from '../../src/site/calendar';
 
 /**
  * Planner: today's date in the header, a greeting (and for students the verse for today, src/devotion/VerseCard.tsx, and
- * their class now and next, src/schedule/NextClassCard.tsx),
+ * their class now and next, src/schedule/NextClassCard.tsx, and missing work or low grades, src/student/AlertsCard.tsx),
  * the next two weeks one day at a time
  * (swipe, or tap a day in the strip; it opens on today): the uniform, assignments, a
  * card for each of a parent's children, and the day's events, activities, volunteer
@@ -77,6 +78,7 @@ export default function Home() {
 
       {person?.schoolRole === 'student' && !person.pending && <VerseCard />}
       {person?.schoolRole === 'student' && !person.pending && <NextClassCard />}
+      {person?.schoolRole === 'student' && !person.pending && <AlertsCard compact />}
       {(staffView || isSubstitute(person)) && <CheckInCard />}
       {needs.length > 0 && <NeedsYou rows={needs} />}
 

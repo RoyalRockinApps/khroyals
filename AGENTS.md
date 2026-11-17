@@ -211,6 +211,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   the class's own average and letter come from the school's system, the overall letter from the `grade_scale` setting.
   The banner's photo is the profile photo: a parent changes their child's (`set_child_photo`, as under My children), a
   student their own (`set_my_avatar`). Sample records come with `scripts/presentation_data.mjs` (`--only student`).
+  **Missing work and grade alerts** (`student_alerts`, `src/student/AlertsCard.tsx`: the top of the Student app and
+  students' Planner): this school year's work marked missing, and classes whose average is under the `grade_alert_below`
+  setting (70). `app.send_student_alerts` (hourly cron) tells the student and their parents once per newly missing piece
+  of work and once per drop below the line (`sis_alerts_sent`, private; a class back up can alert again). Only the
+  student and their parents read them (`app.reads_student_record`).
 - **My calendar** (`personal_events`; Calendar → My calendar, `src/myCalendar/MyCalendarList.tsx` under the Calendar's
   School / Mine switch, where staff view opens; `/my-calendar` redirects there; one list with the students' events mixed in): staff only
   (`app.is_staff()`), and private to its owner. An entry with `sport_event_id` follows that schedule item (`my_calendar` reads its time, place and

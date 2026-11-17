@@ -1370,6 +1370,38 @@ export type Database = {
           },
         ]
       }
+      sis_alerts_sent: {
+        Row: {
+          course_key: string
+          item_key: string
+          kind: string
+          sent_at: string
+          student_id: string
+        }
+        Insert: {
+          course_key: string
+          item_key?: string
+          kind: string
+          sent_at?: string
+          student_id: string
+        }
+        Update: {
+          course_key?: string
+          item_key?: string
+          kind?: string
+          sent_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sis_alerts_sent_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           guardian_id: string
@@ -3932,6 +3964,7 @@ export type Database = {
         Args: { p_end: string; p_id: string | null; p_room?: string; p_section: string; p_start: string; p_weekdays: number[] }
         Returns: string
       }
+      student_alerts: { Args: { p_student?: string }; Returns: Json }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }

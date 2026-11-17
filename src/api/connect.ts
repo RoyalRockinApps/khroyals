@@ -62,3 +62,4 @@ export { lunchWindows, saveLunchWindow, deleteLunchWindow, lunchClosedDays, clos
 export { dailyVerseToday, dailyVerses, saveDailyVerse, deleteDailyVerse, type DailyVerse } from './dailyVerse';
 export { helpSessionsMine, saveHelpSession, cancelHelpSession, bookHelpSession, type HelpSession, type HelpSessionInput } from './helpSessions';
 export { classSchedule, myNextClasses, classTimes, saveClassTime, deleteClassTime, type ClassMeeting, type NextClass } from './schedule';
+export { studentAlerts, type StudentAlerts } from './studentAlerts';
