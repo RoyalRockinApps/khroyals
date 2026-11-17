@@ -2,7 +2,8 @@
  * Student app: a dashboard of a student's record from the school's student information system (FACTS, Blackbaud…),
  * for parents (pick a child at the top; the oldest first) and for a student themselves: general information,
  * attendance this school year (tap absences, times late or left early for those days), and grades (the overall average
- * and each class's), where a class opens its graph and every grade. Tap the photo in the banner to take, choose or
+ * and each class's), where a class opens its graph and every grade. My schedule (src/schedule/ScheduleCard.tsx) shows the
+ * week's classes, times and rooms once the school has set the class times. Tap the photo in the banner to take, choose or
  * remove the student's photo (a parent's child's, or a student's own). Parents also read each child's messages with
  * teachers. Until the school's system is connected, grades and report cards stay in the FACTS Family Portal.
  */
@@ -16,6 +17,7 @@ import {
 } from '../../src/api/connect';
 import { schoolToday } from '../../src/calendar/past';
 import { pickSquarePhoto } from '../../src/photos';
+import { ScheduleCard } from '../../src/schedule/ScheduleCard';
 import { attendanceSummary, letterFor, overallAverage, percent, termFor } from '../../src/student/grades';
 import { AMBER, GOOD, LetterBadge, StudentPicker, SubjectIcon, letterColor } from '../../src/student/parts';
 import { Avatar, Button, C, Card, H, Loading, P, s, useBottomInset } from '../../src/ui';
@@ -81,6 +83,7 @@ export default function Student() {
       {error && <Card><H>Couldn't load the record</H><P muted>{error}</P><Button label="Try again" onPress={load} /></Card>}
       {person && !data && !error && <Loading />}
       {data && data.students.length > 0 && <StudentPicker students={data.students} value={pick} onChange={choose} />}
+      {data && data.students.length > 0 && <ScheduleCard studentId={pick} />}
       {data && parent && data.students.length === 0 && (
         <Card><P muted>No students are linked to your account yet. Add them under My children, or ask the school office.</P></Card>
       )}

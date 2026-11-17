@@ -518,6 +518,12 @@ come and what to bring; the students in those classes are told. Students see the
 spots left and book a spot, or give it back, until it starts. Only the teacher sees who booked; calling one off tells
 the students booked. Parents don't see them.
 
+**My schedule** (the Student app, and students' Planner). A class's teacher or the office sets when and where it meets
+(Classes → the class → the gear → *Class times*: the days, the time and the room; a class can meet at different times on
+different days). Students and their parents see the week in the Student app, one weekday at a time, and students get
+*Now* and *Next* class at the top of their Planner (skipping No School, In-Service and E-Learning days). Until the times
+are set, nothing shows; later they can come from FACTS.
+
 **Assignments** (Apps → Assignments for students; a class's *Assignments* in Classes for teachers).
 Students see their classes' assignments and their own, and check them off for themselves. Tapping a
 class assignment opens it to **turn in work**: a PDF, Word, PowerPoint, Excel or text file from the

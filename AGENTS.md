@@ -176,6 +176,11 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   students in them are told), and those students (`app.help_session_students`; never parents, Family accounts or subs)
   book a spot or give it back until it starts (`help_session_book`, locked so spots hold). Only the teacher sees who
   booked (`help_sessions_mine`); calling one off tells the students booked (`help_session_cancel`).
+  **Class times / My schedule** (`section_meetings`; a class's roll → gear → `app/attendance/times.tsx`): its lead teacher
+  or the office (`app.edits_class_times`: people.family or checkin.manage; never a sub) sets when and where a section
+  meets (`section_meeting_save`). Staff, its students and their parents read them (`app.sees_class_times`; never Family
+  accounts): the week in the Student app (`class_schedule`, `src/schedule/ScheduleCard.tsx`) and Now / Next class on
+  students' Planner (`my_next_classes`, skipping `app.no_school` days). The FACTS connector can fill them later.
   **Turning in work** (`assignment_files`; private `assignment-files` bucket under the student's own folder,
   `<student>/<assignment>/<file>`; `app/assignments/[id].tsx`, `src/assignments/pickWork.ts`): a student in a class
   assignment's section turns in up to 10 files (`assignment_file_add`; documents or photos, 20 MB; types in both

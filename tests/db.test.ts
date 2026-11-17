@@ -5414,6 +5414,62 @@ test("forms: once a form is past its due date it can't be signed, changed or rem
   await db.exec(`delete from forms where id in ('${trip.id}', '${quiz.id}')`);
 });
 
+test("class times: a class's teacher or the office sets when it meets; its students and their parents see the week", async () => {
+  const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
+  const ava = await uid('u-s01');   // in Jennifer's English 10 – Period 3; Rosa's daughter
+  const save = (days: string, start = '09:45', end = '10:35', room = 'Room 204', mid = 'null') =>
+    `select section_meeting_save(${mid}, 'eng10-p3', array[${days}]::int[], '${start}', '${end}', '${room}') as id`;
+  const week = async (student = '') => (await rows(`select class_name, weekdays, start_time, end_time, room from class_schedule(${student ? `'${student}'` : ''})
+    where section_id = 'eng10-p3'`));
+
+  // Only its lead teacher and the office; not another teacher, parents or students.
+  for (const who of ['u-sci', 'u-p01', 'u-s01']) { await as(who); await rejects(save('1,3,5'), /teacher or the office/); }
+  await as('u-eng');
+  await rejects(save('6'), /Monday to Friday/);
+  await rejects(save('1', '10:35', '09:45'), /ends after it starts/);
+  const mwf = (await one(save('5,1,3,3'))).id as string;
+  await one(save('2,4', '09:45', '11:05', 'Lab B'));
+  await as('u-admin', true);
+  await one(save('1,3,5', '09:45', '10:40', 'Room 204', `'${mwf}'`));
+
+  // Ava sees her week; Rosa sees Ava's; a Family account, another family and another child's parent don't.
+  await as('u-s01');
+  assert.deepEqual((await week()).map((m) => [m.weekdays, m.start_time, m.end_time, m.room]),
+    [[[1, 3, 5], '09:45', '10:40', 'Room 204'], [[2, 4], '09:45', '11:05', 'Lab B']]);
+  assert.equal((await week())[0].class_name, 'English 10 – Period 3');
+  await as('u-p01');
+  assert.equal((await week(ava)).length, 2);
+  assert.equal((await rows(`select 1 from section_meetings where section_id = 'eng10-p3'`)).length, 2);
+  for (const who of ['u-gran', 'u-p02']) {
+    await as(who);
+    assert.deepEqual(await week(ava), [], who);
+  }
+  await as('u-p05');
+  assert.equal((await rows(`select 1 from section_meetings where section_id = 'eng10-p3'`)).length, 0, "not a parent of anyone in it");
+  await as('u-eng');
+  assert.equal((await week()).length, 2, 'the teacher sees the classes they lead');
+
+  // Now / Next on the Planner: a class all day every weekday is going on now on a school day; else it's the next school day's.
+  await asSuper();
+  await db.exec(`delete from section_meetings where section_id = 'eng10-p3'`);
+  await as('u-eng');
+  await one(save('1,2,3,4,5', '00:00', '23:59', 'Room 204'));
+  await as('u-s01');
+  const next = await rows(`select day, now from my_next_classes()`);
+  await asSuper();
+  const firstDay = (await one(`select d::date as d from generate_series(app.school_today(), app.school_today() + 7, interval '1 day') d
+    where not app.no_school(d::date) limit 1`)).d;
+  const iso = (d: any) => String(d.toISOString?.() ?? d).slice(0, 10);
+  assert.equal(iso(next[0].day), iso(firstDay));
+  assert.equal(next[0].now, iso(firstDay) === iso((await one(`select app.school_today() as t`)).t));
+  assert.equal((await one(`select app.no_school('2026-11-21') as x`)).x, true, 'a Saturday');
+
+  await as('u-sci');
+  await rejects(`select section_meeting_delete((select id from section_meetings limit 1))`, /teacher or the office/);
+  await asSuper();
+  await db.exec(`delete from section_meetings`);
+});
+
 test('help sessions: a teacher offers extra help for their classes; their students book spots; only the teacher sees who', async () => {
   const uid = async (l: string) => (await one(`select ${id(l)} as u`)).u as string;
   const ava = await uid('u-s01');   // in Jennifer's English 10 – Period 3

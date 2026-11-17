@@ -16,7 +16,8 @@ import { useCallback, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { classRoll, errorText, markAttendance, markGoneHome, type AttendanceMark, type ClassRoll, type DismissalHow, type RollStudent } from '../../src/api/connect';
+import { classRoll, errorText, isSubstitute, markAttendance, markGoneHome, me, type AttendanceMark, type ClassRoll, type DismissalHow, type RollStudent } from '../../src/api/connect';
+import { ManageButton } from '../../src/ManageButton';
 import { MARKS, checkLine, markColor, rollLine } from '../../src/attendance/labels';
 import { DayStepper } from '../../src/attendance/parts';
 import { schoolToday } from '../../src/calendar/past';
@@ -42,7 +43,12 @@ export default function ClassAttendance() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const changeDay = (d: string) => { setRoll(null); setDay(d); };
 
-  const header = <Stack.Screen options={{ title: roll?.name ?? 'Attendance' }} />;
+  // The gear: Class times, for the class's teacher and the office (never a sub covering it; the database checks).
+  const times = roll?.canMark && !isSubstitute(me())
+    ? () => <ManageButton app="class" items={[{ icon: 'time-outline', label: 'Class times', sub: 'When and where it meets',
+        href: { pathname: '/attendance/times', params: { section: roll.id, name: roll.name } } }]} />
+    : undefined;
+  const header = <Stack.Screen options={{ title: roll?.name ?? 'Attendance', headerRight: times }} />;
   if (error && !roll) return <View style={[s.screen, s.pad]}>{header}<Card><P>{error}</P></Card></View>;
   if (!roll || roll.day !== day) return <>{header}<Loading /></>;
 

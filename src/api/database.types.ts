@@ -1332,6 +1332,44 @@ export type Database = {
           },
         ]
       }
+      section_meetings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          room: string
+          section_id: string
+          start_time: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          room?: string
+          section_id: string
+          start_time: string
+          weekdays: number[]
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          room?: string
+          section_id?: string
+          start_time?: string
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_meetings_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "rosters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardians: {
         Row: {
           guardian_id: string
@@ -3881,6 +3919,19 @@ export type Database = {
         Returns: string
       }
       help_sessions_mine: { Args: never; Returns: Json }
+      class_schedule: {
+        Args: { p_student?: string }
+        Returns: { class_name: string; end_time: string; meeting_id: string; room: string; section_id: string; start_time: string; teacher: string | null; weekdays: number[] }[]
+      }
+      my_next_classes: {
+        Args: never
+        Returns: { class_name: string; day: string; end_time: string; now: boolean; room: string; start_time: string; teacher: string | null }[]
+      }
+      section_meeting_delete: { Args: { p_id: string }; Returns: undefined }
+      section_meeting_save: {
+        Args: { p_end: string; p_id: string | null; p_room?: string; p_section: string; p_start: string; p_weekdays: number[] }
+        Returns: string
+      }
       group_hide: { Args: { p_group: string; p_hidden: boolean }; Returns: undefined }
       lunch_allergy_notes: { Args: { p_student: string; p_window: string }; Returns: { others: string[]; own: string }[] }
       lunch_close_day: { Args: { p_closed: boolean; p_day: string; p_reason?: string }; Returns: undefined }
