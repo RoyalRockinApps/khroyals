@@ -5,14 +5,15 @@
  * normal and low volunteers and the Student app records from the school's system, sets up the
  * senior test login (high school classes, College & Career) and the class tools' samples (the Folder's with pictures,
  * a PDF and links), loads
- * again over itself (keeping a tester's own place in a class), and comes out completely.
+ * again over itself (keeping a tester's own place in a class), and comes out completely. Every other app gets its
+ * samples too (My calendar to substitutes) and nobody is notified.
  */
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { buildSql, schoolDay, SAMPLE_FILES } from '../scripts/presentation_data.mjs';
+import { buildSql, schoolDay, JOURNAL, SAMPLE_FILES } from '../scripts/presentation_data.mjs';
 import { average } from '../src/student/grades';
 
 const ROOT = join(__dirname, '..');
@@ -28,6 +29,7 @@ const SENIOR = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const TEACHER = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const OUTSIDER = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const LUNCH = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const SUB = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const DAY = '2026-10-27';
 
 async function as(who: string) {
@@ -41,7 +43,7 @@ const pinToday = (d: string | null) => db.exec(`reset role; create or replace fu
   select ${d ? `'${d}'::date` : `(now() at time zone 'America/Chicago')::date`} $$`);
 const load = (remove = false, only: string | null = null) => db.exec(buildSql({
   day: DAY, me: ME, children: [{ id: OLDER, grade: 6 }, { id: YOUNGER, grade: 2 }], student: STUDENT, volleyball: VB_SEASON,
-  cheer: CHEER_SEASON, basketball: BASKETBALL, teacher: TEACHER, senior: SENIOR, lunch: LUNCH, remove, only,
+  cheer: CHEER_SEASON, basketball: BASKETBALL, teacher: TEACHER, senior: SENIOR, lunch: LUNCH, sub: SUB, remove, only,
 }));
 
 before(async () => {
@@ -50,9 +52,10 @@ before(async () => {
   // The test parent (a director who also has two children) and the student login, as on live.
   await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'me@example.test', '{"first_name":"Ben","last_name":"Nelson"}'),
     ($2, 'me+student@example.test', '{"first_name":"Sam","last_name":"Student"}'), ($3, 'me+senior@example.test', '{"first_name":"Test","last_name":"Senior"}'),
-    ($4, 'me+teacher@example.test', '{"first_name":"Test","last_name":"Teacher"}')`, [ME, STUDENT, SENIOR, TEACHER]);
+    ($4, 'me+teacher@example.test', '{"first_name":"Test","last_name":"Teacher"}'), ($5, 'me+sub@example.test', '{"first_name":"Test","last_name":"Sub"}')`,
+    [ME, STUDENT, SENIOR, TEACHER, SUB]);
   // A teacher test login, a tester's own child (put in a sample class by hand, as on live) and a lunch time.
-  await db.exec(`update profiles set school_role = 'teacher' where id = '${TEACHER}';
+  await db.exec(`update profiles set school_role = 'teacher' where id = '${TEACHER}'; update profiles set school_role = 'substitute' where id = '${SUB}';
     insert into profiles (id, first_name, last_name, school_role, grade, managed) values ('${OUTSIDER}', 'Test', 'Child', 'student', 6, true);
     insert into lunch_windows (id, name, weekdays, start_time, end_time, grade_from, grade_to, capacity) values ('${LUNCH}', 'K–12th lunch', array[1,2,3,4,5], '11:30', '12:00', 0, 12, 6);`);
   await db.exec(`update profiles set school_role = 'admin' where id = '${ME}';
@@ -72,6 +75,10 @@ test('school days skip the weekend', () => {
   assert.equal(schoolDay('2026-10-30', 1), '2026-11-02');
   assert.equal(schoolDay('2026-10-26', -1), '2026-10-23');
   assert.equal(schoolDay(DAY, 0), DAY);
+  // and the school calendar's breaks (Thanksgiving week)
+  const thanksgiving = ['2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27'];
+  assert.equal(schoolDay('2026-11-20', 1, thanksgiving), '2026-11-30');
+  assert.equal(schoolDay('2026-11-30', -1, thanksgiving), '2026-11-20');
 });
 
 test('loads, shows up for the parent, their class and the student, loads again, and comes out', async () => {
@@ -82,7 +89,7 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   await db.exec('reset role');
   assert.equal(await count(`select 1 from roster_members where roster_id = 'demo-homeroom-a' and profile_id = '${OUTSIDER}'`), 1, "the tester's place stays");
   const people = await count(`select 1 from profiles where managed and id not in ('${OLDER}', '${YOUNGER}', '${OUTSIDER}')`);
-  assert.equal(people, 28, '5 staff, 10 parents, 10 students and 3 high schoolers');
+  assert.equal(people, 29, '5 staff, a substitute, 10 parents, 10 students and 3 high schoolers');
   assert.equal((await one(`select lead_id from rosters where id = 'demo-bible-a'`)).lead_id, TEACHER, 'the teacher login teaches Bible');
   assert.equal(await count(`select 1 from roster_members where roster_id = 'demo-bible-a' and profile_id = '${ME}'`), 0);
   assert.equal(await count(`select 1 from forms`), 4);
@@ -190,11 +197,13 @@ test('loads, shows up for the parent, their class and the student, loads again, 
     ['Book Fair next week: image link', 'Pumpkin patch reminders: image', 'note: image']);
   await db.exec('reset role');
   const paths = (await db.query<any>(`select path from folder_note_attachments where path is not null order by path`)).rows.map((r) => r.path);
-  assert.deepEqual(paths, SAMPLE_FILES.map((f) => f.path).sort(), 'every file is uploaded, and only those');
+  assert.deepEqual(paths, SAMPLE_FILES.filter((f) => f.bucket === 'folder-files').map((f) => f.path).sort(), 'every file is uploaded, and only those');
   for (const f of SAMPLE_FILES) {
     assert.equal(statSync(join(ROOT, 'scripts/sample-files', f.file)).size, f.size, f.file);
-    assert.ok(f.path.startsWith(`${(await one(`select author_id from folder_notes n join folder_note_attachments a on a.note_id = n.id where a.path = '${f.path}'`)).author_id}/`),
-      `${f.file} is in its author's own folder`);
+    const owner = f.bucket === 'folder-files'
+      ? (await one(`select author_id as id from folder_notes n join folder_note_attachments a on a.note_id = n.id where a.path = '${f.path}'`)).id
+      : (await one(`select student_id as id from assignment_files where path = '${f.path}' and assignment_id = '${JOURNAL}'`)).id;
+    assert.ok(f.path.startsWith(`${owner}/`), `${f.file} is in its owner's own folder`);
   }
   // The senior: high school classes and their times, Needs attention (already counted as told), and a plan underway.
   await as(SENIOR);
@@ -211,6 +220,38 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   assert.deepEqual(plan.requests.map((r: any) => r.status).sort(), ['requested', 'sent']);
   assert.equal(await count(`select * from help_sessions_mine() x`), 1);
 
+  // The rest of the apps: My calendar, the office's check-ins, check-out lists, On-Site, activity teams, tickets,
+  // turned-in work, Feedback, Ask the School, the car line, allergies and a birthday, a Connect group, announcements,
+  // dress-up days, substitutes, and volunteer invites and chat.
+  await db.exec('reset role');
+  const rest = ['personal_events', 'school_checks', 'checkout_lists', 'checkout_releases', 'campus_checks', 'campus_visitors', 'dismissals', 'extended_care',
+    'sport_bulletins', 'sport_chat_messages', 'sport_event_rsvps', 'ticket_orders', 'tickets', 'assignment_files', 'feedback', 'school_questions',
+    'school_question_messages', 'vehicles', 'carline_pickups', 'pickup_authorizations', 'student_details', 'posts', 'comments', 'poll_votes', 'reactions',
+    'announcements', 'announcement_views', 'sub_assignments', 'volunteer_invites', 'volunteer_messages'];
+  const counts: Record<string, number> = {};
+  for (const t of rest) counts[t] = await n(t);
+  assert.deepEqual(counts, { personal_events: 8, school_checks: 3, checkout_lists: 3, checkout_releases: 2, campus_checks: 6, campus_visitors: 2, dismissals: 2,
+    extended_care: 2, sport_bulletins: 3, sport_chat_messages: 5, sport_event_rsvps: 6, ticket_orders: 4, tickets: 11, assignment_files: 2, feedback: 5,
+    school_questions: 3, school_question_messages: 4, vehicles: 5, carline_pickups: 5, pickup_authorizations: 1, student_details: 4, posts: 3, comments: 2,
+    poll_votes: 6, reactions: 4, announcements: 2, announcement_views: 20, sub_assignments: 2, volunteer_invites: 2, volunteer_messages: 4 });
+  // Dress-up days go only on days without the school's own: its Spirit Week has the test's days.
+  assert.equal(await count(`select 1 from dress_days d join profiles p on p.id = d.created_by where p.last_name = 'Garcia'`), 0);
+  assert.equal(await count(`select 1 from dress_days`), 6);
+  assert.equal(await count(`select 1 from notifications`), 0, 'nobody is notified');
+  assert.equal(await count(`select 1 from student_details where birthday = '${DAY}'::date - interval '8 years'`), 1, "a birthday today (the board's crown)");
+  assert.equal(Number((await one(`select count(*) filter (where vehicle ? 'label') as n from carline_pickups`)).n), 5, 'each pickup has its car');
+  // What the test logins see: the parent's own tickets, invite and group; the teacher's turned-in work; the sub's days.
+  await as(ME);
+  assert.equal(await count(`select jsonb_array_elements(my_tickets())`), 3);
+  assert.deepEqual((await db.query<any>(`select status from volunteer_invites`)).rows.map((r) => r.status), ['pending']);
+  assert.equal(await count(`select 1 from posts`), 3, 'the Room Parents group');
+  await as(TEACHER);
+  assert.equal(await count(`select x from jsonb_array_elements(assignment_work('${JOURNAL}')) x where jsonb_array_length(x->'files') > 0`), 2);
+  await pinToday(DAY);
+  await as(SUB);
+  assert.equal(await count(`select jsonb_array_elements(my_sub_days())`), 1);
+  await pinToday(null);
+
   // Out it comes; the parent, their children, the logins and Volleyball stay.
   await db.exec('reset role');
   await load(true);
@@ -218,7 +259,8 @@ test('loads, shows up for the parent, their class and the student, loads again, 
   assert.equal(await count(`select 1 from college_steps_done`), 0);
   for (const t of ['forms', 'market_listings', 'volunteer_opportunities', 'volunteer_events', 'assignments', 'rosters', 'teacher_threads', 'sport_events', 'sport_registrations',
     'sis_students', 'sis_courses', 'sis_assignments', 'sis_attendance', 'sis_terms', 'section_meetings', 'help_sessions', 'class_attendance', 'folder_notes',
-    'folder_note_attachments', 'parent_notes', 'absence_reports', 'lunch_visits', 'study_decks', 'study_notes', 'daily_verses', 'college_dates', 'transcript_requests', 'sis_alerts_sent']) {
+    'folder_note_attachments', 'parent_notes', 'absence_reports', 'lunch_visits', 'study_decks', 'study_notes', 'daily_verses', 'college_dates', 'transcript_requests', 'sis_alerts_sent',
+    'ticketed_events', 'ticket_types', 'feedback_workshops', 'groups', 'memberships', ...rest]) {
     assert.equal(await count(`select 1 from ${t}`), 0, t);
   }
   assert.equal(await count(`select 1 from sports`), 3, 'the real activities stay');

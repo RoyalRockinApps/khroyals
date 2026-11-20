@@ -61,12 +61,16 @@ strict. Backend is Supabase (Postgres + Auth + Realtime + Edge Functions).
   There may be several directors but never zero (trigger `app.keep_a_director`);
   `patguettler@gmail.com` is a director.
 - **Sample data on live** (`scripts/presentation_data.mjs`, tested by `tests/presentation-data.test.ts`): made-up staff,
-  families and high schoolers with samples for every feature (classes, forms, activities, volunteering, grade records,
-  class times, help sessions, roll, the Folder, absences, lunch visits, boards, Study, daily verses, College & Career),
-  around the real test accounts (`--parent`, `--teacher`, `--senior`). Rows are written directly with fixed ids, so
-  nothing is sent and a rerun replaces them; the sample classes stay through a rerun so a tester's own place in one
-  stays. `--remove` takes it all out before launch. Never sample Tell Someone reports or critical alerts. A new feature
-  adds its samples here.
+  families and high schoolers with samples for every feature (classes, forms, activities and their teams and tickets,
+  volunteering with invites and chat, grade records, class times, help sessions, roll, the Folder with attachments,
+  turned-in work, absences, lunch visits, boards, Study, daily verses, College & Career, My calendar, check-ins and
+  check-out lists, On-Site, the car line, Feedback, Ask the School, a Connect group, announcements, dress-up days,
+  substitutes), around the real test accounts (`--parent`, `--teacher`, `--senior`, `--sub`). Rows are written directly
+  with fixed ids, so nothing is sent and a rerun replaces them (a table whose trigger notifies on insert has it switched
+  off while its rows go in; the test checks nobody gets a notification); the sample classes stay through a rerun so a
+  tester's own place in one stays. Sample files are in `scripts/sample-files` (`SAMPLE_FILES`). `--remove` takes it all
+  out before launch. Never sample Tell Someone reports or critical alerts, and leave real counts (A/B tests, App usage)
+  and the school's settings alone. A new feature adds its samples here.
 - **Deleting accounts** (`admin_delete_user`) needs `people.delete` (directors by default; they can
   give it to a role or person). It refuses yourself, directors and children (remove them as students),
   and admins unless the caller also has `admins.manage`. It deletes their posts (anonymous ones too) and

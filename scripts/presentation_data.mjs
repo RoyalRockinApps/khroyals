@@ -14,7 +14,7 @@
  * Cheer and the parent follows Basketball, if those exist.
  *
  *   SUPABASE_ACCESS_TOKEN=… node scripts/presentation_data.mjs --parent <email> [--student <email>]
- *     [--teacher <email>] [--senior <email>] [--day 2026-10-27] [--only volunteer|student] [--remove] [--print]
+ *     [--teacher <email>] [--senior <email>] [--sub <email>] [--day 2026-10-27] [--only volunteer|student] [--remove] [--print]
  *
  * --day is the day it'll be shown (dates are around it; default: the next school day). The past
  * volunteer shifts go by the school's real today, so the analytics' last 30 days are right.
@@ -26,10 +26,20 @@
  * class times, help sessions, the last week's roll, bulletins and notes in the Folder (with pictures, a PDF and links from
  * scripts/sample-files, uploaded to the 'folder-files' bucket with SUPABASE_SERVICE_ROLE_KEY or the access token), notes to a teacher, absence
  * reports, lunch visits (in the first active lunch time), the homeroom teacher's board, the student logins' Study decks,
- * two school weeks of daily verses (only on days without one), and the counselor's test dates and scholarships.
+ * two school weeks of daily verses (only on days without one), and the counselor's test dates and scholarships. So do
+ * the rest of the apps: My calendar (the teacher login's and the parent's), the office's late arrivals and early
+ * check-outs, check-out lists (a field trip, the Bible retreat, a tournament), On-Site Attendance (staff check-ins,
+ * visitors, students sent home, extended care), activity teams (the coaches' board, the parents' chat, "Are you going?"),
+ * tickets for Annie Jr. (one order the parent's), work two students turned in for the Bible journal (files in
+ * scripts/sample-files, in the 'assignment-files' bucket), Feedback with a workshop, Ask the School, the car line today
+ * (cars, two picked up and three waiting, one with a birthday, and a carpool), allergies, a Room Parents group in
+ * Connect (an announcement, a question, a poll), two sent announcements (no splash page), dress-up days (only on days
+ * without one), volunteer invites (one for the parent) and chat, and a substitute: a made-up one covering the homeroom,
+ * and --sub, a substitute test login, covering the Bible class today (on duty now).
  * Nothing is sent: rows are written directly, so nobody gets a notification (missing work already in the sample records
- * counts as told), and forms and classes only reach the parent's children and the made-up families. Tell Someone has
- * no samples. The sample classes stay through a refresh, so anyone else put in one (a tester's account) stays in it. Every row has a fixed
+ * counts as told; the triggers that notify on a new Connect post or an office check-in are off while those go in), and
+ * forms and classes only reach the parent's children and the made-up families. Tell Someone, critical alerts, A/B tests,
+ * App usage and the school's settings (lunch times, Wi-Fi spots, roles) have no samples. The sample classes stay through a refresh, so anyone else put in one (a tester's account) stays in it. Every row has a fixed
  * id, so running it again replaces it, and --remove takes all of it out (the student login
  * stays, without its classes). --print shows the SQL instead of running it.
  */
@@ -59,12 +69,13 @@ const inList = (ids) => (ids.length ? `(${ids.map(lit).join(', ')})` : '(null)')
 const addDays = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const weekend = (iso) => [0, 6].includes(new Date(`${iso}T12:00:00Z`).getUTCDay());
 /**
- * The school day `n` school days from `day` (negative: before it).
- * @param {string} day @param {number} n @returns {string}
+ * The school day `n` school days from `day` (negative: before it), skipping weekends and the days in `closed` (the
+ * school calendar's breaks and holidays).
+ * @param {string} day @param {number} n @param {string[]} [closed] @returns {string}
  */
-export function schoolDay(day, n) {
+export function schoolDay(day, n, closed = []) {
   let d = day;
-  for (let k = 0; k !== n;) { d = addDays(d, n < 0 ? -1 : 1); if (!weekend(d)) k += n < 0 ? -1 : 1; }
+  for (let k = 0; k !== n;) { d = addDays(d, n < 0 ? -1 : 1); if (!weekend(d) && !closed.includes(d)) k += n < 0 ? -1 : 1; }
   return d;
 }
 const at = (date, time) => ({ ts: `${date} ${time} America/Chicago` });
@@ -92,6 +103,7 @@ const STAFF = [
   { key: 'davis', first: 'Marcus', last: 'Davis', role: 'teacher' },
   { key: 'price', first: 'Hannah', last: 'Price', role: 'teacher' },
   { key: 'garcia', first: 'Maria', last: 'Garcia', role: 'staff' },
+  { key: 'lowe', first: 'Karen', last: 'Lowe', role: 'substitute' },
 ];
 /** Five families in the older child's grade (a) and five in the younger's (b). */
 const FAMILIES = [
@@ -116,17 +128,23 @@ const staff = (k) => uid(`staff:${k}`);
 const parent = (k) => uid(`parent:${k}`);
 const kid = (k) => uid(`kid:${k}`);
 
+/** The Bible class's "Reflection journal, week 9" (made in buildSql's list of assignments), where students turn in work. */
+export const JOURNAL = uid('assignment:6:Reflection journal, week 9');
 /**
- * The pictures and PDF on the sample bulletins and notes: files in scripts/sample-files, uploaded by main() to each
- * teacher's own folder of the private 'folder-files' bucket (a rerun replaces them; --remove deletes them).
+ * The files the samples point at, in scripts/sample-files, uploaded by main() (a rerun replaces them; --remove deletes
+ * them): the pictures and PDF on the sample bulletins and notes, in each teacher's own folder of the private
+ * 'folder-files' bucket, and the work two students turned in for the journal, in the private 'assignment-files' bucket.
  */
 export const SAMPLE_FILES = [
   { key: 'flyer', file: 'book-fair-flyer.jpg', by: 'taylor', kind: 'image', type: 'image/jpeg', name: 'Book Fair flyer', width: 1000, height: 1400 },
   { key: 'star', file: 'star-reader.jpg', by: 'taylor', kind: 'image', type: 'image/jpeg', name: 'Star Reader', width: 1400, height: 1000 },
   { key: 'pumpkins', file: 'pumpkin-patch.jpg', by: 'brooks', kind: 'image', type: 'image/jpeg', name: 'Pumpkin patch', width: 1000, height: 1400 },
   { key: 'gatsby', file: 'gatsby-reading-schedule.pdf', by: 'price', kind: 'pdf', type: 'application/pdf', name: 'Gatsby reading schedule.pdf', width: null, height: null },
-].map((f) => ({ ...f, path: `${staff(f.by)}/sample/${f.file}`,
-  size: statSync(fileURLToPath(new URL(`./sample-files/${f.file}`, import.meta.url))).size }));
+].map((f) => ({ ...f, bucket: 'folder-files', path: `${staff(f.by)}/sample/${f.file}` })).concat([
+  { key: 'work-patel', file: 'reflection-journal.pdf', student: 'patel', type: 'application/pdf', name: 'Week 9 reflection.pdf' },
+  { key: 'work-kim', file: 'journal-page.jpg', student: 'kim', type: 'image/jpeg', name: 'IMG_2041.jpg' },
+].map((f) => ({ ...f, bucket: 'assignment-files', path: `${kid(f.student)}/${JOURNAL}/${f.file}` })))
+  .map((f) => ({ ...f, size: statSync(fileURLToPath(new URL(`./sample-files/${f.file}`, import.meta.url))).size }));
 
 /**
  * Past volunteering, for the analytics: who helps how much each school year ('me' is the test parent). High: there
@@ -380,13 +398,13 @@ export function studentRecords(children, student, today, senior = null) {
  * `only: 'volunteer'` limits it to the volunteering.
  * @param {{ day: string, today?: string, me: string, children: { id: string, grade: number }[], student?: string | null,
  *   volleyball?: string | null, cheer?: string | null, basketball?: string | null, teacher?: string | null, senior?: string | null,
- *   lunch?: string | null, remove?: boolean, only?: string | null }} options
+ *   lunch?: string | null, sub?: string | null, closed?: string[], remove?: boolean, only?: string | null }} options
  * @returns {string}
  */
 export function buildSql({ day, today = day, me, children, student = null, volleyball = null, cheer = null, basketball = null,
-  teacher = null, senior = null, lunch = null, remove = false, only = null }) {
+  teacher = null, senior = null, lunch = null, sub = null, closed = [], remove = false, only = null }) {
   const [older, younger] = children;
-  const sd = (n) => schoolDay(day, n);
+  const sd = (n) => schoolDay(day, n, closed);
   const ids = { forms: [], threads: [], assignments: [], rosters: [], events: [], sports: [], opps: [], listings: [], people: [] };
   const out = [];
 
@@ -599,6 +617,17 @@ export function buildSql({ day, today = day, me, children, student = null, volle
       insert('volunteer_attendance', ['opportunity_id', 'user_id', 'day', 'status', 'checked_in_at', 'checked_out_at', 'minutes', 'marked_by', 'updated_at'],
         shifts.filter((x) => x.status).map((x) => [x.o.id, helper(x.k), x.d, x.status, x.in ? at(x.d, x.in) : null, x.out ? at(x.d, x.out) : null,
           x.minutes ?? null, x.in ? helper(x.k) : staff('garcia'), at(x.d, x.out ?? x.o.end)])),
+      // An invite for the test parent (Say Yes! or Deny), one a parent turned down, and the set-up crew's chat.
+      insert('volunteer_invites', ['opportunity_id', 'user_id', 'invited_by', 'status', 'note', 'created_at', 'answered_at'], [
+        [uid('opp:fest-booths'), me, staff('garcia'), 'pending', 'You were a natural at the ring toss last year. Would you run it again?', at(sd(-1), '10:00'), null],
+        [uid('opp:fest-cleanup'), parent('adams'), staff('garcia'), 'declined', 'Could you stay a little longer to help us pack up?', at(sd(-2), '10:00'), at(sd(-2), '18:30')],
+      ]),
+      insert('volunteer_messages', ['id', 'opportunity_id', 'author_id', 'body', 'created_at'], [
+        [uid('vmsg:1'), uid('opp:fest-setup'), staff('garcia'), 'Thank you for signing up! We’ll meet at the flagpole at 7:30. Coffee and donuts are on me.', at(sd(-2), '09:00')],
+        [uid('vmsg:2'), uid('opp:fest-setup'), parent('rivera'), 'I can bring a dolly for the hay bales.', at(sd(-2), '12:10')],
+        [uid('vmsg:3'), uid('opp:fest-setup'), parent('johnson'), 'Is the back lot open that early?', at(sd(-1), '08:30')],
+        [uid('vmsg:4'), uid('opp:fest-setup'), staff('garcia'), 'Yes, the back gate opens at 7:00.', at(sd(-1), '09:05')],
+      ]),
       `insert into public.volunteer_signups (opportunity_id, user_id, quantity) select k.opportunity_id, k.user_id, k.quantity from kept_signups k
         where exists (select 1 from public.volunteer_opportunities o where o.id = k.opportunity_id) on conflict do nothing;`,
   ];
@@ -674,7 +703,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
   ];
   // Their pictures, PDF and links (the files are in scripts/sample-files, uploaded by main()).
   const fattach = fnotes.flatMap((n) => (n.files ?? []).map((f, i) => {
-    const file = typeof f === 'string' ? SAMPLE_FILES.find((x) => x.key === f) : null;
+    const file = typeof f === 'string' ? SAMPLE_FILES.find((x) => x.key === f && x.bucket === 'folder-files') : null;
     return file
       ? [uid(`fattach:${n.key}:${i}`), uid(`fnote:${n.key}`), file.kind, file.path, null, file.name, file.width, file.height, file.size, i, n.when]
       : [uid(`fattach:${n.key}:${i}`), uid(`fnote:${n.key}`), 'link', null, f.link, f.name, null, null, null, i, n.when];
@@ -760,6 +789,249 @@ export function buildSql({ day, today = day, me, children, student = null, volle
     { key: 'turner2', who: kid('turner'), to: 'Auburn University', method: 'portal', address: '', by: null, note: '', status: 'sent', counselor: 'Sent through Parchment.' },
   ];
 
+  // --- The rest of the apps: My calendar, the office's check-ins, check-out lists, On-Site, activity teams, tickets,
+  // turned-in work, Feedback, Ask the School, the car line, allergies and a birthday, a Connect group, announcements,
+  // dress-up days and substitutes. (Volunteer invites and chat are with the volunteering.) Rows that would notify
+  // someone are written with that trigger off, in the same transaction.
+  const here = (k) => FAMILIES.some((f) => f.key === k && (f.set === 'a' ? older : younger));
+  const person = (k) => (k === 'me' ? me : STAFF.some((x) => x.key === k) ? staff(k) : parent(k));
+  // My calendar (staff, private to each): the teacher test login's and the test parent's (a director).
+  const calendarOwners = [...new Set([teacher, me].filter(Boolean))];
+  const myCalendar = calendarOwners.flatMap((owner) => [
+    ['conference', 'Parent conference: Rivera family', sd(1), '15:30', '16:00', 'Room 204', 'Reading progress and the science fair.'],
+    ['faculty', 'Faculty meeting', sd(2), '15:15', '16:15', 'Library', ''],
+    ['reports', 'Progress reports due', sd(6), null, null, null, 'A comment for every student.'],
+  ].map(([k, title, on, start, end, where, notes]) => [uid(`pevent:${owner}:${k}`), owner, null, title, on, start, end, where, notes])
+    .concat([[uid(`pevent:${owner}:annie`), owner, uid('event:an4'), null, null, null, null, null, 'Bring flowers for the cast.']]));
+  // The office's late arrivals and early check-outs today.
+  const checks = [
+    here('rivera') && ['rivera', kid('rivera'), 'in', 'appointment', 'Dentist appointment.', parent('rivera'), '09:40'],
+    here('wright') && ['wright', kid('wright'), 'out', 'illness', 'Fever; his dad took him home.', parent('wright'), '11:15'],
+    ['collins', kid('collins'), 'in', 'late', 'Car trouble.', null, '08:20'],
+  ].filter(Boolean);
+  // Check-out lists: today's field trip (two released to their parents), the teacher's own for the retreat, and an
+  // Activities event's.
+  const homeroomKids = older ? [older.id, ...fa.map((f) => kid(f.key))] : [];
+  const lists = [
+    ...(older ? [{ key: 'museum', title: 'Science museum field trip', on: day, by: staff('taylor'), event: null, kids: homeroomKids,
+      released: ['rivera', 'patel'].filter(here) },
+    { key: 'retreat', title: 'Bible class retreat', on: sd(8), by: teacher ?? me, event: null, kids: homeroomKids, released: [] }] : []),
+    ...(fa.length > 3 ? [{ key: 'chess', title: 'Rocket City scholastic tournament', on: sd(9), by: staff('taylor'), event: uid('event:ch2'),
+      kids: fa.slice(3).map((f) => kid(f.key)), released: [] }] : []),
+  ];
+  // On-Site Attendance today: the made-up staff checked in (one left at noon), two visitors, two students sent home
+  // a way other than the car line, and extended care (with its staff member).
+  const campus = [
+    ...['taylor', 'brooks', 'davis', 'price', 'garcia'].map((k, i) => [uid(`campus:${k}:in`), staff(k), day, 'in', staff(k), 20 + i * 9, at(day, `07:${20 + i * 6}`)]),
+    [uid('campus:price:out'), staff('price'), day, 'out', staff('price'), null, at(day, '12:15')],
+  ];
+  const visitors = [
+    [uid('visitor:inspection'), day, 'Tom Baker, Valley Fire Protection', 'Fire extinguisher inspection', 1, at(day, '09:30'), null],
+    [uid('visitor:speaker'), day, 'Dr. Anne Walsh', 'Career day speaker, 11th grade', 0, at(day, '10:05'), at(day, '11:20')],
+  ];
+  const dismissed = [
+    here('johnson') && [kid('johnson'), 'walked', 'With his older sister.', staff('taylor'), '15:05'],
+    [kid('turner'), 'drove', '', staff('price'), '15:10'],
+  ].filter(Boolean);
+  const care = [here('kim') && [kid('kim'), [1, 2, 3, 4, 5], ''], here('moore') && [kid('moore'), [2, 4], 'Grandma picks up by 5:30.']].filter(Boolean);
+  // Activity teams: the coaches' board, the parents' chat and "Are you going?" answers.
+  const bulletins = [
+    ['costumes', 'annie', 'price', 'Costume fittings Thursday', 'Fittings are in the music room during rehearsal. Wear leggings and a plain T-shirt.', true, at(sd(-2), '16:10')],
+    ['lines', 'annie', 'price', 'Act 1 lines by Monday', 'Please have your Act 1 lines memorized by Monday’s rehearsal. Running lines with someone at home helps!', false, at(sd(-4), '17:20')],
+    ['slips', 'chess', 'taylor', 'Tournament permission slips', `The Rocket City tournament is on ${pretty(sd(9))}. Please turn in the permission slip by Friday.`, true, at(sd(-3), '15:45')],
+  ];
+  const teamChat = [
+    fb[0] && ['annie', parent(fb[0].key), 'Is anyone driving to Wednesday’s rehearsal from Madison? We could use a ride home.', at(sd(-2), '18:05')],
+    fa[1] && ['annie', parent(fa[1].key), 'We are! We have room for one more.', at(sd(-2), '18:40')],
+    ['annie', staff('price'), 'Thank you both! Pick-up is at 5:00 at the auditorium doors.', at(sd(-2), '19:15')],
+    fa[3] && ['chess', parent(fa[3].key), 'Do the kids need lunch money for the tournament?', at(sd(-1), '20:00')],
+    ['chess', staff('taylor'), 'Lunch is provided. Just send a water bottle and a jacket.', at(sd(-1), '20:30')],
+  ].filter(Boolean);
+  const rsvps = [
+    ...fb.slice(0, 2).map((f, i) => [uid('event:an2'), kid(f.key), i ? 'not_going' : 'going', parent(f.key)]),
+    ...fa.slice(1, 3).map((f) => [uid('event:an2'), kid(f.key), 'going', parent(f.key)]),
+    ...fa.slice(3).map((f) => [uid('event:ch1'), kid(f.key), 'going', parent(f.key)]),
+  ];
+  // Tickets for Annie Jr.'s opening night: three kinds and four paid orders (one the test parent's, for My Tickets).
+  const OPENING = uid('event:an4');
+  const ticketKinds = [['adult', 'Adult', 1000, 250], ['student', 'Student', 500, null], ['child', 'Under 5', 0, null]];
+  const orders = [['rivera', { adult: 2, student: 1 }, -3], ['patel', { adult: 1, student: 2 }, -2], ['chen', { adult: 2 }, -2], ['me', { adult: 2, child: 1 }, -1]]
+    .map(([k, counts, d]) => ({ k, d, id: uid(`torder:${k}`), tickets: Object.entries(counts).flatMap(([t, n]) => Array.from({ length: n }, (_, i) => ({ t, i }))) }))
+    .map((o) => ({ ...o, total: o.tickets.reduce((n, x) => n + ticketKinds.find(([t]) => t === x.t)[2], 0) }));
+  // Work two students turned in for the Bible class's journal (the files are in scripts/sample-files).
+  const journal = assignments.find((a) => a.id === JOURNAL);
+  const turnedIn = journal ? SAMPLE_FILES.filter((f) => f.bucket === 'assignment-files' && here(f.student)) : [];
+  // Feedback (the IT team's list) and a workshop.
+  const WORKSHOP = uid('workshop:forms');
+  const feedback = [
+    ['rivera', 'bug', 'carline', 'Check-in said I was too far away', 'I was in the car line by the front circle and the app said I was 200 m away.', 'iPhone 13 · iOS 27.1',
+      'in_progress', 'high', 'Thank you! We’re widening the check-in circle so the whole line counts.', null, -3],
+    ['patel', 'idea', 'forms', 'Save my signature', 'Let me save my signature so I don’t have to draw it on every form.', 'iPhone 16 · iOS 27.1', 'planned', 'medium', '', WORKSHOP, -5],
+    ['chen', 'bug', 'photos', 'Photos upload slowly on cellular', 'Adding ten photos to an album took a few minutes away from Wi-Fi.', 'Pixel 9 · Android 17',
+      'done', 'medium', 'Fixed in the latest update: photos are made smaller on your phone before they upload.', null, -8],
+    ['johnson', 'idea', 'calendar', 'Show the lunch menu on the calendar', 'It would help to see what’s for lunch when I look at the week.', 'iPad · iPadOS 27', 'reviewing', null, '', null, -2],
+    ['taylor', 'idea', 'students', 'Seating chart in Classes', 'A seating chart I can share with a substitute would save time.', 'iPhone 15 · iOS 27.1', 'new', null, '', null, -1],
+  ];
+  // Ask the School: answered, with someone, and new.
+  const questions = [
+    { key: 'pe', asker: 'rivera', topic: 'Uniforms', subject: 'Where do we buy PE uniforms?', status: 'answered', d: -3,
+      messages: [[false, 'Where can I buy the PE uniform? The spirit store link isn’t working for me.'],
+        [true, 'PE shirts and shorts are sold in the front office for $15 each. We take cash or check.']] },
+    { key: 'siblings', asker: 'kim', topic: 'Tuition & Billing', subject: 'Is there a sibling discount?', status: 'assigned', d: -1,
+      messages: [[false, 'We’re thinking about enrolling our younger son next year. Is there a discount for siblings?']] },
+    { key: 'grandma', asker: 'moore', topic: 'Car Line', subject: 'Can Grandma use our pickup number?', status: 'new', d: 0,
+      messages: [[false, 'My mother will pick up Jackson on Tuesdays. Can she use our pickup number, or does she need her own?']] },
+  ];
+  // The car line today: the made-up families' cars, two picked up and three waiting (one has a birthday), and a carpool.
+  const cars = [['rivera', 'Honda Odyssey', 'van', 'silver'], ['patel', 'Toyota RAV4', 'suv', 'white'], ['chen', 'Subaru Outback', 'car', 'blue'],
+    ['moore', 'Ford F-150', 'truck', 'black'], ['thompson', 'Kia Telluride', 'suv', 'gray']];
+  const pickups = [['rivera', 'picked_up', '14:52', '14:58', 60], ['patel', 'picked_up', '14:54', '15:01', 85], ['chen', 'waiting', '15:02', null, 40],
+    ['thompson', 'waiting', '15:04', null, 110], ['moore', 'waiting', '15:06', null, 70]].filter(([k]) => here(k));
+  // Allergies (Lunch Visits shows them) and a birthday today (a crown on the car line board).
+  const details = [
+    here('patel') && [kid('patel'), null, 'Peanuts. Her EpiPen is in her backpack.'],
+    here('chen') && [kid('chen'), null, 'Dairy'],
+    here('moore') && [kid('moore'), null, 'Bee stings'],
+    here('thompson') && [kid('thompson'), `${Number(day.slice(0, 4)) - Math.max(younger.grade, 0) - 6}${day.slice(4)}`, ''],
+  ].filter(Boolean);
+  // A Connect group for room parents: an announcement, a question with an answer, a poll and reactions.
+  const GROUP = uid('group:room-parents');
+  const groupSettings = { mode: 'forum', visibility: 'private', joinPolicy: 'invite', permissions: { viewContent: 'members', post: 'members',
+    comment: 'members', react: 'members', askQuestion: 'members', answerQuestion: 'members', attachFiles: 'members', createPolls: 'moderators',
+    pin: 'moderators', seeMemberList: 'members', directMessageMembers: 'nobody', mentionEveryone: 'moderators' }, requirePostApproval: false,
+    requireQuestionApproval: false, allowAnonymousQuestions: false, slowModeSeconds: 0, autoCloseCommentsAfterDays: null, locked: false,
+    quietHours: null, contentFilter: 'standard', retainDeletedContent: true, membersCanLeave: true, notificationDefault: 'all' };
+  const members = [['garcia', 'owner'], ['taylor', 'moderator'], ...FAMILIES.map((f) => [f.key, 'member']), ['me', 'member']];
+  const POST = (k) => uid(`post:${k}`);
+  const posts = [
+    ['party', 'garcia', 'announcement', 'Class party sign-ups are open', 'Thank you for helping with this year’s class parties! Sign up for your child’s class party in the Volunteer app by Friday.', true, at(sd(-3), '09:00')],
+    ['jacket', 'rivera', 'question', 'Lost navy jacket', 'Has anyone seen a navy KHPS jacket, youth M? Mason’s name is on the tag.', false, at(sd(-1), '16:30')],
+    ['christmas', 'taylor', 'poll', 'Which day works best for our class Christmas party?', '', false, at(sd(-2), '14:00')],
+  ];
+  const comments = [['answer', 'jacket', 'patel', 'Check the lost and found by the gym doors. There were three navy jackets there this morning.', true, at(sd(-1), '17:05')],
+    ['thanks', 'jacket', 'rivera', 'Found it. Thank you!', false, at(sd(-1), '18:20')]];
+  const pollOptions = ['Wednesday, December 16', 'Thursday, December 17', 'Friday, December 18'];
+  const votes = [['rivera', 1], ['patel', 2], ['kim', 1], ['chen', 1], ['moore', 0], ['johnson', 1]];
+  const reactions = [['party', 'rivera', '❤️'], ['party', 'kim', '👍'], ['party', 'chen', '🙏'], ['jacket', 'thompson', '👀']];
+  // Announcements already sent (a push and the bell, no splash page), with who saw them; dress-up days (only on days
+  // without a real one).
+  const announcements = [
+    { key: 'tickets', title: 'Annie Jr. tickets are on sale', body: 'Get your tickets for opening night on December 11 in Activities.', link: '/activities', d: -2, reach: 64 },
+    { key: 'pictures', title: 'Picture day is Thursday', body: 'Wear your full dress uniform. Retakes are in two weeks.', link: '/calendar', d: -4, reach: 61 },
+  ];
+  const dressDays = [['hats', sd(1), 'Crazy Hat Day', 'Wear your silliest hat with your uniform. Hats come off in chapel.', null, null],
+    ['jersey', sd(3), 'Jersey Day', 'Wear a team jersey with your uniform pants or skirt.', 6, 12],
+    ['pajamas', sd(3), 'Pajama Day', 'Comfy pajamas and sneakers. Bring a book for the read-in!', -3, 5]];
+  // Substitutes: a made-up sub covering the homeroom for two days, and the sub test login (if given) covering the Bible
+  // class today, so it's on duty now (roll, sub plans, check-out lists, the car line board).
+  const subDays = [
+    ...(older ? [{ key: 'lowe', who: staff('lowe'), from: sd(1), to: sd(2), start: '07:45', end: '15:15', section: 'demo-homeroom-a', by: staff('taylor'),
+      plans: 'Morning: read aloud Hatchet, chapter 7, then journal for 15 minutes.\nMath: page 86, problems 1–15 (answer key in the blue folder).\nRecess duty at 10:15 by the swings. Mason may go to the office at 1:00 for speech.' }] : []),
+    ...(older && sub ? [{ key: 'login', who: sub, from: day, to: day, start: '07:30', end: '15:30', section: 'demo-bible-a', by: teacher ?? me,
+      plans: 'Take roll first thing. Read Psalm 23 together, then students write in their reflection journals for the rest of class.' }] : []),
+  ];
+
+  const restDrop = () => [
+    `delete from public.personal_events where id in ${inList(myCalendar.map((e) => e[0]))};`,
+    `delete from public.school_checks where id in ${inList(['rivera', 'wright', 'collins'].map((k) => uid(`check:${k}`)))};`,
+    `delete from public.checkout_lists where id in ${inList(['museum', 'retreat', 'chess'].map((k) => uid(`checkout:${k}`)))};`,
+    `delete from public.campus_checks where id in ${inList(campus.map((c) => c[0]))};`,
+    `delete from public.campus_visitors where id in ${inList(visitors.map((v) => v[0]))};`,
+    `delete from public.ticket_orders where id in ${inList(['rivera', 'patel', 'chen', 'me'].map((k) => uid(`torder:${k}`)))};`,
+    `delete from public.feedback where id in ${inList(feedback.map(([k]) => uid(`feedback:${k}`)))};`,
+    `delete from public.feedback_workshops where id = ${lit(WORKSHOP)};`,
+    `delete from public.school_questions where id in ${inList(questions.map((q) => uid(`question:${q.key}`)))};`,
+    `delete from public.groups where id = ${lit(GROUP)};`,
+    `delete from public.announcements where id in ${inList(announcements.map((a) => uid(`announcement:${a.key}`)))};`,
+    `delete from public.dress_days where id in ${inList(dressDays.map(([k]) => uid(`dress:${k}`)))};`,
+    `delete from public.sub_assignments where id in ${inList(['lowe', 'login'].map((k) => uid(`subday:${k}`)))};`,
+    // The rest go with the made-up people, activities and assignments (cascades).
+  ];
+  const restAdd = () => [
+    insert('personal_events', ['id', 'owner_id', 'sport_event_id', 'title', 'starts_on', 'start_time', 'end_time', 'location', 'notes'], myCalendar)
+      .replace(/;$/, ' on conflict do nothing;'),
+    'alter table public.school_checks disable trigger tell_teachers;',
+    insert('school_checks', ['id', 'student_id', 'day', 'kind', 'reason', 'note', 'person_id', 'recorded_by', 'at'],
+      checks.map(([k, st, kind, reason, note, by, time]) => [uid(`check:${k}`), st, day, kind, reason, note, by, staff('garcia'), at(day, time)])),
+    'alter table public.school_checks enable trigger tell_teachers;',
+    insert('checkout_lists', ['id', 'title', 'day', 'sport_event_id', 'created_by', 'created_at'],
+      lists.map((l) => [uid(`checkout:${l.key}`), l.title, l.on, l.event, l.by, at(sd(-1), '15:30')])),
+    insert('checkout_list_students', ['list_id', 'student_id'], lists.flatMap((l) => l.kids.map((k) => [uid(`checkout:${l.key}`), k]))),
+    insert('checkout_releases', ['list_id', 'student_id', 'released_to', 'released_by', 'at'],
+      lists.flatMap((l) => l.released.map((k, i) => [uid(`checkout:${l.key}`), kid(k), parent(k), l.by, at(l.on, `14:${35 + i * 5}`)]))),
+    insert('campus_checks', ['id', 'person_id', 'day', 'kind', 'recorded_by', 'distance_m', 'at'], campus),
+    insert('campus_visitors', ['id', 'day', 'name', 'purpose', 'guests', 'signed_in_at', 'signed_out_at', 'signed_in_by', 'signed_out_by'],
+      visitors.map(([id, d, name, purpose, guests, inAt, outAt]) => [id, d, name, purpose, guests, inAt, outAt, staff('garcia'), outAt ? staff('garcia') : null])),
+    insert('dismissals', ['student_id', 'day', 'how', 'note', 'marked_by', 'at'], dismissed.map(([st, how, note, by, time]) => [st, day, how, note, by, at(day, time)])),
+    insert('extended_care', ['student_id', 'weekdays', 'note', 'updated_by'], care.map(([st, days, note]) => [st, days, note, staff('garcia')])),
+    `update public.profiles set extended_care_duty = true where id = ${lit(staff('brooks'))};`,
+    insert('sport_bulletins', ['id', 'sport_id', 'author_id', 'title', 'body', 'pinned', 'created_at', 'updated_at'],
+      bulletins.map(([k, sp, by, title, body, pinned, when]) => [uid(`sbulletin:${k}`), uid(`sport:${sp}`), staff(by), title, body, pinned, when, when])),
+    insert('sport_chat_messages', ['id', 'sport_id', 'author_id', 'body', 'created_at'],
+      teamChat.map(([sp, by, body, when], i) => [uid(`schat:${i}`), uid(`sport:${sp}`), by, body, when])),
+    insert('sport_event_rsvps', ['event_id', 'student_id', 'status', 'answered_by'], rsvps),
+    insert('ticketed_events', ['event_id', 'on_sale', 'closes_at', 'max_per_order', 'updated_by'], [[OPENING, true, at('2026-12-11', '18:00'), 10, staff('price')]]),
+    insert('ticket_types', ['id', 'event_id', 'name', 'price_cents', 'capacity', 'position'],
+      ticketKinds.map(([t, name, cents, cap], i) => [uid(`ttype:${t}`), OPENING, name, cents, cap, i])),
+    insert('ticket_orders', ['id', 'event_id', 'event_title', 'event_starts_at', 'buyer_id', 'status', 'total_cents', 'expires_at', 'paid_at', 'created_at'],
+      orders.map((o) => [o.id, OPENING, 'Annie Jr.: opening night', at('2026-12-11', '19:00'), person(o.k), 'paid', o.total, at(sd(o.d), '20:30'),
+        at(sd(o.d), '20:04'), at(sd(o.d), '20:00')])),
+    insert('tickets', ['id', 'order_id', 'type_id', 'type_name', 'price_cents', 'code'], orders.flatMap((o) => o.tickets.map(({ t, i }) => {
+      const [, name, cents] = ticketKinds.find(([x]) => x === t);
+      return [uid(`ticket:${o.k}:${t}:${i}`), o.id, uid(`ttype:${t}`), name, cents, uid(`ticket-code:${o.k}:${t}:${i}`).replace(/-/g, '')];
+    }))),
+    insert('assignment_files', ['id', 'assignment_id', 'student_id', 'path', 'name', 'mime_type', 'size_bytes', 'created_at'],
+      turnedIn.map((f, i) => [uid(`work:${f.student}`), JOURNAL, kid(f.student), f.path, f.name, f.type, f.size, at(sd(-1), `19:${40 + i * 7}`)])),
+    insert('feedback_workshops', ['id', 'title', 'description', 'held_on', 'created_by'],
+      [[WORKSHOP, 'Forms and signatures', 'Parents and the office try out ideas for signing forms faster.', sd(10), staff('garcia')]]),
+    insert('feedback', ['id', 'author_id', 'kind', 'area', 'title', 'details', 'device', 'status', 'priority', 'reply', 'workshop_id', 'created_at', 'updated_at'],
+      feedback.map(([k, kind, area, title, details, device, status, priority, reply, ws, d]) => [uid(`feedback:${k}`), person(k), kind, area, title, details,
+        device, status, priority, reply, ws, at(sd(d), '20:10'), at(sd(Math.min(d + 1, 0)), '09:00')])),
+    insert('school_questions', ['id', 'asker_id', 'topic', 'subject', 'status', 'assignee_id', 'assigned_by', 'assigned_at', 'waiting_since', 'answered_at', 'created_at', 'updated_at'],
+      questions.map((q) => [uid(`question:${q.key}`), parent(q.asker), q.topic, q.subject, q.status, q.status === 'new' ? null : staff('garcia'),
+        q.status === 'new' ? null : staff('garcia'), q.status === 'new' ? null : at(sd(q.d), '08:30'), q.status === 'answered' ? null : at(sd(q.d), '08:15'),
+        q.status === 'answered' ? at(sd(q.d), '10:30') : null, at(sd(q.d), '08:15'), at(sd(q.d), q.status === 'answered' ? '10:30' : '08:30')])),
+    insert('school_question_messages', ['id', 'question_id', 'author_id', 'from_school', 'body', 'created_at'],
+      questions.flatMap((q) => q.messages.map(([school, body], i) => [uid(`qmsg:${q.key}:${i}`), uid(`question:${q.key}`), school ? staff('garcia') : parent(q.asker),
+        school, body, at(sd(q.d), i ? '10:30' : '08:15')]))),
+    insert('vehicles', ['id', 'owner_id', 'make', 'kind', 'color', 'last_used_at'], cars.map(([k, make, kind, color]) => [uid(`vehicle:${k}`), parent(k), make, kind, color,
+      pickups.some(([x]) => x === k) ? at(day, '14:50') : null])),
+    pickups.length ? `insert into public.carline_pickups (id, student_id, guardian_id, day, status, arrived_at, picked_up_at, picked_up_by, via, distance_m, vehicle)
+      select v.id::uuid, v.student::uuid, v.guardian::uuid, ${lit(day)}::date, v.status, v.arrived, v.picked, v.by::uuid, 'app', v.dist, app.vehicle_snapshot(c)
+      from (values ${pickups.map(([k, status, arrived, picked, dist]) => `(${[uid(`pickup:${k}`), kid(k), parent(k), status].map(lit).join(', ')}, ${lit(at(day, arrived))},
+        ${picked ? lit(at(day, picked)) : 'null::timestamptz'}, ${picked ? lit(staff('garcia')) : 'null'}, ${dist}, ${lit(uid(`vehicle:${k}`))})`).join(',\n        ')})
+        v(id, student, guardian, status, arrived, picked, by, dist, car) join public.vehicles c on c.id = v.car::uuid;` : '',
+    ...(here('johnson') && here('kim') ? [insert('pickup_authorizations', ['id', 'student_id', 'person_id', 'relationship', 'starts_on', 'ends_on', 'granted_by'],
+      [[uid('pickupauth:johnson'), kid('johnson'), parent('kim'), 'carpool', day, sd(10), parent('johnson')]])] : []),
+    insert('student_details', ['student_id', 'birthday', 'allergies'], details),
+    insert('groups', ['id', 'slug', 'name', 'description', 'icon', 'color', 'category', 'tags', 'settings', 'created_by', 'created_at'],
+      [[GROUP, 'sample-room-parents', 'Room Parents', 'Room parents and the office plan class parties and teacher gifts here.', '🍎', '#00239C', 'parents',
+        ['parents', 'forum'], { json: groupSettings }, staff('garcia'), at(sd(-10), '09:00')]]),
+    insert('memberships', ['group_id', 'user_id', 'role', 'source'], members.map(([k, role]) => [GROUP, person(k), role, k === 'me' ? 'invite' : 'manual'])),
+    'alter table public.posts disable trigger notify_post;',
+    'alter table public.comments disable trigger notify_reply;',
+    insert('posts', ['id', 'group_id', 'author_id', 'kind', 'title', 'body', 'pinned', 'created_at'],
+      posts.map(([k, by, kind, title, body, pinned, when]) => [POST(k), GROUP, person(by), kind, title, body, pinned, when])),
+    insert('comments', ['id', 'post_id', 'author_id', 'body', 'is_answer', 'created_at'],
+      comments.map(([k, post, by, body, answer, when]) => [uid(`comment:${k}`), POST(post), person(by), body, answer, when])),
+    'alter table public.posts enable trigger notify_post;',
+    'alter table public.comments enable trigger notify_reply;',
+    insert('poll_options', ['id', 'post_id', 'label', 'position'], pollOptions.map((label, i) => [uid(`poll:${i}`), POST('christmas'), label, i])),
+    insert('poll_votes', ['option_id', 'post_id', 'user_id'], votes.map(([k, i]) => [uid(`poll:${i}`), POST('christmas'), person(k)])),
+    insert('reactions', ['post_id', 'user_id', 'emoji'], reactions.map(([post, k, emoji]) => [POST(post), person(k), emoji])),
+    insert('announcements', ['id', 'created_by', 'title', 'body', 'audience', 'audience_label', 'link', 'push', 'send_at', 'sent_at', 'reach', 'created_at'],
+      announcements.map((a) => [uid(`announcement:${a.key}`), staff('garcia'), a.title, a.body, { json: { kind: 'everyone' } }, 'Everyone', a.link, true,
+        at(sd(a.d), '07:30'), at(sd(a.d), '07:30'), a.reach, at(sd(a.d), '07:20')])),
+    insert('announcement_views', ['announcement_id', 'user_id', 'seen_at', 'tapped_at'], announcements.flatMap((a) => FAMILIES.map((f, i) =>
+      [uid(`announcement:${a.key}`), parent(f.key), at(sd(a.d), `07:${31 + i * 3}`), i % 3 ? null : at(sd(a.d), `07:${32 + i * 3}`)]))),
+    ...dressDays.map(([k, on, title, details, from, to]) => `insert into public.dress_days (id, on_date, title, details, grade_from, grade_to, created_by)
+      select ${[uid(`dress:${k}`), on, title, details, from, to, staff('garcia')].map(lit).join(', ')}
+      where not exists (select 1 from public.dress_days where on_date = ${lit(on)} and id not in ${inList(dressDays.map(([x]) => uid(`dress:${x}`)))});`),
+    insert('sub_assignments', ['id', 'substitute_id', 'starts_on', 'ends_on', 'start_time', 'end_time', 'plans', 'created_by', 'created_at'],
+      subDays.map((x) => [uid(`subday:${x.key}`), x.who, x.from, x.to, x.start, x.end, x.plans, x.by, at(sd(-1), '16:00')])),
+    insert('sub_assignment_sections', ['assignment_id', 'section_id'], subDays.map((x) => [uid(`subday:${x.key}`), x.section])),
+  ];
+
   const toolsDrop = () => [
     `delete from public.section_meetings where id in ${inList(times.map((t) => t.id))};`,
     `delete from public.help_sessions where id in ${inList(['hatchet', 'reading', 'chem', 'essay'].map((k) => uid(`help:${k}`)))};`,
@@ -820,6 +1092,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
   // ----------------------------------------------------------------------------
   // Remove (the order keeps foreign keys happy), then add.
   out.push('begin;');
+  out.push(...restDrop());
   out.push(...toolsDrop());
   out.push(`delete from public.forms where id in ${inList(['zoo', 'retreat', 'pumpkins', 'handbook'].map((k) => uid(`form:${k}`)))};`);
   out.push(`delete from public.teacher_threads where id in ${inList([uid('thread:taylor'), uid('thread:me')])};`);
@@ -899,6 +1172,7 @@ export function buildSql({ day, today = day, me, children, student = null, volle
     [uid('response:boots2'), uid('listing:boots'), parent('adams'), 'dibs', null, null, null, 'agreed', 500],
   ]));
   out.push(...toolsAdd());
+  out.push(...restAdd());
   out.push('commit;');
   return out.filter(Boolean).join('\n');
 }
@@ -911,7 +1185,7 @@ async function main() {
   const flag = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : undefined; };
   const parentEmail = flag('--parent');
   if (!parentEmail) {
-    console.error('Usage: node scripts/presentation_data.mjs --parent <email> [--student <email>] [--teacher <email>] [--senior <email>] [--day YYYY-MM-DD] [--only volunteer|student] [--remove] [--print]');
+    console.error('Usage: node scripts/presentation_data.mjs --parent <email> [--student <email>] [--teacher <email>] [--senior <email>] [--sub <email>] [--day YYYY-MM-DD] [--only volunteer|student] [--remove] [--print]');
     process.exit(1);
   }
   const token = process.env.SUPABASE_ACCESS_TOKEN;
@@ -928,8 +1202,12 @@ async function main() {
   };
 
   const [today] = await q(`select app.school_today()::text as d`);
+  // Days without school (breaks and holidays on the school calendar) from a month before to three months after, so the
+  // samples' dates land on school days.
+  const closed = (await q(`select d::date::text as d from generate_series(app.school_today() - 31, app.school_today() + 92, '1 day') d
+    where app.no_school(d::date)`)).map((r) => r.d);
   let day = flag('--day') ?? today.d;
-  while (weekend(day)) day = addDays(day, 1);
+  while (weekend(day) || closed.includes(day)) day = addDays(day, 1);
   const [me] = await q(`select id from auth.users where lower(email) = lower(${lit(parentEmail)})`);
   if (!me) throw new Error(`No account for ${parentEmail}.`);
   const children = await q(`select p.id, p.grade from public.guardians g join public.profiles p on p.id = g.student_id
@@ -947,6 +1225,7 @@ async function main() {
   };
   const teacher = await account('--teacher');
   const senior = await account('--senior');
+  const sub = await account('--sub');
   const [lunch] = await q(`select id from public.lunch_windows where active order by grade_from, start_time limit 1`);
   const [vb] = await q(`select se.id from public.sport_seasons se join public.sports s on s.id = se.sport_id
     where s.name = 'Volleyball' and se.ends_on >= ${lit(day)} order by se.starts_on limit 1`);
@@ -955,30 +1234,32 @@ async function main() {
   const [basketball] = await q(`select id from public.sports where name = 'Basketball' and id <> ${lit(uid('sport:basketball'))}`);
 
   const sql = buildSql({ day, today: today.d, me: me.id, children, student: student?.id ?? null, volleyball: vb?.id ?? null,
-    cheer: cheer?.id ?? null, basketball: basketball?.id ?? null, teacher, senior, lunch: lunch?.id ?? null,
+    cheer: cheer?.id ?? null, basketball: basketball?.id ?? null, teacher, senior, sub, closed, lunch: lunch?.id ?? null,
     remove: args.includes('--remove'), only: flag('--only') ?? null });
   if (args.includes('--print')) { console.log(sql); return; }
-  // The sample bulletins' pictures and PDF go in the private 'folder-files' bucket, through the Storage API with the
-  // service role key (SUPABASE_SERVICE_ROLE_KEY, or read with the access token). Uploaded before the rows that point
-  // at them; deleted after the rows are gone.
+  // The sample files (the bulletins' pictures and PDF, the students' turned-in work) go in their private buckets, through
+  // the Storage API with the service role key (SUPABASE_SERVICE_ROLE_KEY, or read with the access token). Uploaded
+  // before the rows that point at them; deleted after the rows are gone.
   const files = !flag('--only');
   let key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const storage = async (method, path, body, type) => {
+  const storage = async (method, bucket, path, body, type) => {
     key ??= await (async () => {
       const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error(`Couldn't read the project's service role key (${r.status}).`);
       return (await r.json()).find((k) => k.name === 'service_role')?.api_key;
     })();
-    const r = await fetch(`${app.expo.extra.supabaseUrl}/storage/v1/object/folder-files${path}`, { method, body,
+    const r = await fetch(`${app.expo.extra.supabaseUrl}/storage/v1/object/${bucket}${path}`, { method, body,
       headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': type, 'x-upsert': 'true' } });
-    if (!r.ok) throw new Error(`Storage ${method} ${path}: ${r.status} ${await r.text()}`);
+    if (!r.ok) throw new Error(`Storage ${method} ${bucket}${path}: ${r.status} ${await r.text()}`);
   };
   if (files && !args.includes('--remove')) {
-    for (const f of SAMPLE_FILES) await storage('POST', `/${f.path}`, readFileSync(new URL(`./sample-files/${f.file}`, import.meta.url)), f.type);
+    for (const f of SAMPLE_FILES) await storage('POST', f.bucket, `/${f.path}`, readFileSync(new URL(`./sample-files/${f.file}`, import.meta.url)), f.type);
   }
   await q(sql);
   if (args.includes('--remove')) {
-    if (files) await storage('DELETE', '', JSON.stringify({ prefixes: SAMPLE_FILES.map((f) => f.path) }), 'application/json');
+    for (const bucket of files ? [...new Set(SAMPLE_FILES.map((f) => f.bucket))] : []) {
+      await storage('DELETE', bucket, '', JSON.stringify({ prefixes: SAMPLE_FILES.filter((f) => f.bucket === bucket).map((f) => f.path) }), 'application/json');
+    }
     console.log('Removed the presentation data.');
     return;
   }
