@@ -429,9 +429,18 @@ APPLE_TEAM_ID=NH4U6X4G8C scripts/testflight.sh "What to test in this build"
   it for Beta App Review when Apple asks. Make the key under **Users and Access →
   Integrations → App Store Connect API** (App Manager access is enough). For a build
   already uploaded: `node scripts/testflight_distribute.mjs <build number> [--note
-  "…"] [--groups "Core 4"]` (or `TESTFLIGHT_GROUPS="Core 4"` for the script). Without a
+  "…"] [--groups "Core 4"] [--notify]` (or `TESTFLIGHT_GROUPS="Core 4"` for the script). Without a
   key, add the build to the groups in App Store Connect yourself. Apple won't take
   emoji in the note, so the script leaves them out.
+- **Testers get a build only with `--notify`:** so frequent builds don't flood testers'
+  inboxes, the script turns off Apple's "new build available" email and push for each build
+  (`autoNotifyEnabled`). Apple ties that to handing it out: for external groups such as Core 4,
+  a build nobody is notified about waits at **Ready to Test** after approval and testers don't
+  get it. Send a build testers should have with `--notify` (or `TESTFLIGHT_NOTIFY=1` for the
+  script); running `testflight_distribute.mjs <build> --groups "Core 4" --notify` later sends
+  a waiting build (like **Notify Testers** in App Store Connect). Testers who want no emails at
+  all can turn off Email Notifications on the app's page in the TestFlight app. Apple's own
+  emails to the App Store Connect account ("has completed processing") can't be turned off.
 - **Signing and uploading:** with the key set, Xcode signs and uploads with it (an
   Admin key also lets it make the distribution certificate and profile). Without
   one, Xcode must be signed in (**Settings → Accounts**) to an account on that team

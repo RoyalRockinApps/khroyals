@@ -3,7 +3,7 @@
  * Hand an uploaded iPhone build to the TestFlight testers.
  *
  *   ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=…/AuthKey_….p8 \
- *   node scripts/testflight_distribute.mjs <build number> [--note "What to test"] [--groups "Core 4,Teachers"]
+ *   node scripts/testflight_distribute.mjs <build number> [--note "What to test"] [--groups "Core 4,Teachers"] [--notify]
  *
  * Uses an App Store Connect API key (App Store Connect → Users and Access →
  * Integrations; App Manager access is enough). The key file stays outside the repo.
@@ -11,10 +11,15 @@
  *
  * 1. Waits for Apple to finish processing the build (up to an hour).
  * 2. Sets its "What to Test" note, if one is given (without emoji, which Apple turns down).
- * 3. Adds it to the external tester groups (all of them, or the ones named). Internal
+ * 3. Leaves out TestFlight's "new build" email and push to testers (too many emails otherwise),
+ *    unless --notify (or TESTFLIGHT_NOTIFY=1). Apple ties the two together for external groups:
+ *    a build nobody is notified about waits at "Ready to Test" after approval and testers don't
+ *    get it. So a build testers should have goes out with --notify; running this again with
+ *    --notify on a build that's waiting sends it to them (as Notify Testers in App Store Connect).
+ * 4. Adds it to the external tester groups (all of them, or the ones named). Internal
  *    groups that get every build need nothing.
- * 4. Submits it for Beta App Review if Apple wants that; external testers get it once
- *    it's approved, usually right away for a new build of a version already approved.
+ * 5. Submits it for Beta App Review if Apple wants that; it's approved usually right away for
+ *    a new build of a version already approved.
  */
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
@@ -36,7 +41,7 @@ const only = (flag('--groups') ?? process.env.TESTFLIGHT_GROUPS)?.split(',').map
 
 const need = (k) => process.env[k] || (console.error(`Set ${k} (App Store Connect API key; see the top of this file).`), process.exit(1));
 const [keyId, issuer, keyPath] = [need('ASC_KEY_ID'), need('ASC_ISSUER_ID'), need('ASC_KEY_PATH')];
-if (!build) { console.error('Usage: node scripts/testflight_distribute.mjs <build number> [--note "…"] [--groups "…"]'); process.exit(1); }
+if (!build) { console.error('Usage: node scripts/testflight_distribute.mjs <build number> [--note "…"] [--groups "…"] [--notify]'); process.exit(1); }
 const key = createPrivateKey(readFileSync(keyPath));
 
 const b64 = (x) => Buffer.from(JSON.stringify(x)).toString('base64url');
@@ -85,7 +90,16 @@ if (note) {
   console.log('What to Test note set.');
 }
 
-// 3. External groups.
+// 3. Tester notifications. Set before the build reaches any group, since Apple notifies on arrival.
+const notify = args.includes('--notify') || process.env.TESTFLIGHT_NOTIFY === '1';
+const detail = (await asc('GET', `/v1/builds/${b.id}/buildBetaDetail`)).data;
+if (detail.attributes.autoNotifyEnabled !== notify) {
+  await asc('PATCH', `/v1/buildBetaDetails/${detail.id}`, { data: { type: 'buildBetaDetails', id: detail.id, attributes: { autoNotifyEnabled: notify } } });
+}
+console.log(notify ? 'Testers will be notified about this build.'
+  : 'Testers won\'t be notified, so after approval this build waits at Ready to Test until you send it with --notify.');
+
+// 4. External groups.
 const groups = (await asc('GET', `/v1/apps/${app.id}/betaGroups?limit=200`)).data
   .filter((g) => !g.attributes.isInternalGroup && (!only || only.includes(g.attributes.name)));
 if (only) for (const name of only) if (!groups.some((g) => g.attributes.name === name)) console.warn(`No external group named "${name}".`);
@@ -94,7 +108,7 @@ for (const g of groups) {
   console.log(`Added to "${g.attributes.name}".`);
 }
 
-// 4. Beta App Review, when Apple asks for it.
+// 5. Beta App Review, when Apple asks for it.
 if (groups.length) {
   const state = (await asc('GET', `/v1/builds/${b.id}/buildBetaDetail`)).data.attributes.externalBuildState;
   if (state === 'READY_FOR_BETA_SUBMISSION') {
@@ -109,4 +123,5 @@ if (groups.length) {
     console.log(`External testing: ${state.toLowerCase().replaceAll('_', ' ')}.`);
   }
 }
-console.log('Done. Testers with automatic updates get it on their own; others tap Update in TestFlight.');
+console.log(notify ? 'Done. Testers with automatic updates get it on their own; others tap Update in TestFlight.'
+  : 'Done. Testers don\'t have this build until you run this again with --notify.');

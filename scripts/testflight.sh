@@ -15,7 +15,8 @@
 # and uploads with the key instead of its signed-in account (whose session lapses:
 # "Failed to Use Accounts"), and the script then waits for that processing and hands
 # the build to the external tester groups (scripts/testflight_distribute.mjs; all of
-# them, or TESTFLIGHT_GROUPS="Core 4"), with the optional "What to Test" note.
+# them, or TESTFLIGHT_GROUPS="Core 4"), with the optional "What to Test" note. Testers are
+# notified, and so get the build, only with TESTFLIGHT_NOTIFY=1 (DEVELOPING.md §9).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
